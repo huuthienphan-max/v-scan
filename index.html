@@ -306,13 +306,43 @@
 
             <!-- Page Data -->
             <section id="page-data" class="hidden">
+                <!-- Lịch sử Box - Dạng bảng như Danh mục SN Gốc -->
                 <div id="sub-page-box" class="hidden space-y-4">
                     <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử Box</h3>
-                        <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo</button>
+                        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử đóng Box</h3>
+                        <div class="flex gap-2">
+                            <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo</button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="box-history-grid"></div>
+                    
+                    <!-- Thanh tìm kiếm cho Box -->
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="search-box" placeholder="🔍 Tìm kiếm mã Box, PO, SKU, người tạo..." class="input-wms flex-1">
+                        <button onclick="searchBoxHistory()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
+                        <button onclick="clearBoxSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
+                    </div>
+
+                    <!-- Bảng lịch sử Box -->
+                    <div class="card overflow-hidden">
+                        <table class="w-full table-vscan">
+                            <thead>
+                                <tr>
+                                    <th>Mã Box</th>
+                                    <th>Mã PO</th>
+                                    <th>Model (SKU)</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th>Người tạo</th>
+                                    <th>Ngày tạo</th>
+                                    <th class="text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="box-history-tbody"></tbody>
+                        </table>
+                        <div id="empty-box-msg" class="p-10 text-center text-gray-400 text-sm italic hidden">Không có dữ liệu box</div>
+                    </div>
                 </div>
+
+                <!-- Danh mục SN Gốc (giữ nguyên) -->
                 <div id="sub-page-po" class="hidden space-y-4">
                     <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
                     <div class="flex gap-2 mb-4">
@@ -468,19 +498,15 @@
             mainContent.classList.toggle('expanded');
             hotkeyHint.classList.toggle('expanded');
             
-            // Đổi text nút toggle
             if (sidebar.classList.contains('collapsed')) {
                 toggleText.textContent = 'Mở rộng';
             } else {
                 toggleText.textContent = 'Thu gọn';
             }
             
-            // Lưu trạng thái vào localStorage
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebarCollapsed', isCollapsed);
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         };
 
-        // Khôi phục trạng thái sidebar
         function loadSidebarState() {
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (isCollapsed) {
@@ -758,13 +784,27 @@
                     .maybeSingle();
                 
                 if (existingBox && editingBoxId) {
+                    // Đang sửa box - cập nhật
                     await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
+                    
+                    const details = serials.map(sn => ({
+                        box_code: boxCode,
+                        serial: sn
+                    }));
+                    
+                    await supabaseClient.from('box_details').insert(details);
+                    
                     await supabaseClient.from('boxes').update({
-                        po, sku, total: serials.length, created_by: user
+                        po, 
+                        sku, 
+                        total: serials.length, 
+                        created_by: user
                     }).eq('id', editingBoxId);
+                    
                 } else if (existingBox) {
                     return { exists: true };
                 } else {
+                    // Thêm box mới
                     const { data: newBox, error: boxError } = await supabaseClient
                         .from('boxes')
                         .insert([{
@@ -1296,39 +1336,67 @@
             document.getElementById('detail-modal').style.display = 'flex';
         };
 
-        function renderBoxHistory() {
-            const grid = document.getElementById('box-history-grid');
-            if(boxData.length === 0) {
-                grid.innerHTML = '<div class="col-span-4 text-center text-gray-400 p-8">Chưa có dữ liệu box</div>';
+        // ==================== BOX HISTORY - DẠNG BẢNG ====================
+        window.searchBoxHistory = () => {
+            renderBoxHistory(document.getElementById('search-box').value.toLowerCase());
+        };
+
+        window.clearBoxSearch = () => {
+            document.getElementById('search-box').value = '';
+            renderBoxHistory();
+        };
+
+        function renderBoxHistory(filterKeyword = '') {
+            const tbody = document.getElementById('box-history-tbody');
+            const emptyMsg = document.getElementById('empty-box-msg');
+            
+            if (!tbody) return;
+            
+            if (boxData.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                tbody.innerHTML = '';
                 return;
             }
+
+            let filteredData = boxData;
+            if (filterKeyword) {
+                filteredData = boxData.filter(b => 
+                    b.box.toLowerCase().includes(filterKeyword) ||
+                    b.po.toLowerCase().includes(filterKeyword) ||
+                    b.sku.toLowerCase().includes(filterKeyword) ||
+                    (b.user && b.user.toLowerCase().includes(filterKeyword))
+                );
+            }
+
+            if (filteredData.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                tbody.innerHTML = '';
+                return;
+            }
+
+            if (emptyMsg) emptyMsg.classList.add('hidden');
             
-            grid.innerHTML = boxData.map(d => {
-                const canEdit = ['admin', 'manager'].includes(currentUserRole);
+            const canEdit = ['admin', 'manager'].includes(currentUserRole);
+            
+            tbody.innerHTML = filteredData.map(d => {
                 const date = d.createdAt ? new Date(d.createdAt).toLocaleString('vi-VN') : '';
-                
-                return `
-                <div class="card p-4 hover:shadow-lg transition-shadow">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="font-bold text-orange-600 text-lg">${d.box}</span>
-                        <span class="text-[10px] px-2 py-1 bg-gray-100 rounded">${d.user || 'N/A'}</span>
-                    </div>
-                    <div class="text-sm mb-2 space-y-1">
-                        <div class="text-[11px]"><span class="font-bold">PO:</span> ${d.po}</div>
-                        <div class="text-[11px]"><span class="font-bold">SKU:</span> ${d.sku}</div>
-                        <div class="text-[11px]"><span class="font-bold">SL:</span> ${d.total || d.serials?.length || 0}</div>
-                        <div class="text-[10px] text-gray-400">${date}</div>
-                    </div>
-                    <div class="flex gap-2 mt-3">
+                return `<tr>
+                    <td class="font-bold text-orange-600">${d.box}</td>
+                    <td>${d.po}</td>
+                    <td>${d.sku}</td>
+                    <td class="text-center">${d.total || d.serials?.length || 0}</td>
+                    <td>${d.user || 'N/A'}</td>
+                    <td class="text-xs text-gray-500">${date}</td>
+                    <td class="text-right space-x-2">
                         ${canEdit ? `
-                            <button onclick="editBox('${d.id}')" class="flex-1 bg-blue-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-blue-600 transition">SỬA</button>
-                            <button onclick="deleteBox('${d.id}')" class="flex-1 bg-red-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-red-600 transition">XÓA</button>
+                            <button onclick="editBox('${d.id}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                            <button onclick="deleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
                         ` : `
-                            <button disabled class="flex-1 bg-gray-300 text-gray-500 py-1.5 rounded text-[10px] font-bold cursor-not-allowed">CHỈ XEM</button>
+                            <span class="text-gray-400 text-xs">(không có quyền)</span>
                         `}
-                    </div>
-                </div>
-            `}).join('');
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
         window.editBox = (id) => {
