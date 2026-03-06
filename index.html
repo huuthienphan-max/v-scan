@@ -251,9 +251,7 @@
         // ==================== CẤU HÌNH GITHUB ====================
         // ==================== CẤU HÌNH GITHUB ====================
 const GITHUB_CONFIG = {
-    token: typeof process !== 'undefined' && process.env.GITHUB_TOKEN 
-        ? process.env.GITHUB_TOKEN 
-        : window.GITHUB_TOKEN || '',
+    token: process.env.GITHUB_TOKEN || '',  // Đơn giản hơn
     owner: 'huuthienphan-max',
     repo: 'vscan-data',  // Tạo repository mới cho dữ liệu
     filePath: 'data.json'
@@ -1056,6 +1054,7 @@ async function saveToGitHub(isInitial = false) {
     </script>
 </body>
 </html>
+
 
 
 
