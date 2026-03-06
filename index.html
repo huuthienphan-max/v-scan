@@ -51,6 +51,26 @@
             display: none;
         }
         
+        /* Toggle button inside sidebar */
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 10px 0;
+            cursor: pointer;
+            color: #a9abb0;
+            border-bottom: 1px solid #2a2e3a;
+            transition: all 0.2s;
+        }
+        .sidebar-toggle:hover {
+            background-color: #0f1116;
+            color: #ee4d2d;
+        }
+        .sidebar.collapsed .sidebar-toggle svg {
+            transform: rotate(180deg);
+        }
+        
         .sidebar-item { 
             display: flex; 
             align-items: center; 
@@ -93,31 +113,6 @@
         .sub-item.active { 
             color: #ee4d2d; 
             font-weight: 600; 
-        }
-        
-        /* Toggle button */
-        .sidebar-toggle {
-            position: fixed;
-            left: 270px;
-            top: 10px;
-            width: 30px;
-            height: 30px;
-            background: #ee4d2d;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 60;
-            transition: left 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .sidebar-toggle.collapsed {
-            left: 80px;
-        }
-        .sidebar-toggle:hover {
-            background: #d73211;
         }
         
         /* Main content */
@@ -202,15 +197,16 @@
         </div>
     </div>
 
-    <!-- Sidebar Toggle Button -->
-    <div id="sidebar-toggle" class="sidebar-toggle hidden" onclick="toggleSidebar()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </div>
-
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar hidden">
+        <!-- Nút toggle nằm trong sidebar -->
+        <div class="sidebar-toggle" onclick="toggleSidebar()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+            <span class="ml-2 text-xs" style="margin-left: 8px;">Thu gọn</span>
+        </div>
+
         <div class="p-6 border-b border-slate-800 flex items-center gap-2">
             <div class="w-8 h-8 bg-[#ee4d2d] rounded flex items-center justify-center text-white font-bold italic">V</div>
             <span class="font-bold text-white tracking-tight uppercase">V-Scan Pro</span>
@@ -464,14 +460,20 @@
         // ==================== SIDEBAR TOGGLE ====================
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('sidebar-toggle');
             const mainContent = document.getElementById('main-ui');
             const hotkeyHint = document.getElementById('hotkey-hint');
+            const toggleText = document.querySelector('.sidebar-toggle span');
             
             sidebar.classList.toggle('collapsed');
-            toggleBtn.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
             hotkeyHint.classList.toggle('expanded');
+            
+            // Đổi text nút toggle
+            if (sidebar.classList.contains('collapsed')) {
+                toggleText.textContent = 'Mở rộng';
+            } else {
+                toggleText.textContent = 'Thu gọn';
+            }
             
             // Lưu trạng thái vào localStorage
             const isCollapsed = sidebar.classList.contains('collapsed');
@@ -483,14 +485,14 @@
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (isCollapsed) {
                 const sidebar = document.getElementById('sidebar');
-                const toggleBtn = document.getElementById('sidebar-toggle');
                 const mainContent = document.getElementById('main-ui');
                 const hotkeyHint = document.getElementById('hotkey-hint');
+                const toggleText = document.querySelector('.sidebar-toggle span');
                 
                 sidebar.classList.add('collapsed');
-                toggleBtn.classList.add('collapsed');
                 mainContent.classList.add('expanded');
                 hotkeyHint.classList.add('expanded');
+                toggleText.textContent = 'Mở rộng';
             }
         }
 
@@ -857,7 +859,6 @@
                 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
-                document.getElementById('sidebar-toggle').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
                 document.getElementById('admin-only-menu').classList.remove('hidden');
@@ -898,7 +899,6 @@
                 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
-                document.getElementById('sidebar-toggle').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
                 if(['admin', 'manager'].includes(currentUserRole)) {
