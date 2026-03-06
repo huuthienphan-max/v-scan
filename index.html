@@ -378,6 +378,33 @@
         </div>
     </div>
 
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+            <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
+            <input type="hidden" id="edit-user-id">
+            <div class="space-y-4">
+                <input type="text" id="edit-username" placeholder="Username" class="w-full input-wms">
+                <input type="password" id="edit-password" placeholder="Password mới (để trống nếu không đổi)" class="w-full input-wms">
+                <input type="text" id="edit-fullname" placeholder="Họ tên" class="w-full input-wms">
+                <select id="edit-role" class="w-full input-wms">
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="scanner">Scanner</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="edit-isactive" checked>
+                    <span class="text-sm">Kích hoạt</span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeEditUserModal()" class="px-4 py-2 bg-gray-200 rounded font-bold text-xs">HỦY</button>
+                <button onclick="updateUser()" class="px-4 py-2 btn-shopee rounded font-bold text-xs">CẬP NHẬT</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== CẤU HÌNH SUPABASE ====================
         const SUPABASE_CONFIG = {
@@ -405,7 +432,7 @@
         };
 
         // ==================== THEME ====================
-        function toggleTheme() {
+        window.toggleTheme = function() {
             const body = document.body;
             if (body.classList.contains('light-mode')) {
                 body.classList.remove('light-mode');
@@ -418,7 +445,7 @@
                 localStorage.setItem('theme', 'light');
                 document.getElementById('theme-icon').innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
             }
-        }
+        };
 
         // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -528,7 +555,7 @@
                     .single();
                 
                 if (existing) {
-                    notify('Username đã tồn tại!', true);
+                    window.notify('Username đã tồn tại!', true);
                     return false;
                 }
 
@@ -552,21 +579,27 @@
                 if (error) throw error;
                 
                 await logActivity('ADD_USER', { username, role });
-                notify('Thêm nhân viên thành công!');
+                window.notify('Thêm nhân viên thành công!');
                 renderStaffList();
                 return true;
             } catch (error) {
                 console.error('Lỗi thêm user:', error);
-                notify('Lỗi khi thêm!', true);
+                window.notify('Lỗi khi thêm!', true);
                 return false;
             }
         }
 
         async function updateUser(id, username, password, role, fullName, isActive) {
             try {
+                const { data: roleData } = await supabaseClient
+                    .from('roles')
+                    .select('id')
+                    .eq('name', role)
+                    .single();
+
                 const updateData = { 
                     username, 
-                    role: await getRoleId(role),
+                    role_id: roleData?.id,
                     full_name: fullName,
                     is_active: isActive
                 };
@@ -580,19 +613,19 @@
                 if (error) throw error;
                 
                 await logActivity('UPDATE_USER', { username, role });
-                notify('Cập nhật thành công!');
+                window.notify('Cập nhật thành công!');
                 renderStaffList();
                 return true;
             } catch (error) {
                 console.error('Lỗi cập nhật user:', error);
-                notify('Lỗi khi cập nhật!', true);
+                window.notify('Lỗi khi cập nhật!', true);
                 return false;
             }
         }
 
-        async function deleteUser(id) {
+        window.deleteUser = async (id) => { 
             if (!await checkPermission('admin')) {
-                notify('Không có quyền!', true);
+                window.notify('Không có quyền!', true);
                 return false;
             }
             
@@ -606,16 +639,16 @@
                     if (error) throw error;
                     
                     await logActivity('DELETE_USER', { user_id: id });
-                    notify('Đã xóa nhân viên!');
+                    window.notify('Đã xóa nhân viên!');
                     renderStaffList();
                     return true;
                 } catch (error) {
                     console.error('Lỗi xóa user:', error);
-                    notify('Lỗi khi xóa!', true);
+                    window.notify('Lỗi khi xóa!', true);
                     return false;
                 }
             }
-        }
+        };
 
         async function getRoleId(roleName) {
             const { data } = await supabaseClient
@@ -900,6 +933,8 @@
             const list = document.getElementById('staff-list');
             list.innerHTML = '';
             
+            users.sort((a, b) => a.username.localeCompare(b.username));
+            
             users.forEach(user => {
                 const roleName = user.roles?.name || 'viewer';
                 list.innerHTML += `
@@ -943,7 +978,7 @@
             const isActive = document.getElementById('edit-isactive').checked;
 
             if (!username) {
-                notify("Vui lòng nhập username!", true);
+                window.notify("Vui lòng nhập username!", true);
                 return;
             }
 
@@ -964,11 +999,9 @@
                 document.getElementById('new-pass').value = ''; 
                 document.getElementById('new-fullname').value = ''; 
             } else {
-                notify("Vui lòng nhập username và password!", true);
+                window.notify("Vui lòng nhập username và password!", true);
             }
         };
-
-        window.deleteUser = deleteUser;
 
         // ==================== SCAN LOGIC ====================
         document.getElementById('barcode-scanner').onkeydown = async (e) => {
@@ -983,7 +1016,7 @@
                 const sku = document.getElementById('sel-sku').value;
                 
                 if(!po || !sku) {
-                    notify("Chưa chọn PO/Model!", true);
+                    window.notify("Chưa chọn PO/Model!", true);
                     audio.err.play();
                     return;
                 }
@@ -1000,7 +1033,7 @@
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
-                    notify("SN không đúng với PO/Model!", true);
+                    window.notify("SN không đúng với PO/Model!", true);
                     return;
                 }
                 
@@ -1008,7 +1041,7 @@
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
-                    notify("SN đã được quét trong hệ thống!", true);
+                    window.notify("SN đã được quét trong hệ thống!", true);
                     return;
                 }
                 
@@ -1016,7 +1049,7 @@
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
-                    notify("SN đã có trong danh sách!", true);
+                    window.notify("SN đã có trong danh sách!", true);
                     return;
                 }
                 
@@ -1068,17 +1101,17 @@
             const sku = document.getElementById('sel-sku').value;
             
             if(!sessionScans.length) {
-                notify("Chưa có SN nào được quét!", true);
+                window.notify("Chưa có SN nào được quét!", true);
                 return;
             }
             
             if(!box) {
-                notify("Thiếu mã Box!", true);
+                window.notify("Thiếu mã Box!", true);
                 return;
             }
             
             if(!po || !sku) {
-                notify("Thiếu PO hoặc Model!", true);
+                window.notify("Thiếu PO hoặc Model!", true);
                 return;
             }
             
@@ -1094,12 +1127,12 @@
             const result = await saveBox(box, po, sku, serials, currentUser);
             
             if (result.success) {
-                notify(editingBoxId ? "Đã cập nhật box!" : "Đã lưu box!");
+                window.notify(editingBoxId ? "Đã cập nhật box!" : "Đã lưu box!");
                 forceReset();
             } else if (result.exists) {
-                notify("Mã Box đã tồn tại!", true);
+                window.notify("Mã Box đã tồn tại!", true);
             } else {
-                notify("Lỗi khi lưu dữ liệu!", true);
+                window.notify("Lỗi khi lưu dữ liệu!", true);
             }
         };
 
@@ -1131,7 +1164,7 @@
 
         document.getElementById('master-file').onchange = async (e) => {
             if (!['admin', 'manager'].includes(currentUserRole)) {
-                notify("Không có quyền!", true);
+                window.notify("Không có quyền!", true);
                 e.target.value = '';
                 return;
             }
@@ -1143,7 +1176,7 @@
                     const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                     
                     if(json.length === 0) {
-                        notify("File không có dữ liệu!", true);
+                        window.notify("File không có dữ liệu!", true);
                         return;
                     }
                     
@@ -1158,12 +1191,12 @@
                     if (success) {
                         renderPOSelect();
                         renderMasterPOList();
-                        notify("Đã cập nhật Master Data!");
+                        window.notify("Đã cập nhật Master Data!");
                     } else {
-                        notify("Lỗi khi lưu!", true);
+                        window.notify("Lỗi khi lưu!", true);
                     }
                 } catch (error) {
-                    notify("Lỗi đọc file Excel!", true);
+                    window.notify("Lỗi đọc file Excel!", true);
                 }
             };
             reader.readAsBinaryString(e.target.files[0]);
@@ -1239,7 +1272,7 @@
             switchPage('inbound');
             document.getElementById('sel-po').value = poCode;
             document.getElementById('sel-po').dispatchEvent(new Event('change'));
-            notify(`Đã chuyển sang scan PO: ${poCode}`);
+            window.notify(`Đã chuyển sang scan PO: ${poCode}`);
             setTimeout(() => document.getElementById('barcode-scanner').focus(), 100);
         };
 
@@ -1319,7 +1352,7 @@
             container.innerHTML = '';
             QRCode.toCanvas(document.createElement('canvas'), box.box, { width: 200 }, (err, canvas) => {
                 if (err) {
-                    notify('Lỗi tạo QR!', true);
+                    window.notify('Lỗi tạo QR!', true);
                 } else {
                     container.appendChild(canvas);
                 }
@@ -1337,7 +1370,7 @@
                 <html>
                 <head><title>In QR Code</title></head>
                 <body style="text-align: center; padding: 50px;">
-                    ${qrCanvas.outerHTML}
+                    ${qrCanvas ? qrCanvas.outerHTML : ''}
                     <div style="margin-top: 20px;">${boxInfo}</div>
                     <script>window.print();window.close();</script>
                 </body>
@@ -1351,7 +1384,7 @@
 
         window.editBox = (id) => {
             if (!['admin', 'manager'].includes(currentUserRole)) {
-                notify("Không có quyền sửa!", true);
+                window.notify("Không có quyền sửa!", true);
                 return;
             }
             
@@ -1378,16 +1411,16 @@
 
         window.deleteBox = async (id) => { 
             if (!['admin', 'manager'].includes(currentUserRole)) {
-                notify("Không có quyền xóa!", true);
+                window.notify("Không có quyền xóa!", true);
                 return;
             }
             
             if(confirm("Xác nhận xóa box này?")) {
                 const success = await deleteBox(id);
                 if (success) {
-                    notify("Đã xóa box thành công!");
+                    window.notify("Đã xóa box thành công!");
                 } else {
-                    notify("Lỗi khi xóa box!", true);
+                    window.notify("Lỗi khi xóa box!", true);
                 }
             } 
         };
@@ -1446,14 +1479,14 @@
                 
                 const tbody = document.getElementById('activity-log-tbody');
                 if (tbody) {
-                    tbody.innerHTML = logs.map(log => `
+                    tbody.innerHTML = logs ? logs.map(log => `
                         <tr>
                             <td class="text-xs">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
                             <td class="text-xs font-bold">${log.username}</td>
                             <td class="text-xs">${log.action}</td>
                             <td class="text-xs">${JSON.stringify(log.details)}</td>
                         </tr>
-                    `).join('');
+                    `).join('') : '';
                 }
                 
                 // Load chart data
@@ -1464,51 +1497,55 @@
         }
 
         async function loadChartData() {
-            const { data: boxes } = await supabaseClient
-                .from('boxes')
-                .select('created_at')
-                .order('created_at');
-            
-            if (!boxes || boxes.length === 0) return;
-            
-            const last7Days = [];
-            const counts = [];
-            
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
-                last7Days.push(dateStr);
+            try {
+                const { data: boxes } = await supabaseClient
+                    .from('boxes')
+                    .select('created_at')
+                    .order('created_at');
                 
-                const count = boxes.filter(b => 
-                    new Date(b.created_at).toISOString().split('T')[0] === dateStr
-                ).length;
-                counts.push(count);
-            }
-            
-            const ctx = document.getElementById('stats-chart').getContext('2d');
-            if (chart) chart.destroy();
-            
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: last7Days,
-                    datasets: [{
-                        label: 'Số box đóng',
-                        data: counts,
-                        borderColor: '#ee4d2d',
-                        backgroundColor: 'rgba(238, 77, 45, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    }
+                if (!boxes || boxes.length === 0) return;
+                
+                const last7Days = [];
+                const counts = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    last7Days.push(dateStr);
+                    
+                    const count = boxes.filter(b => 
+                        new Date(b.created_at).toISOString().split('T')[0] === dateStr
+                    ).length;
+                    counts.push(count);
                 }
-            });
+                
+                const ctx = document.getElementById('stats-chart').getContext('2d');
+                if (chart) chart.destroy();
+                
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: last7Days,
+                        datasets: [{
+                            label: 'Số box đóng',
+                            data: counts,
+                            borderColor: '#ee4d2d',
+                            backgroundColor: 'rgba(238, 77, 45, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Lỗi load chart:', error);
+            }
         }
 
         // ==================== BACKUP ====================
@@ -1547,7 +1584,7 @@
             a.download = `vscan-backup-${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             
-            notify('Đã xuất backup!');
+            window.notify('Đã xuất backup!');
             closeBackupModal();
         };
 
@@ -1564,33 +1601,35 @@
                 try {
                     const backup = JSON.parse(evt.target.result);
                     
-                    if (!confirm(`Import ${backup.data.length} box?`)) return;
+                    if (!confirm(`Import ${backup.data?.length || 0} box?`)) return;
                     
-                    for (const box of backup.data) {
-                        await supabaseClient.from('boxes').insert([{
-                            box_code: box.box_code,
-                            po: box.po,
-                            sku: box.sku,
-                            total: box.total,
-                            created_by: box.created_by,
-                            created_at: box.created_at
-                        }]);
-                        
-                        if (box.box_details) {
-                            await supabaseClient.from('box_details').insert(
-                                box.box_details.map(d => ({
-                                    box_code: d.box_code,
-                                    serial: d.serial,
-                                    created_at: d.created_at
-                                }))
-                            );
+                    if (backup.data && Array.isArray(backup.data)) {
+                        for (const box of backup.data) {
+                            await supabaseClient.from('boxes').insert([{
+                                box_code: box.box_code,
+                                po: box.po,
+                                sku: box.sku,
+                                total: box.total,
+                                created_by: box.created_by,
+                                created_at: box.created_at
+                            }]);
+                            
+                            if (box.box_details) {
+                                await supabaseClient.from('box_details').insert(
+                                    box.box_details.map(d => ({
+                                        box_code: d.box_code,
+                                        serial: d.serial,
+                                        created_at: d.created_at
+                                    }))
+                                );
+                            }
                         }
                     }
                     
                     await loadAllBoxes();
-                    notify('Import thành công!');
+                    window.notify('Import thành công!');
                 } catch (error) {
-                    notify('Lỗi import!', true);
+                    window.notify('Lỗi import!', true);
                 }
             };
             reader.readAsText(file);
@@ -1628,37 +1667,6 @@
         window.closeModal = () => {
             document.getElementById('detail-modal').style.display = 'none';
         };
-
-        // Thêm edit user modal vào body
-        const editModal = document.createElement('div');
-        editModal.id = 'edit-user-modal';
-        editModal.className = 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50';
-        editModal.innerHTML = `
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
-                <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
-                <input type="hidden" id="edit-user-id">
-                <div class="space-y-4">
-                    <input type="text" id="edit-username" placeholder="Username" class="w-full input-wms">
-                    <input type="password" id="edit-password" placeholder="Password mới (để trống nếu không đổi)" class="w-full input-wms">
-                    <input type="text" id="edit-fullname" placeholder="Họ tên" class="w-full input-wms">
-                    <select id="edit-role" class="w-full input-wms">
-                        <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
-                        <option value="scanner">Scanner</option>
-                        <option value="viewer">Viewer</option>
-                    </select>
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" id="edit-isactive" checked>
-                        <span class="text-sm">Kích hoạt</span>
-                    </label>
-                </div>
-                <div class="flex justify-end gap-2 mt-6">
-                    <button onclick="closeEditUserModal()" class="px-4 py-2 bg-gray-200 rounded font-bold text-xs">HỦY</button>
-                    <button onclick="updateUser()" class="px-4 py-2 btn-shopee rounded font-bold text-xs">CẬP NHẬT</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(editModal);
     </script>
 </body>
 </html>
