@@ -512,7 +512,6 @@
             const savedId = localStorage.getItem('currentUserId');
             
             if (savedUser && savedRole && savedId) {
-                // Kiểm tra user vẫn active trong database
                 const { data: user } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -950,6 +949,7 @@
             }
         }
 
+        // ==================== SOFT DELETE BOX - SỬA LỖI ====================
         window.softDeleteBox = async (id) => { 
             if (!['admin', 'manager'].includes(currentUserRole)) {
                 window.notify("Không có quyền xóa!", true);
@@ -959,12 +959,22 @@
             if (!confirm("Xác nhận xóa box này?")) return;
             
             try {
-                const box = boxData.find(b => b.id === id);
-                if (!box) {
-                    window.notify("Không tìm thấy box!", true);
+                // Tìm box trực tiếp trong database bằng id
+                const { data: box, error: findError } = await supabaseClient
+                    .from('boxes')
+                    .select('box_code')
+                    .eq('id', id)
+                    .single();
+                
+                if (findError || !box) {
+                    console.error('Không tìm thấy box:', findError);
+                    window.notify("Không tìm thấy box trong database!", true);
                     return;
                 }
                 
+                console.log('Đang xóa box:', box);
+                
+                // Soft delete box
                 const { error: boxError } = await supabaseClient
                     .from('boxes')
                     .update({ is_active: false })
@@ -972,15 +982,17 @@
                 
                 if (boxError) throw boxError;
                 
+                // Soft delete các details của box
                 const { error: detailError } = await supabaseClient
                     .from('box_details')
                     .update({ is_active: false })
-                    .eq('box_code', box.box);
+                    .eq('box_code', box.box_code);
                 
                 if (detailError) throw detailError;
                 
+                // Load lại dữ liệu
                 await loadAllBoxes();
-                await logActivity('SOFT_DELETE_BOX', { box: box.box });
+                await logActivity('SOFT_DELETE_BOX', { box: box.box_code });
                 window.notify("Đã xóa box thành công!");
                 
             } catch (error) {
