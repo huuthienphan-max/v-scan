@@ -168,12 +168,16 @@
         .role-manager { background-color: #fef3c7; color: #d97706; }
         .role-scanner { background-color: #dbeafe; color: #2563eb; }
         .role-viewer { background-color: #e0e7ff; color: #4f46e5; }
+        .role-inactive { background-color: #e5e7eb; color: #6b7280; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #ee4d2d; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .db-status { font-size: 10px; color: #666; margin-left: 10px; }
         .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; transition: left 0.3s ease; }
         .hotkey-hint.expanded { left: 80px; }
         .edit-mode { background-color: #fef3c7; border-color: #fbbf24; }
+        .tab-button { padding: 8px 16px; font-size: 12px; font-weight: bold; border-radius: 4px 4px 0 0; cursor: pointer; }
+        .tab-active { background-color: #ee4d2d; color: white; }
+        .tab-inactive { background-color: #e5e7eb; color: #4b5563; }
     </style>
 </head>
 <body class="flex">
@@ -374,6 +378,13 @@
                     </div>
                     <div class="card p-6">
                         <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
+                        
+                        <!-- Tabs cho Active/Inactive Users -->
+                        <div class="flex gap-1 mb-4 border-b">
+                            <button id="tab-active-users" onclick="showActiveUsers()" class="tab-button tab-active">Đang hoạt động</button>
+                            <button id="tab-inactive-users" onclick="showInactiveUsers()" class="tab-button tab-inactive">Đã ẩn</button>
+                        </div>
+                        
                         <div class="flex gap-2 mb-4">
                             <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
                             <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
@@ -476,10 +487,26 @@
         let allScannedSerials = new Set();
         let editingBoxId = null;
         let editingBoxCode = null;
+        let showInactiveUsers = false; // Biến để kiểm soát hiển thị user active/inactive
 
         const audio = { 
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
+        };
+
+        // ==================== TAB FUNCTIONS ====================
+        window.showActiveUsers = function() {
+            showInactiveUsers = false;
+            document.getElementById('tab-active-users').className = 'tab-button tab-active';
+            document.getElementById('tab-inactive-users').className = 'tab-button tab-inactive';
+            renderStaffList();
+        };
+
+        window.showInactiveUsers = function() {
+            showInactiveUsers = true;
+            document.getElementById('tab-active-users').className = 'tab-button tab-inactive';
+            document.getElementById('tab-inactive-users').className = 'tab-button tab-active';
+            renderStaffList();
         };
 
         // ==================== SIDEBAR TOGGLE ====================
@@ -560,19 +587,26 @@
                         user_id: currentUserId,
                         username: currentUser,
                         action,
-                        details
+                        details,
+                        is_active: true
                     }]);
             } catch (error) {
                 console.error('Lỗi ghi log:', error);
             }
         }
 
-        async function getAllUsers() {
+        // ==================== USER FUNCTIONS WITH SOFT DELETE ====================
+        async function getAllUsers(includeInactive = false) {
             try {
-                const { data, error } = await supabaseClient
+                let query = supabaseClient
                     .from('users')
-                    .select('*, roles(*)')
-                    .order('username');
+                    .select('*, roles(*)');
+                
+                if (!includeInactive) {
+                    query = query.eq('is_active', true);
+                }
+                
+                const { data, error } = await query.order('username');
                 
                 if (error) throw error;
                 return data || [];
@@ -609,7 +643,8 @@
                         role_id: roleData?.id,
                         full_name: fullName,
                         created_by: currentUser,
-                        is_active: true
+                        is_active: true,
+                        deleted_at: null
                     }]);
                 
                 if (error) throw error;
@@ -659,38 +694,84 @@
             }
         }
 
-        window.deleteUser = async (id) => { 
+        // SOFT DELETE - Chỉ set is_active = false và deleted_at = now
+        window.softDeleteUser = async (id) => { 
             if (currentUserRole !== 'admin') {
                 window.notify('Không có quyền!', true);
                 return false;
             }
             
-            if (confirm('Xóa nhân viên này?')) {
-                try {
-                    const { error } = await supabaseClient
-                        .from('users')
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) throw error;
-                    
-                    await logActivity('DELETE_USER', { user_id: id });
-                    window.notify('Đã xóa nhân viên!');
-                    renderStaffList();
-                    return true;
-                } catch (error) {
-                    console.error('Lỗi xóa user:', error);
-                    window.notify('Lỗi khi xóa!', true);
+            if (!confirm('Ẩn nhân viên này?')) return false;
+            
+            try {
+                // Kiểm tra user có phải admin không
+                const { data: user } = await supabaseClient
+                    .from('users')
+                    .select('username')
+                    .eq('id', id)
+                    .single();
+                
+                if (user?.username === 'admin') {
+                    window.notify('Không thể ẩn tài khoản admin!', true);
                     return false;
                 }
+                
+                // Soft delete: chỉ update is_active = false
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ 
+                        is_active: false,
+                        deleted_at: new Date().toISOString()
+                    })
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await logActivity('SOFT_DELETE_USER', { user_id: id });
+                window.notify('Đã ẩn nhân viên!');
+                renderStaffList();
+                return true;
+            } catch (error) {
+                console.error('Lỗi ẩn user:', error);
+                window.notify('Lỗi khi ẩn!', true);
+                return false;
             }
         };
 
+        // Khôi phục user đã ẩn
+        window.restoreUser = async (id) => {
+            if (currentUserRole !== 'admin') {
+                window.notify('Không có quyền!', true);
+                return;
+            }
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ 
+                        is_active: true,
+                        deleted_at: null
+                    })
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await logActivity('RESTORE_USER', { user_id: id });
+                window.notify('Đã khôi phục nhân viên!');
+                renderStaffList();
+            } catch (error) {
+                console.error('Lỗi khôi phục user:', error);
+                window.notify('Lỗi khi khôi phục!', true);
+            }
+        };
+
+        // ==================== MASTER DATA WITH SOFT DELETE ====================
         async function loadMasterData() {
             try {
                 const { data, error } = await supabaseClient
                     .from('master_serials')
                     .select('*')
+                    .eq('is_active', true)  // CHỈ LẤY ACTIVE
                     .order('po');
                 
                 if (error) throw error;
@@ -709,16 +790,23 @@
 
         async function saveMasterData(data) {
             try {
-                await supabaseClient.from('master_serials').delete().neq('id', 0);
+                // Soft delete dữ liệu cũ
+                await supabaseClient
+                    .from('master_serials')
+                    .update({ 
+                        is_active: false, 
+                        deleted_at: new Date().toISOString() 
+                    })
+                    .eq('is_active', true);
                 
+                // Thêm dữ liệu mới
                 const { error } = await supabaseClient
                     .from('master_serials')
-                    .insert(data);
+                    .insert(data.map(item => ({ ...item, is_active: true, deleted_at: null })));
                 
                 if (error) throw error;
                 
-                masterData = data;
-                localStorage.setItem('masterData', JSON.stringify(masterData));
+                await loadMasterData();
                 await logActivity('UPDATE_MASTER_DATA', { count: data.length });
                 
                 return true;
@@ -728,11 +816,14 @@
             }
         }
 
+        // ==================== BOX FUNCTIONS WITH SOFT DELETE ====================
         async function loadAllBoxes() {
             try {
+                // Chỉ lấy boxes active
                 const { data: boxes, error: boxError } = await supabaseClient
                     .from('boxes')
                     .select('*')
+                    .eq('is_active', true)
                     .order('created_at', { ascending: false });
                 
                 if (boxError) throw boxError;
@@ -741,7 +832,8 @@
                     const { data: details } = await supabaseClient
                         .from('box_details')
                         .select('serial')
-                        .eq('box_code', box.box_code);
+                        .eq('box_code', box.box_code)
+                        .eq('is_active', true);
                     
                     return {
                         id: box.id,
@@ -776,13 +868,18 @@
                     // ĐANG SỬA BOX - Cập nhật box cũ
                     console.log('Đang cập nhật box ID:', editingBoxId, 'với mã:', boxCode);
                     
-                    // Xóa chi tiết cũ
-                    await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
+                    // Soft delete chi tiết cũ
+                    await supabaseClient
+                        .from('box_details')
+                        .update({ is_active: false, deleted_at: new Date().toISOString() })
+                        .eq('box_code', boxCode);
                     
                     // Thêm chi tiết mới
                     const details = serials.map(sn => ({
                         box_code: boxCode,
-                        serial: sn
+                        serial: sn,
+                        is_active: true,
+                        deleted_at: null
                     }));
                     
                     const { error: detailError } = await supabaseClient
@@ -809,6 +906,7 @@
                         .from('boxes')
                         .select('id')
                         .eq('box_code', boxCode)
+                        .eq('is_active', true)
                         .maybeSingle();
                     
                     if (existingBox) {
@@ -823,7 +921,9 @@
                             po: po,
                             sku: sku,
                             total: serials.length,
-                            created_by: user
+                            created_by: user,
+                            is_active: true,
+                            deleted_at: null
                         }])
                         .select()
                         .single();
@@ -832,7 +932,9 @@
                     
                     const details = serials.map(sn => ({
                         box_code: boxCode,
-                        serial: sn
+                        serial: sn,
+                        is_active: true,
+                        deleted_at: null
                     }));
                     
                     const { error: detailError } = await supabaseClient
@@ -851,16 +953,32 @@
             }
         }
 
-        async function deleteBox(id) {
+        // SOFT DELETE BOX
+        async function softDeleteBox(id) {
             try {
                 const box = boxData.find(b => b.id === id);
                 if (!box) return false;
                 
-                await supabaseClient.from('box_details').delete().eq('box_code', box.box);
-                await supabaseClient.from('boxes').delete().eq('id', id);
+                // Soft delete box
+                await supabaseClient
+                    .from('boxes')
+                    .update({ 
+                        is_active: false, 
+                        deleted_at: new Date().toISOString() 
+                    })
+                    .eq('id', id);
+                
+                // Soft delete các details của box
+                await supabaseClient
+                    .from('box_details')
+                    .update({ 
+                        is_active: false, 
+                        deleted_at: new Date().toISOString() 
+                    })
+                    .eq('box_code', box.box);
                 
                 await loadAllBoxes();
-                await logActivity('DELETE_BOX', { box: box.box });
+                await logActivity('SOFT_DELETE_BOX', { box: box.box });
                 return true;
             } catch (error) {
                 console.error('Lỗi xóa box:', error);
@@ -872,7 +990,8 @@
             const { count } = await supabaseClient
                 .from('box_details')
                 .select('*', { count: 'exact', head: true })
-                .eq('serial', serial);
+                .eq('serial', serial)
+                .eq('is_active', true);
             
             return count > 0;
         }
@@ -934,9 +1053,10 @@
                 .select('*, roles(*)')
                 .eq('username', u)
                 .eq('password', p)
+                .eq('is_active', true)  // CHỈ CHO ACTIVE USER ĐĂNG NHẬP
                 .maybeSingle();
             
-            if (user && user.is_active) {
+            if (user) {
                 currentUser = user.username;
                 currentUserRole = user.roles?.name || 'viewer';
                 currentUserId = user.id;
@@ -976,10 +1096,11 @@
             location.reload();
         };
 
+        // ==================== RENDER STAFF LIST WITH SOFT DELETE ====================
         async function renderStaffList() {
             if (!['admin', 'manager'].includes(currentUserRole)) return;
             
-            const users = await getAllUsers();
+            const users = await getAllUsers(showInactiveUsers); // Lấy theo tab
             const list = document.getElementById('staff-list');
             list.innerHTML = '';
             
@@ -987,17 +1108,23 @@
             
             users.forEach(user => {
                 const roleName = user.roles?.name || 'viewer';
+                const isAdmin = user.username === 'admin';
+                
                 list.innerHTML += `
-                    <div class="py-3 flex justify-between items-center border-b last:border-0">
+                    <div class="py-3 flex justify-between items-center border-b last:border-0 ${!user.is_active ? 'opacity-60 bg-gray-50' : ''}">
                         <div>
                             <span class="font-bold">${user.username}</span>
                             ${user.full_name ? `<span class="text-xs text-gray-500 ml-2">(${user.full_name})</span>` : ''}
-                            <span class="ml-2 role-badge role-${roleName}">${roleName}</span>
-                            ${!user.is_active ? '<span class="ml-2 text-red-500 text-xs">(inactive)</span>' : ''}
+                            <span class="ml-2 role-badge ${user.is_active ? `role-${roleName}` : 'role-inactive'}">${roleName}</span>
+                            ${!user.is_active ? '<span class="ml-2 text-xs text-red-500">(Đã ẩn)</span>' : ''}
                         </div>
                         <div class="space-x-2">
                             <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
-                            ${user.username !== 'admin' ? `<button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>` : ''}
+                            ${!isAdmin ? (
+                                user.is_active ? 
+                                    `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">ẨN</button>` :
+                                    `<button onclick="restoreUser('${user.id}')" class="text-green-500 hover:text-green-700 font-bold text-xs px-2 py-1 rounded border border-green-200">KHÔI PHỤC</button>`
+                            ) : ''}
                         </div>
                     </div>
                 `;
@@ -1406,7 +1533,7 @@
                     <td class="text-right space-x-2">
                         ${canEdit ? `
                             <button onclick="editBox('${d.id}', '${d.box}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
-                            <button onclick="deleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
+                            <button onclick="softDeleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
                         ` : `
                             <span class="text-gray-400 text-xs">(không có quyền)</span>
                         `}
@@ -1462,14 +1589,15 @@
             }
         };
 
-        window.deleteBox = async (id) => { 
+        // Sửa lại tên hàm xóa box thành softDeleteBox
+        window.softDeleteBox = async (id) => { 
             if (!['admin', 'manager'].includes(currentUserRole)) {
                 window.notify("Không có quyền xóa!", true);
                 return;
             }
             
             if(confirm("Xác nhận xóa box này?")) {
-                const success = await deleteBox(id);
+                const success = await softDeleteBox(id);
                 if (success) {
                     window.notify("Đã xóa box thành công!");
                 } else {
@@ -1509,7 +1637,7 @@
 
         window.exportBackup = async () => {
             const period = document.getElementById('backup-period').value;
-            let query = supabaseClient.from('boxes').select('*, box_details(*)');
+            let query = supabaseClient.from('boxes').select('*, box_details(*)').eq('is_active', true);
             
             if (period !== 'all') {
                 const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
@@ -1561,7 +1689,9 @@
                                 sku: box.sku,
                                 total: box.total,
                                 created_by: box.created_by,
-                                created_at: box.created_at
+                                created_at: box.created_at,
+                                is_active: true,
+                                deleted_at: null
                             }]);
                             
                             if (box.box_details) {
@@ -1569,7 +1699,9 @@
                                     box.box_details.map(d => ({
                                         box_code: d.box_code,
                                         serial: d.serial,
-                                        created_at: d.created_at
+                                        created_at: d.created_at,
+                                        is_active: true,
+                                        deleted_at: null
                                     }))
                                 );
                             }
