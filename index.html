@@ -8,13 +8,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { transition: background-color 0.3s, border-color 0.3s; }
         body { font-family: 'Inter', sans-serif; margin: 0; }
         
-        /* Light mode (default) */
         body.light-mode {
             background-color: #f4f7f9;
             color: #333;
@@ -24,7 +22,6 @@
         body.light-mode .top-nav { background: white; border-color: #e5e7eb; }
         body.light-mode .input-wms { background: white; border-color: #d1d5db; color: #333; }
         
-        /* Dark mode */
         body.dark-mode {
             background-color: #1a1e24;
             color: #e5e7eb;
@@ -62,7 +59,7 @@
         @keyframes flashError { 0% { background: #fee2e2; } 100% { background: transparent; } }
         .scan-success { animation: flashSuccess 0.5s ease-out; }
         .scan-error { animation: flashError 0.5s ease-out; }
-        #detail-modal, #qr-modal, #backup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        #detail-modal, #backup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 8px; display: flex; flex-direction: column; }
         body.dark-mode .modal-content { background: #242933; color: #e5e7eb; }
         #toast { display:none; position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 12px 24px; border-radius: 4px; z-index: 200; }
@@ -217,10 +214,7 @@
                 <div id="sub-page-box" class="hidden space-y-4">
                     <div class="flex justify-between items-center">
                         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử Box</h3>
-                        <div class="flex gap-2">
-                            <button onclick="showQRCode('box')" class="bg-purple-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-purple-700 shadow-sm">In QR</button>
-                            <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo</button>
-                        </div>
+                        <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="box-history-grid"></div>
                 </div>
@@ -341,21 +335,6 @@
         </div>
     </div>
 
-    <!-- QR Modal -->
-    <div id="qr-modal" class="p-4">
-        <div class="modal-content shadow-2xl" style="max-width: 500px;">
-            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="font-bold uppercase text-sm">Mã QR - Box</h3>
-                <button onclick="closeQRModal()" class="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-            <div class="p-8 text-center">
-                <div id="qrcode-container" class="flex justify-center mb-4"></div>
-                <div id="qr-box-info" class="text-sm mb-4"></div>
-                <button onclick="printQR()" class="btn-shopee px-6 py-2 rounded text-xs font-bold uppercase">In QR</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Backup Modal -->
     <div id="backup-modal" class="p-4">
         <div class="modal-content shadow-2xl" style="max-width: 400px;">
@@ -412,10 +391,8 @@
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtY3BobmZodmxkZ3dncGdoeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTQ5MjgsImV4cCI6MjA4ODM3MDkyOH0.js_iAomljFrQXSC8gxFwbyC1hdqB2SVqgAapww_Hylo'
         };
 
-        // Khởi tạo Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-        // ==================== BIẾN TOÀN CỤC ====================
         let currentUser = null;
         let currentUserRole = 'viewer';
         let currentUserId = null;
@@ -431,7 +408,6 @@
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
         };
 
-        // ==================== THEME ====================
         window.toggleTheme = function() {
             const body = document.body;
             if (body.classList.contains('light-mode')) {
@@ -447,14 +423,12 @@
             }
         };
 
-        // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.body.classList.add(savedTheme + '-mode');
         if (savedTheme === 'dark') {
             document.getElementById('theme-icon').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
         }
 
-        // ==================== HOTKEYS ====================
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
@@ -470,7 +444,6 @@
             }
         });
 
-        // ==================== HÀM CẬP NHẬT TRẠNG THÁI ====================
         function setDbStatus(text, icon = '') {
             const statusEl = document.getElementById('db-status');
             const headerEl = document.getElementById('db-status-header');
@@ -478,7 +451,6 @@
             if (headerEl) headerEl.innerHTML = `${icon} ${text}`;
         }
 
-        // ==================== HÀM KIỂM TRA KẾT NỐI ====================
         async function testConnection() {
             try {
                 const { data, error } = await supabaseClient.from('users').select('count', { count: 'exact', head: true });
@@ -492,7 +464,6 @@
             }
         }
 
-        // ==================== HÀM GHI LOG ====================
         async function logActivity(action, details = {}) {
             try {
                 await supabaseClient
@@ -509,28 +480,6 @@
             }
         }
 
-        // ==================== HÀM KIỂM TRA QUYỀN ====================
-        async function checkPermission(requiredPermission) {
-            if (currentUserRole === 'admin') return true;
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('roles(permissions)')
-                    .eq('id', currentUserId)
-                    .single();
-                
-                if (error) throw error;
-                
-                const permissions = data.roles?.permissions || [];
-                return permissions.includes('all') || permissions.includes(requiredPermission);
-            } catch (error) {
-                console.error('Lỗi kiểm tra quyền:', error);
-                return false;
-            }
-        }
-
-        // ==================== HÀM XỬ LÝ USER ====================
         async function getAllUsers() {
             try {
                 const { data, error } = await supabaseClient
@@ -624,7 +573,7 @@
         }
 
         window.deleteUser = async (id) => { 
-            if (!await checkPermission('admin')) {
+            if (currentUserRole !== 'admin') {
                 window.notify('Không có quyền!', true);
                 return false;
             }
@@ -650,16 +599,6 @@
             }
         };
 
-        async function getRoleId(roleName) {
-            const { data } = await supabaseClient
-                .from('roles')
-                .select('id')
-                .eq('name', roleName)
-                .single();
-            return data?.id;
-        }
-
-        // ==================== HÀM XỬ LÝ MASTER DATA ====================
         async function loadMasterData() {
             try {
                 const { data, error } = await supabaseClient
@@ -702,7 +641,6 @@
             }
         }
 
-        // ==================== HÀM XỬ LÝ BOX ====================
         async function loadAllBoxes() {
             try {
                 const { data: boxes, error: boxError } = await supabaseClient
@@ -831,7 +769,6 @@
             });
         }
 
-        // ==================== TOAST ====================
         window.notify = (msg, isError = false) => { 
             const t = document.getElementById('toast'); 
             t.innerText = msg; 
@@ -840,7 +777,6 @@
             setTimeout(() => t.style.display = 'none', 3000); 
         };
 
-        // ==================== LOGIN ====================
         document.getElementById('btn-do-login').onclick = async () => {
             const u = document.getElementById('login-user').value;
             const p = document.getElementById('login-pass').value;
@@ -850,7 +786,6 @@
                 return;
             }
 
-            // Admin mặc định
             if (u === 'admin' && p === '123456') {
                 currentUser = 'admin';
                 currentUserRole = 'admin';
@@ -877,7 +812,6 @@
                 return;
             }
 
-            // Login từ database
             const { data: user, error } = await supabaseClient
                 .from('users')
                 .select('*, roles(*)')
@@ -925,7 +859,6 @@
             location.reload();
         };
 
-        // ==================== RENDER STAFF LIST ====================
         async function renderStaffList() {
             if (!['admin', 'manager'].includes(currentUserRole)) return;
             
@@ -954,7 +887,6 @@
             });
         }
 
-        // ==================== MODALS ====================
         window.openEditUserModal = (id, username, role, fullName, isActive) => {
             document.getElementById('edit-user-id').value = id;
             document.getElementById('edit-username').value = username;
@@ -986,7 +918,6 @@
             closeEditUserModal();
         };
 
-        // ==================== ADD USER ====================
         document.getElementById('btn-add-user').onclick = async () => { 
             const u = document.getElementById('new-user').value.trim(); 
             const p = document.getElementById('new-pass').value.trim(); 
@@ -1003,7 +934,6 @@
             }
         };
 
-        // ==================== SCAN LOGIC ====================
         document.getElementById('barcode-scanner').onkeydown = async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1094,7 +1024,6 @@
             }
         }
 
-        // ==================== SAVE BOX ====================
         document.getElementById('btn-complete-box').onclick = async () => {
             const box = document.getElementById('inp-box').value.trim().toUpperCase();
             const po = document.getElementById('sel-po').value;
@@ -1154,7 +1083,6 @@
             }
         };
 
-        // ==================== MASTER DATA ====================
         window.downloadSampleFile = () => {
             const ws = XLSX.utils.aoa_to_sheet([["PO", "SKU", "SN"], ["PO_001", "MODEL_X", "SN_001"]]);
             const wb = XLSX.utils.book_new(); 
@@ -1302,7 +1230,6 @@
             document.getElementById('detail-modal').style.display = 'flex';
         };
 
-        // ==================== BOX HISTORY ====================
         function renderBoxHistory() {
             const grid = document.getElementById('box-history-grid');
             if(boxData.length === 0) {
@@ -1327,60 +1254,16 @@
                         <div class="text-[10px] text-gray-400">${date}</div>
                     </div>
                     <div class="flex gap-2 mt-3">
-                        <button onclick="showQRCode('${d.box}')" class="flex-1 bg-purple-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-purple-600 transition">QR</button>
                         ${canEdit ? `
                             <button onclick="editBox('${d.id}')" class="flex-1 bg-blue-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-blue-600 transition">SỬA</button>
                             <button onclick="deleteBox('${d.id}')" class="flex-1 bg-red-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-red-600 transition">XÓA</button>
-                        ` : ''}
+                        ` : `
+                            <button disabled class="flex-1 bg-gray-300 text-gray-500 py-1.5 rounded text-[10px] font-bold cursor-not-allowed">CHỈ XEM</button>
+                        `}
                     </div>
                 </div>
             `}).join('');
         }
-
-        window.showQRCode = (boxCode) => {
-            const box = boxData.find(b => b.box === boxCode);
-            if (!box) return;
-            
-            document.getElementById('qr-box-info').innerHTML = `
-                <p><strong>Box:</strong> ${box.box}</p>
-                <p><strong>PO:</strong> ${box.po}</p>
-                <p><strong>SKU:</strong> ${box.sku}</p>
-                <p><strong>SL:</strong> ${box.total}</p>
-            `;
-            
-            const container = document.getElementById('qrcode-container');
-            container.innerHTML = '';
-            QRCode.toCanvas(document.createElement('canvas'), box.box, { width: 200 }, (err, canvas) => {
-                if (err) {
-                    window.notify('Lỗi tạo QR!', true);
-                } else {
-                    container.appendChild(canvas);
-                }
-            });
-            
-            document.getElementById('qr-modal').style.display = 'flex';
-        };
-
-        window.printQR = () => {
-            const printWindow = window.open('', '_blank');
-            const qrCanvas = document.querySelector('#qrcode-container canvas');
-            const boxInfo = document.getElementById('qr-box-info').innerHTML;
-            
-            printWindow.document.write(`
-                <html>
-                <head><title>In QR Code</title></head>
-                <body style="text-align: center; padding: 50px;">
-                    ${qrCanvas ? qrCanvas.outerHTML : ''}
-                    <div style="margin-top: 20px;">${boxInfo}</div>
-                    <script>window.print();window.close();</script>
-                </body>
-                </html>
-            `);
-        };
-
-        window.closeQRModal = () => {
-            document.getElementById('qr-modal').style.display = 'none';
-        };
 
         window.editBox = (id) => {
             if (!['admin', 'manager'].includes(currentUserRole)) {
@@ -1446,7 +1329,6 @@
             XLSX.writeFile(wb, `BaoCao_VScan_${new Date().toISOString().slice(0,10)}.xlsx`);
         };
 
-        // ==================== ADMIN DASHBOARD ====================
         async function loadStatistics() {
             try {
                 const { count: totalBoxes } = await supabaseClient
@@ -1470,7 +1352,6 @@
                 document.getElementById('stat-active-users').innerText = activeUsers || 0;
                 document.getElementById('stat-completion-rate').innerText = completionRate + '%';
                 
-                // Load activity log
                 const { data: logs } = await supabaseClient
                     .from('activity_log')
                     .select('*')
@@ -1489,7 +1370,6 @@
                     `).join('') : '';
                 }
                 
-                // Load chart data
                 await loadChartData();
             } catch (error) {
                 console.error('Lỗi load thống kê:', error);
@@ -1548,7 +1428,6 @@
             }
         }
 
-        // ==================== BACKUP ====================
         window.showBackupModal = () => {
             document.getElementById('backup-modal').style.display = 'flex';
         };
@@ -1638,7 +1517,6 @@
             closeBackupModal();
         };
 
-        // ==================== NAVIGATION ====================
         window.switchPage = (p, sub=null) => {
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`page-${p}`).classList.remove('hidden');
