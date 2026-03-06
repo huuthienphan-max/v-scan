@@ -3,14 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V-Scan Pro | Đối Soát Đa Tầng</title>
+    <title>V-Scan Pro | Hệ thống Đối soát SN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; margin: 0; }
-        .sidebar { width: 260px; background-color: #191c24; color: #a9abb0; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
+        * { transition: background-color 0.3s, border-color 0.3s; }
+        body { font-family: 'Inter', sans-serif; margin: 0; }
+        
+        /* Light mode (default) */
+        body.light-mode {
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        body.light-mode .sidebar { background-color: #191c24; color: #a9abb0; }
+        body.light-mode .card { background: white; border-color: #e5e7eb; }
+        body.light-mode .top-nav { background: white; border-color: #e5e7eb; }
+        body.light-mode .input-wms { background: white; border-color: #d1d5db; color: #333; }
+        
+        /* Dark mode */
+        body.dark-mode {
+            background-color: #1a1e24;
+            color: #e5e7eb;
+        }
+        body.dark-mode .sidebar { background-color: #0f1116; color: #9ca3af; }
+        body.dark-mode .card { background: #242933; border-color: #374151; color: #e5e7eb; }
+        body.dark-mode .top-nav { background: #242933; border-color: #374151; color: #e5e7eb; }
+        body.dark-mode .input-wms { background: #1a1e24; border-color: #4b5563; color: #e5e7eb; }
+        body.dark-mode .table-vscan th { background: #1f2937; color: #9ca3af; }
+        body.dark-mode .table-vscan td { border-color: #374151; }
+        body.dark-mode .btn-shopee { background-color: #ee4d2d; }
+        body.dark-mode .btn-shopee:hover { background-color: #d73211; }
+
+        .sidebar { width: 260px; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
         .sidebar-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; font-size: 14px; transition: 0.2s; position: relative; }
         .sidebar-item:hover { background-color: #0f1116; color: #fff; }
         .sidebar-item.active { background-color: #0f1116; color: #ee4d2d; border-left: 4px solid #ee4d2d; font-weight: 600; }
@@ -19,42 +47,60 @@
         .sub-item { padding: 10px 20px 10px 52px; font-size: 13px; cursor: pointer; color: #888; display: block; }
         .sub-item:hover { color: #fff; background-color: #1d2028; }
         .sub-item.active { color: #ee4d2d; font-weight: 600; }
-        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f4f7f9; }
-        .top-nav { height: 60px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
-        .card { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        .top-nav { height: 60px; border-bottom: 1px solid; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
+        .card { border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid; }
         .shopee-orange { color: #ee4d2d; }
         .btn-shopee { background-color: #ee4d2d; color: white; transition: 0.2s; border: none; cursor: pointer; }
         .btn-shopee:hover { background-color: #d73211; }
         .btn-shopee:disabled { background-color: #ccc; cursor: not-allowed; }
-        .input-wms { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px 12px; outline: none; transition: 0.2s; font-size: 14px; }
+        .input-wms { border: 1px solid; border-radius: 4px; padding: 8px 12px; outline: none; transition: 0.2s; font-size: 14px; width: 100%; }
         .input-wms:focus { border-color: #ee4d2d; box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.1); }
-        .table-vscan th { background: #f9fafb; padding: 12px; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
-        .table-vscan td { padding: 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
-        @keyframes flashSuccess { 0% { background: #dcfce7; } 100% { background: white; } }
-        @keyframes flashError { 0% { background: #fee2e2; } 100% { background: white; } }
+        .table-vscan th { padding: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid; }
+        .table-vscan td { padding: 12px; border-bottom: 1px solid; font-size: 13px; }
+        @keyframes flashSuccess { 0% { background: #dcfce7; } 100% { background: transparent; } }
+        @keyframes flashError { 0% { background: #fee2e2; } 100% { background: transparent; } }
         .scan-success { animation: flashSuccess 0.5s ease-out; }
         .scan-error { animation: flashError 0.5s ease-out; }
-        #detail-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        #detail-modal, #qr-modal, #backup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 8px; display: flex; flex-direction: column; }
+        body.dark-mode .modal-content { background: #242933; color: #e5e7eb; }
         #toast { display:none; position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 12px 24px; border-radius: 4px; z-index: 200; }
         .sn-scanned { background-color: #e6f7e6; color: #00a000; }
         .sn-missing { background-color: #fff0f0; color: #ff4444; }
+        body.dark-mode .sn-scanned { background-color: #065f46; color: #6ee7b7; }
+        body.dark-mode .sn-missing { background-color: #7f1d1d; color: #fca5a5; }
         .btn-scan-po { background-color: #4f46e5; color: white; }
         .btn-scan-po:hover { background-color: #4338ca; }
         .role-badge { font-size: 8px; padding: 2px 6px; border-radius: 10px; font-weight: bold; }
         .role-admin { background-color: #fee2e2; color: #dc2626; }
-        .role-user { background-color: #e0e7ff; color: #4f46e5; }
+        .role-manager { background-color: #fef3c7; color: #d97706; }
+        .role-scanner { background-color: #dbeafe; color: #2563eb; }
+        .role-viewer { background-color: #e0e7ff; color: #4f46e5; }
+        body.dark-mode .role-admin { background-color: #7f1d1d; color: #fecaca; }
+        body.dark-mode .role-manager { background-color: #92400e; color: #fde68a; }
+        body.dark-mode .role-scanner { background-color: #1e3a8a; color: #bfdbfe; }
+        body.dark-mode .role-viewer { background-color: #312e81; color: #c7d2fe; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #ee4d2d; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .db-status { font-size: 10px; color: #666; margin-left: 10px; }
+        .theme-toggle { cursor: pointer; padding: 8px; border-radius: 50%; }
+        .theme-toggle:hover { background-color: rgba(0,0,0,0.1); }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; }
+        body.dark-mode .hotkey-hint { color: #aaa; background: rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="flex">
+<body class="light-mode flex">
 
     <!-- Auth Screen -->
     <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f0f2f5]">
         <div class="w-[400px] p-10 bg-white shadow-2xl rounded-lg text-center border-t-4 border-[#ee4d2d]">
-            <div class="flex justify-center mb-6"><span class="text-3xl font-bold shopee-orange">Shopee</span><span class="text-3xl font-bold text-slate-700">|WMS</span></div>
+            <div class="flex justify-center mb-6">
+                <span class="text-3xl font-bold shopee-orange">Shopee</span>
+                <span class="text-3xl font-bold text-slate-700">|WMS</span>
+            </div>
             <h2 class="text-xl font-semibold mb-8 text-gray-700 uppercase tracking-tighter">Hệ thống Đối soát SN</h2>
             <div class="space-y-4 text-left">
                 <input type="text" id="login-user" placeholder="Username" class="w-full input-wms py-3">
@@ -99,8 +145,13 @@
                 <p id="user-display" class="text-[10px] text-slate-500 uppercase font-bold"></p>
                 <span id="role-display" class="role-badge"></span>
             </div>
-            <div class="text-center mb-2">
+            <div class="flex items-center justify-between mb-2">
                 <span id="db-status" class="db-status">⚡ Kết nối database</span>
+                <div class="theme-toggle" onclick="toggleTheme()">
+                    <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
             </div>
             <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">ĐĂNG XUẤT</button>
         </div>
@@ -109,12 +160,14 @@
     <!-- Main Content -->
     <main id="main-ui" class="main-content hidden">
         <header class="top-nav">
-            <h1 id="page-title" class="text-lg font-bold text-gray-800 uppercase tracking-tight">Màn hình làm việc</h1>
+            <h1 id="page-title" class="text-lg font-bold uppercase tracking-tight">Màn hình làm việc</h1>
             <div class="flex items-center gap-4">
                 <span id="db-status-header" class="text-[10px] text-gray-500">🔄 Đang kết nối...</span>
                 <div id="status-badge" class="px-3 py-1 bg-green-100 rounded-full text-[10px] font-bold text-green-600 uppercase tracking-widest">Online</div>
             </div>
         </header>
+
+        <div id="hotkey-hint" class="hotkey-hint">✨ Phím tắt: Ctrl+F (focus scan), Ctrl+R (reset), Ctrl+S (lưu box)</div>
 
         <div id="content-area" class="p-6">
             <!-- Page Inbound (Scan) -->
@@ -164,12 +217,20 @@
                 <div id="sub-page-box" class="hidden space-y-4">
                     <div class="flex justify-between items-center">
                         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử Box</h3>
-                        <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo (.xlsx)</button>
+                        <div class="flex gap-2">
+                            <button onclick="showQRCode('box')" class="bg-purple-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-purple-700 shadow-sm">In QR</button>
+                            <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo</button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="box-history-grid"></div>
                 </div>
                 <div id="sub-page-po" class="hidden space-y-4">
                     <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="search-po" placeholder="🔍 Tìm kiếm PO, SKU, SN..." class="input-wms flex-1">
+                        <button onclick="searchMasterData()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
+                        <button onclick="clearSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
+                    </div>
                     <div class="card overflow-hidden">
                         <table class="w-full table-vscan">
                             <thead>
@@ -189,44 +250,75 @@
 
             <!-- Page Admin -->
             <section id="page-admin" class="hidden space-y-6">
+                <!-- Dashboard -->
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="card p-4 stat-card">
+                        <h4 class="text-xs uppercase text-gray-500">Tổng Box</h4>
+                        <p class="text-3xl font-bold" id="stat-total-boxes">0</p>
+                    </div>
+                    <div class="card p-4 stat-card">
+                        <h4 class="text-xs uppercase text-gray-500">Tổng SN đã quét</h4>
+                        <p class="text-3xl font-bold" id="stat-total-scans">0</p>
+                    </div>
+                    <div class="card p-4 stat-card">
+                        <h4 class="text-xs uppercase text-gray-500">User hoạt động</h4>
+                        <p class="text-3xl font-bold" id="stat-active-users">0</p>
+                    </div>
+                    <div class="card p-4 stat-card">
+                        <h4 class="text-xs uppercase text-gray-500">Tỉ lệ hoàn thành</h4>
+                        <p class="text-3xl font-bold" id="stat-completion-rate">0%</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card p-6 mb-6">
+                    <h3 class="font-bold text-sm mb-4">Thống kê theo ngày</h3>
+                    <canvas id="stats-chart" height="100"></canvas>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card p-6 mb-6">
+                    <h3 class="font-bold text-sm mb-4">Hoạt động gần đây</h3>
+                    <div class="overflow-auto max-h-96">
+                        <table class="w-full table-vscan">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>User</th>
+                                    <th>Hành động</th>
+                                    <th>Chi tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- User Management -->
                 <div class="grid grid-cols-2 gap-6">
                     <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2">Cập nhật Master Data</h3>
                         <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
-                        <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+                        <input type="file" id="master-file" accept=".xlsx" class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+                        <div class="mt-4">
+                            <button onclick="showBackupModal()" class="w-full bg-purple-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-purple-700 transition">Backup dữ liệu</button>
+                        </div>
                     </div>
                     <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2">Quản lý nhân viên</h3>
                         <div class="flex gap-2 mb-4">
                             <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
                             <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
+                            <input id="new-fullname" type="text" placeholder="Họ tên" class="flex-1 input-wms">
                             <select id="new-role" class="input-wms w-24">
-                                <option value="user">User</option>
                                 <option value="admin">Admin</option>
+                                <option value="manager">Manager</option>
+                                <option value="scanner">Scanner</option>
+                                <option value="viewer">Viewer</option>
                             </select>
                             <button id="btn-add-user" class="btn-shopee px-4 rounded font-bold text-xs">THÊM</button>
                         </div>
                         <div id="staff-list" class="divide-y text-sm max-h-[400px] overflow-y-auto"></div>
-                    </div>
-                </div>
-                
-                <!-- Edit User Modal -->
-                <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-                    <div class="bg-white p-6 rounded-lg w-96">
-                        <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
-                        <input type="hidden" id="edit-user-id">
-                        <div class="space-y-4">
-                            <input type="text" id="edit-username" placeholder="Username" class="w-full input-wms">
-                            <input type="password" id="edit-password" placeholder="Password mới (để trống nếu không đổi)" class="w-full input-wms">
-                            <select id="edit-role" class="w-full input-wms">
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="flex justify-end gap-2 mt-6">
-                            <button onclick="closeEditUserModal()" class="px-4 py-2 bg-gray-200 rounded font-bold text-xs">HỦY</button>
-                            <button onclick="updateUser()" class="px-4 py-2 btn-shopee rounded font-bold text-xs">CẬP NHẬT</button>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -234,6 +326,8 @@
     </main>
 
     <div id="toast"></div>
+
+    <!-- Detail Modal -->
     <div id="detail-modal" class="p-4">
         <div class="modal-content shadow-2xl">
             <div class="p-4 border-b flex justify-between items-center bg-gray-50">
@@ -247,30 +341,107 @@
         </div>
     </div>
 
+    <!-- QR Modal -->
+    <div id="qr-modal" class="p-4">
+        <div class="modal-content shadow-2xl" style="max-width: 500px;">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold uppercase text-sm">Mã QR - Box</h3>
+                <button onclick="closeQRModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div class="p-8 text-center">
+                <div id="qrcode-container" class="flex justify-center mb-4"></div>
+                <div id="qr-box-info" class="text-sm mb-4"></div>
+                <button onclick="printQR()" class="btn-shopee px-6 py-2 rounded text-xs font-bold uppercase">In QR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div id="backup-modal" class="p-4">
+        <div class="modal-content shadow-2xl" style="max-width: 400px;">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold uppercase text-sm">Backup dữ liệu</h3>
+                <button onclick="closeBackupModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div class="p-6">
+                <p class="mb-4">Chọn thời gian backup:</p>
+                <select id="backup-period" class="input-wms mb-4">
+                    <option value="day">1 ngày qua</option>
+                    <option value="week">1 tuần qua</option>
+                    <option value="month">1 tháng qua</option>
+                    <option value="all">Tất cả</option>
+                </select>
+                <button onclick="exportBackup()" class="w-full btn-shopee py-2 rounded text-xs font-bold uppercase mb-2">Xuất backup</button>
+                <button onclick="importBackup()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase">Nhập backup</button>
+                <input type="file" id="backup-file" accept=".json" class="hidden">
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== CẤU HÌNH SUPABASE ====================
         const SUPABASE_CONFIG = {
-            url: 'https://gmcphnfhvldgwgpghyqa.supabase.co',  // THAY BẰNG URL CỦA BẠN
-            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtY3BobmZodmxkZ3dncGdoeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTQ5MjgsImV4cCI6MjA4ODM3MDkyOH0.js_iAomljFrQXSC8gxFwbyC1hdqB2SVqgAapww_Hylo'  // THAY BẰNG ANON KEY CỦA BẠN
+            url: 'https://gmcphnfhvldgwgpghyqa.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtY3BobmZodmxkZ3dncGdoeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTQ5MjgsImV4cCI6MjA4ODM3MDkyOH0.js_iAomljFrQXSC8gxFwbyC1hdqB2SVqgAapww_Hylo'
         };
 
-        // Khởi tạo Supabase client - CHỈ 1 LẦN DUY NHẤT
+        // Khởi tạo Supabase client
         const supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
         // ==================== BIẾN TOÀN CỤC ====================
         let currentUser = null;
-        let currentUserRole = 'user';
+        let currentUserRole = 'viewer';
         let currentUserId = null;
         let masterData = [];
         let boxData = [];
         let sessionScans = [];
         let allScannedSerials = new Set();
         let editingBoxId = null;
+        let chart = null;
 
         const audio = { 
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
         };
+
+        // ==================== THEME ====================
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('theme-icon').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                localStorage.setItem('theme', 'light');
+                document.getElementById('theme-icon').innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
+            }
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.classList.add(savedTheme + '-mode');
+        if (savedTheme === 'dark') {
+            document.getElementById('theme-icon').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+        }
+
+        // ==================== HOTKEYS ====================
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('barcode-scanner').focus();
+            }
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                if (confirm('Reset phiên quét?')) forceReset();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                document.getElementById('btn-complete-box').click();
+            }
+        });
 
         // ==================== HÀM CẬP NHẬT TRẠNG THÁI ====================
         function setDbStatus(text, icon = '') {
@@ -288,34 +459,56 @@
                 setDbStatus('✅ Kết nối thành công', '✅');
                 return true;
             } catch (error) {
-                console.error('Lỗi kết nối Supabase:', error);
+                console.error('Lỗi kết nối:', error);
                 setDbStatus('❌ Lỗi kết nối', '❌');
                 return false;
             }
         }
 
-        // ==================== HÀM XỬ LÝ USER ====================
-        async function getUser(username, password) {
+        // ==================== HÀM GHI LOG ====================
+        async function logActivity(action, details = {}) {
             try {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('username', username)
-                    .eq('password', password)
-                    .single();
-                
-                if (error) throw error;
-                return { data, error: null };
+                await supabaseClient
+                    .from('activity_log')
+                    .insert([{
+                        user_id: currentUserId,
+                        username: currentUser,
+                        action,
+                        details,
+                        created_at: new Date().toISOString()
+                    }]);
             } catch (error) {
-                return { data: null, error };
+                console.error('Lỗi ghi log:', error);
             }
         }
 
+        // ==================== HÀM KIỂM TRA QUYỀN ====================
+        async function checkPermission(requiredPermission) {
+            if (currentUserRole === 'admin') return true;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('roles(permissions)')
+                    .eq('id', currentUserId)
+                    .single();
+                
+                if (error) throw error;
+                
+                const permissions = data.roles?.permissions || [];
+                return permissions.includes('all') || permissions.includes(requiredPermission);
+            } catch (error) {
+                console.error('Lỗi kiểm tra quyền:', error);
+                return false;
+            }
+        }
+
+        // ==================== HÀM XỬ LÝ USER ====================
         async function getAllUsers() {
             try {
                 const { data, error } = await supabaseClient
                     .from('users')
-                    .select('*')
+                    .select('*, roles(*)')
                     .order('username');
                 
                 if (error) throw error;
@@ -326,24 +519,57 @@
             }
         }
 
-        async function addUser(username, password, role) {
+        async function addUser(username, password, role, fullName = '') {
             try {
-                const { data, error } = await supabaseClient
+                const { data: existing } = await supabaseClient
                     .from('users')
-                    .insert([{ username, password, role }])
-                    .select();
+                    .select('id')
+                    .eq('username', username)
+                    .single();
+                
+                if (existing) {
+                    notify('Username đã tồn tại!', true);
+                    return false;
+                }
+
+                const { data: roleData } = await supabaseClient
+                    .from('roles')
+                    .select('id')
+                    .eq('name', role)
+                    .single();
+
+                const { error } = await supabaseClient
+                    .from('users')
+                    .insert([{
+                        username,
+                        password,
+                        role_id: roleData?.id,
+                        full_name: fullName,
+                        created_by: currentUser,
+                        is_active: true
+                    }]);
                 
                 if (error) throw error;
-                return { success: true, data };
+                
+                await logActivity('ADD_USER', { username, role });
+                notify('Thêm nhân viên thành công!');
+                renderStaffList();
+                return true;
             } catch (error) {
                 console.error('Lỗi thêm user:', error);
-                return { success: false, error };
+                notify('Lỗi khi thêm!', true);
+                return false;
             }
         }
 
-        async function updateUser(id, username, password, role) {
+        async function updateUser(id, username, password, role, fullName, isActive) {
             try {
-                const updateData = { username, role };
+                const updateData = { 
+                    username, 
+                    role: await getRoleId(role),
+                    full_name: fullName,
+                    is_active: isActive
+                };
                 if (password) updateData.password = password;
                 
                 const { error } = await supabaseClient
@@ -352,26 +578,52 @@
                     .eq('id', id);
                 
                 if (error) throw error;
-                return { success: true };
+                
+                await logActivity('UPDATE_USER', { username, role });
+                notify('Cập nhật thành công!');
+                renderStaffList();
+                return true;
             } catch (error) {
                 console.error('Lỗi cập nhật user:', error);
-                return { success: false, error };
+                notify('Lỗi khi cập nhật!', true);
+                return false;
             }
         }
 
         async function deleteUser(id) {
-            try {
-                const { error } = await supabaseClient
-                    .from('users')
-                    .delete()
-                    .eq('id', id);
-                
-                if (error) throw error;
-                return { success: true };
-            } catch (error) {
-                console.error('Lỗi xóa user:', error);
-                return { success: false, error };
+            if (!await checkPermission('admin')) {
+                notify('Không có quyền!', true);
+                return false;
             }
+            
+            if (confirm('Xóa nhân viên này?')) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('users')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    
+                    await logActivity('DELETE_USER', { user_id: id });
+                    notify('Đã xóa nhân viên!');
+                    renderStaffList();
+                    return true;
+                } catch (error) {
+                    console.error('Lỗi xóa user:', error);
+                    notify('Lỗi khi xóa!', true);
+                    return false;
+                }
+            }
+        }
+
+        async function getRoleId(roleName) {
+            const { data } = await supabaseClient
+                .from('roles')
+                .select('id')
+                .eq('name', roleName)
+                .single();
+            return data?.id;
         }
 
         // ==================== HÀM XỬ LÝ MASTER DATA ====================
@@ -384,8 +636,6 @@
                 
                 if (error) throw error;
                 masterData = data || [];
-                
-                // Lưu vào localStorage để cache
                 localStorage.setItem('masterData', JSON.stringify(masterData));
                 
                 renderPOSelect();
@@ -393,7 +643,6 @@
                 return masterData;
             } catch (error) {
                 console.error('Lỗi load master data:', error);
-                // Fallback: đọc từ localStorage
                 masterData = JSON.parse(localStorage.getItem('masterData') || '[]');
                 return masterData;
             }
@@ -401,10 +650,8 @@
 
         async function saveMasterData(data) {
             try {
-                // Xóa dữ liệu cũ
                 await supabaseClient.from('master_serials').delete().neq('id', 0);
                 
-                // Thêm dữ liệu mới
                 const { error } = await supabaseClient
                     .from('master_serials')
                     .insert(data);
@@ -413,17 +660,18 @@
                 
                 masterData = data;
                 localStorage.setItem('masterData', JSON.stringify(masterData));
-                return { success: true };
+                await logActivity('UPDATE_MASTER_DATA', { count: data.length });
+                
+                return true;
             } catch (error) {
                 console.error('Lỗi lưu master data:', error);
-                return { success: false, error };
+                return false;
             }
         }
 
         // ==================== HÀM XỬ LÝ BOX ====================
         async function loadAllBoxes() {
             try {
-                // Lấy danh sách boxes
                 const { data: boxes, error: boxError } = await supabaseClient
                     .from('boxes')
                     .select('*')
@@ -431,14 +679,11 @@
                 
                 if (boxError) throw boxError;
                 
-                // Lấy chi tiết từng box
                 const boxDataPromises = boxes.map(async (box) => {
-                    const { data: details, error: detailError } = await supabaseClient
+                    const { data: details } = await supabaseClient
                         .from('box_details')
                         .select('serial')
                         .eq('box_code', box.box_code);
-                    
-                    if (detailError) throw detailError;
                     
                     return {
                         id: box.id,
@@ -453,11 +698,7 @@
                 });
                 
                 boxData = await Promise.all(boxDataPromises);
-                
-                // Cập nhật danh sách serial đã quét
                 updateScannedSerials();
-                
-                // Lưu cache
                 localStorage.setItem('boxData', JSON.stringify(boxData));
                 
                 renderBoxHistory();
@@ -465,7 +706,6 @@
                 return boxData;
             } catch (error) {
                 console.error('Lỗi load boxes:', error);
-                // Fallback: đọc từ localStorage
                 boxData = JSON.parse(localStorage.getItem('boxData') || '[]');
                 updateScannedSerials();
                 return boxData;
@@ -474,7 +714,6 @@
 
         async function saveBox(boxCode, po, sku, serials, user) {
             try {
-                // Kiểm tra box đã tồn tại chưa
                 const { data: existingBox } = await supabaseClient
                     .from('boxes')
                     .select('id')
@@ -482,16 +721,13 @@
                     .single();
                 
                 if (existingBox && editingBoxId) {
-                    // Đang sửa box cũ
                     await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
                     await supabaseClient.from('boxes').update({
                         po, sku, total: serials.length, created_by: user
                     }).eq('id', editingBoxId);
                 } else if (existingBox) {
-                    // Box đã tồn tại, cần xác nhận
-                    return { success: false, exists: true };
+                    return { exists: true };
                 } else {
-                    // Thêm box mới
                     const { data: newBox, error: boxError } = await supabaseClient
                         .from('boxes')
                         .insert([{
@@ -506,7 +742,6 @@
                     
                     if (boxError) throw boxError;
                     
-                    // Thêm chi tiết
                     const details = serials.map(sn => ({
                         box_code: boxCode,
                         serial: sn
@@ -519,37 +754,34 @@
                     if (detailError) throw detailError;
                 }
                 
-                // Load lại dữ liệu
                 await loadAllBoxes();
+                await logActivity('SAVE_BOX', { box: boxCode, total: serials.length });
                 return { success: true };
             } catch (error) {
                 console.error('Lỗi lưu box:', error);
-                return { success: false, error };
+                return { error: true };
             }
         }
 
         async function deleteBox(id) {
             try {
                 const box = boxData.find(b => b.id === id);
-                if (!box) return { success: false };
+                if (!box) return false;
                 
-                // Xóa chi tiết trước
                 await supabaseClient.from('box_details').delete().eq('box_code', box.box);
-                
-                // Xóa box
                 await supabaseClient.from('boxes').delete().eq('id', id);
                 
-                // Load lại dữ liệu
                 await loadAllBoxes();
-                return { success: true };
+                await logActivity('DELETE_BOX', { box: box.box });
+                return true;
             } catch (error) {
                 console.error('Lỗi xóa box:', error);
-                return { success: false, error };
+                return false;
             }
         }
 
         async function checkSerialScanned(serial) {
-            const { count, error } = await supabaseClient
+            const { count } = await supabaseClient
                 .from('box_details')
                 .select('*', { count: 'exact', head: true })
                 .eq('serial', serial);
@@ -581,11 +813,11 @@
             const p = document.getElementById('login-pass').value;
 
             if (!u || !p) {
-                alert("Vui lòng nhập đầy đủ tài khoản và mật khẩu!");
+                alert("Vui lòng nhập đầy đủ tài khoản!");
                 return;
             }
 
-            // Admin mặc định (dùng để test)
+            // Admin mặc định
             if (u === 'admin' && p === '123456') {
                 currentUser = 'admin';
                 currentUserRole = 'admin';
@@ -603,36 +835,52 @@
                 await testConnection();
                 await loadMasterData();
                 await loadAllBoxes();
-                renderStaffList();
+                await renderStaffList();
+                await loadStatistics();
+                
+                await logActivity('LOGIN', { method: 'default_admin' });
                 
                 setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
                 return;
             }
 
-            // Kiểm tra từ database
-            const { data: user, error } = await getUser(u, p);
+            // Login từ database
+            const { data: user, error } = await supabaseClient
+                .from('users')
+                .select('*, roles(*)')
+                .eq('username', u)
+                .eq('password', p)
+                .single();
             
-            if (user) {
+            if (user && user.is_active) {
                 currentUser = user.username;
-                currentUserRole = user.role || 'user';
+                currentUserRole = user.roles?.name || 'viewer';
                 currentUserId = user.id;
+                
+                await supabaseClient
+                    .from('users')
+                    .update({ last_login: new Date().toISOString() })
+                    .eq('id', user.id);
+                
+                await logActivity('LOGIN', { role: currentUserRole });
                 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
-                if(currentUserRole === 'admin') {
+                if(['admin', 'manager'].includes(currentUserRole)) {
                     document.getElementById('admin-only-menu').classList.remove('hidden');
                 }
                 
                 document.getElementById('user-display').innerText = `NV: ${currentUser}`;
-                document.getElementById('role-display').innerText = currentUserRole === 'admin' ? 'ADMIN' : 'USER';
-                document.getElementById('role-display').className = `role-badge ${currentUserRole === 'admin' ? 'role-admin' : 'role-user'}`;
+                document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
+                document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
                 
                 await testConnection();
                 await loadMasterData();
                 await loadAllBoxes();
-                renderStaffList();
+                await renderStaffList();
+                await loadStatistics();
                 
                 setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
             } else {
@@ -644,25 +892,26 @@
             location.reload();
         };
 
-        // ==================== STAFF MANAGEMENT ====================
+        // ==================== RENDER STAFF LIST ====================
         async function renderStaffList() {
-            if (currentUserRole !== 'admin') return;
+            if (!['admin', 'manager'].includes(currentUserRole)) return;
             
             const users = await getAllUsers();
             const list = document.getElementById('staff-list');
             list.innerHTML = '';
             
-            users.sort((a, b) => a.username.localeCompare(b.username));
-            
             users.forEach(user => {
+                const roleName = user.roles?.name || 'viewer';
                 list.innerHTML += `
                     <div class="py-3 flex justify-between items-center border-b last:border-0">
                         <div>
                             <span class="font-bold">${user.username}</span>
-                            <span class="ml-2 role-badge ${user.role === 'admin' ? 'role-admin' : 'role-user'}">${user.role || 'user'}</span>
+                            ${user.full_name ? `<span class="text-xs text-gray-500 ml-2">(${user.full_name})</span>` : ''}
+                            <span class="ml-2 role-badge role-${roleName}">${roleName}</span>
+                            ${!user.is_active ? '<span class="ml-2 text-red-500 text-xs">(inactive)</span>' : ''}
                         </div>
                         <div class="space-x-2">
-                            <button onclick="openEditUserModal('${user.id}', '${user.username}', '${user.role || 'user'}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                            <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
                             ${user.username !== 'admin' ? `<button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>` : ''}
                         </div>
                     </div>
@@ -670,10 +919,13 @@
             });
         }
 
-        window.openEditUserModal = (id, username, role) => {
+        // ==================== MODALS ====================
+        window.openEditUserModal = (id, username, role, fullName, isActive) => {
             document.getElementById('edit-user-id').value = id;
             document.getElementById('edit-username').value = username;
             document.getElementById('edit-role').value = role;
+            document.getElementById('edit-fullname').value = fullName;
+            document.getElementById('edit-isactive').checked = isActive;
             document.getElementById('edit-password').value = '';
             document.getElementById('edit-user-modal').style.display = 'flex';
         };
@@ -687,61 +939,36 @@
             const username = document.getElementById('edit-username').value.trim();
             const password = document.getElementById('edit-password').value.trim();
             const role = document.getElementById('edit-role').value;
+            const fullName = document.getElementById('edit-fullname').value.trim();
+            const isActive = document.getElementById('edit-isactive').checked;
 
             if (!username) {
                 notify("Vui lòng nhập username!", true);
                 return;
             }
 
-            const result = await updateUser(id, username, password, role);
-            
-            if (result.success) {
-                notify("Cập nhật nhân viên thành công!");
-                closeEditUserModal();
-                renderStaffList();
-            } else {
-                notify("Lỗi khi cập nhật!", true);
-            }
+            await updateUser(id, username, password, role, fullName, isActive);
+            closeEditUserModal();
         };
 
+        // ==================== ADD USER ====================
         document.getElementById('btn-add-user').onclick = async () => { 
             const u = document.getElementById('new-user').value.trim(); 
             const p = document.getElementById('new-pass').value.trim(); 
             const r = document.getElementById('new-role').value;
+            const f = document.getElementById('new-fullname').value.trim();
             
             if(u && p) { 
-                const users = await getAllUsers();
-                if (users.some(user => user.username === u)) {
-                    notify("Username đã tồn tại!", true);
-                    return;
-                }
-                
-                const result = await addUser(u, p, r);
-                
-                if (result.success) {
-                    document.getElementById('new-user').value = ''; 
-                    document.getElementById('new-pass').value = ''; 
-                    notify("Thêm nhân viên thành công!");
-                    renderStaffList();
-                } else {
-                    notify("Lỗi khi thêm!", true);
-                }
+                await addUser(u, p, r, f);
+                document.getElementById('new-user').value = ''; 
+                document.getElementById('new-pass').value = ''; 
+                document.getElementById('new-fullname').value = ''; 
             } else {
-                notify("Vui lòng nhập đầy đủ thông tin!", true);
+                notify("Vui lòng nhập username và password!", true);
             }
         };
 
-        window.deleteUser = async (id) => { 
-            if(confirm("Xóa nhân viên này?")) {
-                const result = await deleteUser(id);
-                if (result.success) {
-                    notify("Đã xóa nhân viên!");
-                    renderStaffList();
-                } else {
-                    notify("Lỗi khi xóa!", true);
-                }
-            } 
-        };
+        window.deleteUser = deleteUser;
 
         // ==================== SCAN LOGIC ====================
         document.getElementById('barcode-scanner').onkeydown = async (e) => {
@@ -773,7 +1000,7 @@
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
-                    notify("SN không đúng với PO/Model đã chọn!", true);
+                    notify("SN không đúng với PO/Model!", true);
                     return;
                 }
                 
@@ -789,7 +1016,7 @@
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
-                    notify("SN đã có trong danh sách hiện tại!", true);
+                    notify("SN đã có trong danh sách!", true);
                     return;
                 }
                 
@@ -803,7 +1030,7 @@
         };
 
         window.removeSN = (index) => {
-            if (confirm('Xóa SN này khỏi danh sách?')) {
+            if (confirm('Xóa SN này?')) {
                 sessionScans.splice(index, 1);
                 renderScanList();
                 document.getElementById('barcode-scanner').focus();
@@ -856,12 +1083,10 @@
             }
             
             const serials = sessionScans.map(x => x.sn);
-            
-            // Kiểm tra box đã tồn tại chưa
             const existingBox = boxData.find(b => b.box === box && b.id !== editingBoxId);
             
             if(existingBox) { 
-                if(!confirm(`Mã Box "${box}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
+                if(!confirm(`Mã Box "${box}" đã tồn tại. Ghi đè?`)) {
                     return; 
                 }
             }
@@ -869,7 +1094,7 @@
             const result = await saveBox(box, po, sku, serials, currentUser);
             
             if (result.success) {
-                notify(editingBoxId ? "Đã cập nhật box thành công!" : "Đã lưu box thành công!");
+                notify(editingBoxId ? "Đã cập nhật box!" : "Đã lưu box!");
                 forceReset();
             } else if (result.exists) {
                 notify("Mã Box đã tồn tại!", true);
@@ -890,9 +1115,7 @@
         
         document.getElementById('btn-manual-reset').onclick = () => { 
             if(sessionScans.length > 0) {
-                if(confirm("Xóa tất cả SN đã quét?")) {
-                    forceReset();
-                }
+                if(confirm("Xóa tất cả SN?")) forceReset();
             } else {
                 forceReset();
             }
@@ -907,8 +1130,8 @@
         };
 
         document.getElementById('master-file').onchange = async (e) => {
-            if (currentUserRole !== 'admin') {
-                notify("Chỉ admin mới có quyền cập nhật Master Data!", true);
+            if (!['admin', 'manager'].includes(currentUserRole)) {
+                notify("Không có quyền!", true);
                 e.target.value = '';
                 return;
             }
@@ -924,24 +1147,23 @@
                         return;
                     }
                     
-                    // Chuẩn hóa dữ liệu
                     const formattedData = json.map(row => ({
                         po: row.PO || row.po,
                         sku: row.SKU || row.sku,
                         serial: row.SN || row.serial
                     }));
                     
-                    const result = await saveMasterData(formattedData);
+                    const success = await saveMasterData(formattedData);
                     
-                    if (result.success) {
+                    if (success) {
                         renderPOSelect();
                         renderMasterPOList();
-                        notify("Đã cập nhật Master Data thành công!");
+                        notify("Đã cập nhật Master Data!");
                     } else {
-                        notify("Lỗi khi lưu dữ liệu!", true);
+                        notify("Lỗi khi lưu!", true);
                     }
                 } catch (error) {
-                    notify("Lỗi khi đọc file Excel!", true);
+                    notify("Lỗi đọc file Excel!", true);
                 }
             };
             reader.readAsBinaryString(e.target.files[0]);
@@ -958,16 +1180,36 @@
             const select = document.getElementById('sel-sku');
             select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
             
-            if(sessionScans.length > 0) {
-                if(confirm("Thay đổi PO sẽ xóa danh sách SN hiện tại. Tiếp tục?")) {
-                    forceReset();
-                }
+            if(sessionScans.length > 0 && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
+                forceReset();
             }
         };
 
-        function renderMasterPOList() {
+        window.searchMasterData = () => {
+            const keyword = document.getElementById('search-po').value.toLowerCase();
+            if (!keyword) {
+                renderMasterPOList();
+                return;
+            }
+            
+            const filtered = masterData.filter(x => 
+                x.po.toLowerCase().includes(keyword) ||
+                x.sku.toLowerCase().includes(keyword) ||
+                x.serial.toLowerCase().includes(keyword)
+            );
+            
+            renderMasterPOList(filtered);
+        };
+
+        window.clearSearch = () => {
+            document.getElementById('search-po').value = '';
+            renderMasterPOList();
+        };
+
+        function renderMasterPOList(filteredData = null) {
+            const data = filteredData || masterData;
             const g = {}; 
-            masterData.forEach(i => { 
+            data.forEach(i => { 
                 const p = i.po; 
                 if(!p) return;
                 if(!g[p]) g[p] = {skus: new Set(), sns: []}; 
@@ -1036,7 +1278,7 @@
             }
             
             grid.innerHTML = boxData.map(d => {
-                const canEdit = currentUserRole === 'admin';
+                const canEdit = ['admin', 'manager'].includes(currentUserRole);
                 const date = d.createdAt ? new Date(d.createdAt).toLocaleString('vi-VN') : '';
                 
                 return `
@@ -1052,20 +1294,64 @@
                         <div class="text-[10px] text-gray-400">${date}</div>
                     </div>
                     <div class="flex gap-2 mt-3">
+                        <button onclick="showQRCode('${d.box}')" class="flex-1 bg-purple-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-purple-600 transition">QR</button>
                         ${canEdit ? `
                             <button onclick="editBox('${d.id}')" class="flex-1 bg-blue-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-blue-600 transition">SỬA</button>
                             <button onclick="deleteBox('${d.id}')" class="flex-1 bg-red-500 text-white py-1.5 rounded text-[10px] font-bold hover:bg-red-600 transition">XÓA</button>
-                        ` : `
-                            <button disabled class="flex-1 bg-gray-300 text-gray-500 py-1.5 rounded text-[10px] font-bold cursor-not-allowed">CHỈ XEM</button>
-                        `}
+                        ` : ''}
                     </div>
                 </div>
             `}).join('');
         }
 
+        window.showQRCode = (boxCode) => {
+            const box = boxData.find(b => b.box === boxCode);
+            if (!box) return;
+            
+            document.getElementById('qr-box-info').innerHTML = `
+                <p><strong>Box:</strong> ${box.box}</p>
+                <p><strong>PO:</strong> ${box.po}</p>
+                <p><strong>SKU:</strong> ${box.sku}</p>
+                <p><strong>SL:</strong> ${box.total}</p>
+            `;
+            
+            const container = document.getElementById('qrcode-container');
+            container.innerHTML = '';
+            QRCode.toCanvas(document.createElement('canvas'), box.box, { width: 200 }, (err, canvas) => {
+                if (err) {
+                    notify('Lỗi tạo QR!', true);
+                } else {
+                    container.appendChild(canvas);
+                }
+            });
+            
+            document.getElementById('qr-modal').style.display = 'flex';
+        };
+
+        window.printQR = () => {
+            const printWindow = window.open('', '_blank');
+            const qrCanvas = document.querySelector('#qrcode-container canvas');
+            const boxInfo = document.getElementById('qr-box-info').innerHTML;
+            
+            printWindow.document.write(`
+                <html>
+                <head><title>In QR Code</title></head>
+                <body style="text-align: center; padding: 50px;">
+                    ${qrCanvas.outerHTML}
+                    <div style="margin-top: 20px;">${boxInfo}</div>
+                    <script>window.print();window.close();</script>
+                </body>
+                </html>
+            `);
+        };
+
+        window.closeQRModal = () => {
+            document.getElementById('qr-modal').style.display = 'none';
+        };
+
         window.editBox = (id) => {
-            if (currentUserRole !== 'admin') {
-                notify("Chỉ admin mới có quyền sửa box!", true);
+            if (!['admin', 'manager'].includes(currentUserRole)) {
+                notify("Không có quyền sửa!", true);
                 return;
             }
             
@@ -1083,26 +1369,22 @@
                 setTimeout(() => { 
                     document.getElementById('sel-sku').value = b.sku; 
                     document.getElementById('inp-box').value = b.box; 
-                    sessionScans = (b.serials || []).map(s => ({
-                        sn: s, 
-                        time: 'Đã lưu'
-                    })); 
+                    sessionScans = (b.serials || []).map(s => ({ sn: s, time: 'Đã lưu' })); 
                     renderScanList(); 
-                    
                     document.getElementById('barcode-scanner').focus();
                 }, 100);
             }
         };
 
         window.deleteBox = async (id) => { 
-            if (currentUserRole !== 'admin') {
-                notify("Chỉ admin mới có quyền xóa box!", true);
+            if (!['admin', 'manager'].includes(currentUserRole)) {
+                notify("Không có quyền xóa!", true);
                 return;
             }
             
             if(confirm("Xác nhận xóa box này?")) {
-                const result = await deleteBox(id);
-                if (result.success) {
+                const success = await deleteBox(id);
+                if (success) {
                     notify("Đã xóa box thành công!");
                 } else {
                     notify("Lỗi khi xóa box!", true);
@@ -1131,6 +1413,192 @@
             XLSX.writeFile(wb, `BaoCao_VScan_${new Date().toISOString().slice(0,10)}.xlsx`);
         };
 
+        // ==================== ADMIN DASHBOARD ====================
+        async function loadStatistics() {
+            try {
+                const { count: totalBoxes } = await supabaseClient
+                    .from('boxes')
+                    .select('*', { count: 'exact', head: true });
+                
+                const { count: totalScans } = await supabaseClient
+                    .from('box_details')
+                    .select('*', { count: 'exact', head: true });
+                
+                const { count: activeUsers } = await supabaseClient
+                    .from('users')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('is_active', true);
+                
+                const totalMaster = masterData.length;
+                const completionRate = totalMaster > 0 ? Math.round((allScannedSerials.size / totalMaster) * 100) : 0;
+                
+                document.getElementById('stat-total-boxes').innerText = totalBoxes || 0;
+                document.getElementById('stat-total-scans').innerText = totalScans || 0;
+                document.getElementById('stat-active-users').innerText = activeUsers || 0;
+                document.getElementById('stat-completion-rate').innerText = completionRate + '%';
+                
+                // Load activity log
+                const { data: logs } = await supabaseClient
+                    .from('activity_log')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                
+                const tbody = document.getElementById('activity-log-tbody');
+                if (tbody) {
+                    tbody.innerHTML = logs.map(log => `
+                        <tr>
+                            <td class="text-xs">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
+                            <td class="text-xs font-bold">${log.username}</td>
+                            <td class="text-xs">${log.action}</td>
+                            <td class="text-xs">${JSON.stringify(log.details)}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Load chart data
+                await loadChartData();
+            } catch (error) {
+                console.error('Lỗi load thống kê:', error);
+            }
+        }
+
+        async function loadChartData() {
+            const { data: boxes } = await supabaseClient
+                .from('boxes')
+                .select('created_at')
+                .order('created_at');
+            
+            if (!boxes || boxes.length === 0) return;
+            
+            const last7Days = [];
+            const counts = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                last7Days.push(dateStr);
+                
+                const count = boxes.filter(b => 
+                    new Date(b.created_at).toISOString().split('T')[0] === dateStr
+                ).length;
+                counts.push(count);
+            }
+            
+            const ctx = document.getElementById('stats-chart').getContext('2d');
+            if (chart) chart.destroy();
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last7Days,
+                    datasets: [{
+                        label: 'Số box đóng',
+                        data: counts,
+                        borderColor: '#ee4d2d',
+                        backgroundColor: 'rgba(238, 77, 45, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // ==================== BACKUP ====================
+        window.showBackupModal = () => {
+            document.getElementById('backup-modal').style.display = 'flex';
+        };
+
+        window.closeBackupModal = () => {
+            document.getElementById('backup-modal').style.display = 'none';
+        };
+
+        window.exportBackup = async () => {
+            const period = document.getElementById('backup-period').value;
+            let query = supabaseClient.from('boxes').select('*, box_details(*)');
+            
+            if (period !== 'all') {
+                const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - days);
+                query = query.gte('created_at', fromDate.toISOString());
+            }
+            
+            const { data } = await query;
+            
+            const backup = {
+                exported_at: new Date().toISOString(),
+                exported_by: currentUser,
+                period,
+                data
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vscan-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            
+            notify('Đã xuất backup!');
+            closeBackupModal();
+        };
+
+        window.importBackup = () => {
+            document.getElementById('backup-file').click();
+        };
+
+        document.getElementById('backup-file').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const backup = JSON.parse(evt.target.result);
+                    
+                    if (!confirm(`Import ${backup.data.length} box?`)) return;
+                    
+                    for (const box of backup.data) {
+                        await supabaseClient.from('boxes').insert([{
+                            box_code: box.box_code,
+                            po: box.po,
+                            sku: box.sku,
+                            total: box.total,
+                            created_by: box.created_by,
+                            created_at: box.created_at
+                        }]);
+                        
+                        if (box.box_details) {
+                            await supabaseClient.from('box_details').insert(
+                                box.box_details.map(d => ({
+                                    box_code: d.box_code,
+                                    serial: d.serial,
+                                    created_at: d.created_at
+                                }))
+                            );
+                        }
+                    }
+                    
+                    await loadAllBoxes();
+                    notify('Import thành công!');
+                } catch (error) {
+                    notify('Lỗi import!', true);
+                }
+            };
+            reader.readAsText(file);
+            
+            e.target.value = '';
+            closeBackupModal();
+        };
+
         // ==================== NAVIGATION ====================
         window.switchPage = (p, sub=null) => {
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
@@ -1149,11 +1617,48 @@
                 document.getElementById('menu-data').classList.add('active');
             } else if (p === 'admin') {
                 document.getElementById('menu-admin').classList.add('active');
+                loadStatistics();
             }
         };
         
-        window.toggleSubMenu = (id) => document.getElementById(`sub-${id}`).classList.toggle('open');
-        window.closeModal = () => document.getElementById('detail-modal').style.display = 'none';
+        window.toggleSubMenu = (id) => {
+            document.getElementById(`sub-${id}`).classList.toggle('open');
+        };
+        
+        window.closeModal = () => {
+            document.getElementById('detail-modal').style.display = 'none';
+        };
+
+        // Thêm edit user modal vào body
+        const editModal = document.createElement('div');
+        editModal.id = 'edit-user-modal';
+        editModal.className = 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50';
+        editModal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+                <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
+                <input type="hidden" id="edit-user-id">
+                <div class="space-y-4">
+                    <input type="text" id="edit-username" placeholder="Username" class="w-full input-wms">
+                    <input type="password" id="edit-password" placeholder="Password mới (để trống nếu không đổi)" class="w-full input-wms">
+                    <input type="text" id="edit-fullname" placeholder="Họ tên" class="w-full input-wms">
+                    <select id="edit-role" class="w-full input-wms">
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="scanner">Scanner</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="edit-isactive" checked>
+                        <span class="text-sm">Kích hoạt</span>
+                    </label>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button onclick="closeEditUserModal()" class="px-4 py-2 bg-gray-200 rounded font-bold text-xs">HỦY</button>
+                    <button onclick="updateUser()" class="px-4 py-2 btn-shopee rounded font-bold text-xs">CẬP NHẬT</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(editModal);
     </script>
 </body>
 </html>
