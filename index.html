@@ -174,6 +174,22 @@
         .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; transition: left 0.3s ease; }
         .hotkey-hint.expanded { left: 80px; }
         .edit-mode { background-color: #fef3c7; border-color: #fbbf24; }
+        .refresh-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #666;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .refresh-btn:hover {
+            background-color: #f0f0f0;
+            color: #ee4d2d;
+        }
     </style>
 </head>
 <body class="flex">
@@ -251,6 +267,13 @@
             <h1 id="page-title" class="text-lg font-bold text-gray-800 uppercase tracking-tight">Màn hình làm việc</h1>
             <div class="flex items-center gap-4">
                 <span id="db-status-header" class="text-[10px] text-gray-500">🔄 Đang kết nối...</span>
+                <button onclick="refreshData()" class="refresh-btn" title="Làm mới dữ liệu">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor"/>
+                    </svg>
+                    Làm mới
+                </button>
                 <div id="status-badge" class="px-3 py-1 bg-green-100 rounded-full text-[10px] font-bold text-green-600 uppercase tracking-widest">Online</div>
             </div>
         </header>
@@ -480,6 +503,62 @@
         const audio = { 
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
+        };
+
+        // ==================== GIỮ ĐĂNG NHẬP ====================
+        async function loadSavedSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedRole = localStorage.getItem('currentUserRole');
+            const savedId = localStorage.getItem('currentUserId');
+            
+            if (savedUser && savedRole && savedId) {
+                // Kiểm tra user vẫn active trong database
+                const { data: user } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', savedId)
+                    .eq('is_active', true)
+                    .maybeSingle();
+                
+                if (user) {
+                    currentUser = savedUser;
+                    currentUserRole = savedRole;
+                    currentUserId = savedId;
+                    
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-ui').classList.remove('hidden');
+                    
+                    if(currentUserRole === 'admin' || currentUserRole === 'manager') {
+                        document.getElementById('admin-only-menu').classList.remove('hidden');
+                    }
+                    
+                    document.getElementById('user-display').innerText = `NV: ${currentUser}`;
+                    document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
+                    document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
+                    
+                    await testConnection();
+                    await loadMasterData();
+                    await loadAllBoxes();
+                    await renderStaffList();
+                    loadSidebarState();
+                    
+                    setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ==================== REFRESH DATA ====================
+        window.refreshData = async function() {
+            window.notify('Đang làm mới dữ liệu...');
+            await Promise.all([
+                loadMasterData(),
+                loadAllBoxes(),
+                renderStaffList()
+            ]);
+            window.notify('✅ Đã làm mới dữ liệu');
         };
 
         // ==================== SIDEBAR TOGGLE ====================
@@ -896,20 +975,24 @@
                 if (!box) return false;
                 
                 // Soft delete box
-                await supabaseClient
+                const { error: boxError } = await supabaseClient
                     .from('boxes')
                     .update({ 
                         is_active: false
                     })
                     .eq('id', id);
                 
+                if (boxError) throw boxError;
+                
                 // Soft delete các details của box
-                await supabaseClient
+                const { error: detailError } = await supabaseClient
                     .from('box_details')
                     .update({ 
                         is_active: false
                     })
                     .eq('box_code', box.box);
+                
+                if (detailError) throw detailError;
                 
                 await loadAllBoxes();
                 await logActivity('SOFT_DELETE_BOX', { box: box.box });
@@ -961,6 +1044,11 @@
                 currentUserRole = 'admin';
                 currentUserId = '1';
                 
+                // Lưu session
+                localStorage.setItem('currentUser', currentUser);
+                localStorage.setItem('currentUserRole', currentUserRole);
+                localStorage.setItem('currentUserId', currentUserId);
+                
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
@@ -995,6 +1083,11 @@
                 currentUserRole = user.roles?.name || 'viewer';
                 currentUserId = user.id;
                 
+                // Lưu session
+                localStorage.setItem('currentUser', currentUser);
+                localStorage.setItem('currentUserRole', currentUserRole);
+                localStorage.setItem('currentUserId', currentUserId);
+                
                 await supabaseClient
                     .from('users')
                     .update({ last_login: new Date().toISOString() })
@@ -1027,6 +1120,10 @@
         };
 
         window.logout = () => {
+            // Xóa session
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUserRole');
+            localStorage.removeItem('currentUserId');
             location.reload();
         };
 
@@ -1674,6 +1771,15 @@
         
         window.closeModal = () => {
             document.getElementById('detail-modal').style.display = 'none';
+        };
+
+        // ==================== KHỞI TẠO - KIỂM TRA SESSION ====================
+        window.onload = async function() {
+            const hasSession = await loadSavedSession();
+            if (!hasSession) {
+                // Hiển thị màn hình đăng nhập
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
         };
     </script>
 </body>
