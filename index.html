@@ -783,25 +783,39 @@
                     .eq('box_code', boxCode)
                     .maybeSingle();
                 
-                if (existingBox && editingBoxId) {
-                    // Đang sửa box - cập nhật
+                if (editingBoxId) {
+                    // Đang sửa box
+                    console.log('Đang sửa box ID:', editingBoxId);
+                    
+                    // Xóa chi tiết cũ
                     await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
                     
+                    // Thêm chi tiết mới
                     const details = serials.map(sn => ({
                         box_code: boxCode,
                         serial: sn
                     }));
                     
-                    await supabaseClient.from('box_details').insert(details);
+                    const { error: detailError } = await supabaseClient
+                        .from('box_details')
+                        .insert(details);
                     
-                    await supabaseClient.from('boxes').update({
-                        po, 
-                        sku, 
-                        total: serials.length, 
-                        created_by: user
-                    }).eq('id', editingBoxId);
+                    if (detailError) throw detailError;
+                    
+                    // Cập nhật thông tin box
+                    const { error: updateError } = await supabaseClient
+                        .from('boxes')
+                        .update({
+                            po, 
+                            sku, 
+                            total: serials.length
+                        })
+                        .eq('id', editingBoxId);
+                    
+                    if (updateError) throw updateError;
                     
                 } else if (existingBox) {
+                    // Box đã tồn tại và không phải đang sửa
                     return { exists: true };
                 } else {
                     // Thêm box mới
@@ -1151,18 +1165,21 @@
             }
             
             const serials = sessionScans.map(x => x.sn);
-            const existingBox = boxData.find(b => b.box === box && b.id !== editingBoxId);
             
-            if(existingBox) { 
-                if(!confirm(`Mã Box "${box}" đã tồn tại. Ghi đè?`)) {
-                    return; 
+            // Kiểm tra box đã tồn tại chưa (chỉ kiểm tra nếu không phải đang sửa)
+            if (!editingBoxId) {
+                const existingBox = boxData.find(b => b.box === box);
+                if(existingBox) { 
+                    if(!confirm(`Mã Box "${box}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
+                        return; 
+                    }
                 }
             }
 
             const result = await saveBox(box, po, sku, serials, currentUser);
             
             if (result.success) {
-                window.notify(editingBoxId ? "Đã cập nhật box!" : "Đã lưu box!");
+                window.notify(editingBoxId ? "Đã cập nhật box thành công!" : "Đã lưu box thành công!");
                 forceReset();
             } else if (result.exists) {
                 window.notify("Mã Box đã tồn tại!", true);
@@ -1409,20 +1426,38 @@
             if(!b) return;
             
             if(confirm(`Chỉnh sửa box: ${b.box}?`)) {
-                switchPage('inbound'); 
+                // Lưu ID box đang sửa
                 editingBoxId = id; 
+                
+                // Hiển thị label đang sửa
                 document.getElementById('edit-mode-label').classList.remove('hidden');
                 
+                // Chuyển sang trang scan
+                switchPage('inbound'); 
+                
+                // Set giá trị cho các select
                 document.getElementById('sel-po').value = b.po; 
                 document.getElementById('sel-po').dispatchEvent(new Event('change'));
                 
+                // Đợi SKU load xong rồi mới set giá trị
                 setTimeout(() => { 
                     document.getElementById('sel-sku').value = b.sku; 
                     document.getElementById('inp-box').value = b.box; 
-                    sessionScans = (b.serials || []).map(s => ({ sn: s, time: 'Đã lưu' })); 
+                    
+                    // Load danh sách SN từ box cũ
+                    sessionScans = (b.serials || []).map(s => ({ 
+                        sn: s, 
+                        time: 'Đã lưu' 
+                    })); 
+                    
+                    // Render lại danh sách SN
                     renderScanList(); 
+                    
+                    // Focus vào ô scan
                     document.getElementById('barcode-scanner').focus();
-                }, 100);
+                    
+                    window.notify(`Đang sửa box: ${b.box}`);
+                }, 300);
             }
         };
 
@@ -1560,6 +1595,11 @@
                 document.getElementById('sub-page-box').classList.add('hidden'); 
                 document.getElementById('sub-page-po').classList.add('hidden');
                 document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
+                
+                // Load lại dữ liệu khi chuyển trang
+                if (sub === 'box') {
+                    renderBoxHistory();
+                }
             }
             
             document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
