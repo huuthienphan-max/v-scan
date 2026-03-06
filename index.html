@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Scan Pro | Đối Soát Đa Tầng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Giữ nguyên style cũ */
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; margin: 0; }
+        .sidebar { width: 260px; background-color: #191c24; color: #a9abb0; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
+        .sidebar-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; font-size: 14px; transition: 0.2s; position: relative; }
+        .sidebar-item:hover { background-color: #0f1116; color: #fff; }
+        .sidebar-item.active { background-color: #0f1116; color: #ee4d2d; border-left: 4px solid #ee4d2d; font-weight: 600; }
+        .sub-menu { background-color: #111319; overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
+        .sub-menu.open { max-height: 500px; }
+        .sub-item { padding: 10px 20px 10px 52px; font-size: 13px; cursor: pointer; color: #888; display: block; }
+        .sub-item:hover { color: #fff; background-color: #1d2028; }
+        .sub-item.active { color: #ee4d2d; font-weight: 600; }
+        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f4f7f9; }
+        .top-nav { height: 60px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
+        .card { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        .shopee-orange { color: #ee4d2d; }
+        .btn-shopee { background-color: #ee4d2d; color: white; transition: 0.2s; border: none; cursor: pointer; }
+        .btn-shopee:hover { background-color: #d73211; }
+        .btn-shopee:disabled { background-color: #ccc; cursor: not-allowed; }
+        .input-wms { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px 12px; outline: none; transition: 0.2s; font-size: 14px; }
+        .input-wms:focus { border-color: #ee4d2d; box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.1); }
+        .table-vscan th { background: #f9fafb; padding: 12px; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
+        .table-vscan td { padding: 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+        @keyframes flashSuccess { 0% { background: #dcfce7; } 100% { background: white; } }
+        @keyframes flashError { 0% { background: #fee2e2; } 100% { background: white; } }
+        .scan-success { animation: flashSuccess 0.5s ease-out; }
+        .scan-error { animation: flashError 0.5s ease-out; }
+        #detail-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 8px; display: flex; flex-direction: column; }
+        #toast { display:none; position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 12px 24px; border-radius: 4px; z-index: 200; }
+        .sn-scanned { background-color: #e6f7e6; color: #00a000; }
+        .sn-missing { background-color: #fff0f0; color: #ff4444; }
+        .btn-scan-po { background-color: #4f46e5; color: white; }
+        .btn-scan-po:hover { background-color: #4338ca; }
+        .role-badge { font-size: 8px; padding: 2px 6px; border-radius: 10px; font-weight: bold; }
+        .role-admin { background-color: #fee2e2; color: #dc2626; }
+        .role-user { background-color: #e0e7ff; color: #4f46e5; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #ee4d2d; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sync-status { font-size: 10px; color: #666; margin-left: 10px; }
+    </style>
+</head>
+<body class="flex">
+
+    <!-- Giữ nguyên phần HTML cũ -->
+    <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f0f2f5]">
+        <div class="w-[400px] p-10 bg-white shadow-2xl rounded-lg text-center border-t-4 border-[#ee4d2d]">
+            <div class="flex justify-center mb-6"><span class="text-3xl font-bold shopee-orange">Shopee</span><span class="text-3xl font-bold text-slate-700">|WMS</span></div>
+            <h2 class="text-xl font-semibold mb-8 text-gray-700 uppercase tracking-tighter">Hệ thống Đối soát SN</h2>
+            <div class="space-y-4 text-left">
+                <input type="text" id="login-user" placeholder="Username" class="w-full input-wms py-3">
+                <input type="password" id="login-pass" placeholder="Password" class="w-full input-wms py-3">
+                <button id="btn-do-login" class="w-full btn-shopee py-3 rounded font-semibold text-lg shadow-md mt-4">Đăng nhập</button>
+                <p class="text-[10px] text-center text-gray-400 mt-2">Admin: admin/123456</p>
+            </div>
+        </div>
+    </div>
+
+    <aside id="sidebar" class="sidebar hidden">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-2">
+            <div class="w-8 h-8 bg-[#ee4d2d] rounded flex items-center justify-center text-white font-bold italic">V</div>
+            <span class="font-bold text-white tracking-tight uppercase">V-Scan Pro</span>
+        </div>
+        <nav class="flex-1 mt-4 overflow-y-auto">
+            <div onclick="switchPage('inbound')" id="menu-inbound" class="sidebar-item active">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                Đối soát SN (Scan)
+            </div>
+            <div>
+                <div onclick="toggleSubMenu('inventory')" id="menu-data" class="sidebar-item">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Dữ liệu hệ thống
+                    <svg class="w-3 h-3 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+                </div>
+                <div id="sub-inventory" class="sub-menu">
+                    <div onclick="switchPage('data', 'box')" class="sub-item">• Lịch sử đóng Box</div>
+                    <div onclick="switchPage('data', 'po')" class="sub-item">• Danh mục SN Gốc</div>
+                </div>
+            </div>
+            <div id="admin-only-menu" class="hidden border-t border-slate-800 mt-2 pt-2">
+                <div onclick="switchPage('admin')" id="menu-admin" class="sidebar-item text-orange-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Quản trị hệ thống
+                </div>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+                <p id="user-display" class="text-[10px] text-slate-500 uppercase font-bold"></p>
+                <span id="role-display" class="role-badge"></span>
+            </div>
+            <div class="text-center mb-2">
+                <span id="sync-status" class="sync-status">⚡ Đã đồng bộ</span>
+            </div>
+            <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">ĐĂNG XUẤT</button>
+        </div>
+    </aside>
+
+    <main id="main-ui" class="main-content hidden">
+        <!-- Giữ nguyên phần main cũ -->
+        <header class="top-nav">
+            <h1 id="page-title" class="text-lg font-bold text-gray-800 uppercase tracking-tight">Màn hình làm việc</h1>
+            <div class="flex items-center gap-4">
+                <span id="sync-status-header" class="text-[10px] text-gray-500">🔄 Đang đồng bộ...</span>
+                <div id="status-badge" class="px-3 py-1 bg-green-100 rounded-full text-[10px] font-bold text-green-600 uppercase tracking-widest">Online</div>
+            </div>
+        </header>
+
+        <div id="content-area" class="p-6">
+            <!-- Page Inbound (Scan) -->
+            <section id="page-inbound" class="space-y-6">
+                <div id="scan-form-card" class="card p-6 grid grid-cols-5 gap-4 items-end">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">Mã PO</label>
+                        <select id="sel-po" class="w-full input-wms font-bold text-orange-600"></select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">Model (SKU)</label>
+                        <select id="sel-sku" class="w-full input-wms font-bold"></select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase">Mã thẻ Box</label>
+                        <input type="text" id="inp-box" placeholder="Nhập mã Box" class="w-full input-wms font-bold uppercase">
+                    </div>
+                    <div class="col-span-2 flex gap-2">
+                        <button id="btn-complete-box" class="flex-1 btn-shopee h-[38px] rounded font-bold text-xs uppercase shadow-lg">Xác nhận & Lưu Box</button>
+                        <button id="btn-manual-reset" class="px-4 bg-gray-200 h-[38px] rounded font-bold text-xs uppercase hover:bg-gray-300">Hủy/Reset</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-6">
+                    <div class="col-span-8 space-y-4">
+                        <input type="text" id="barcode-scanner" placeholder="QUÉT SERIAL NUMBER (SN)..." class="w-full p-4 text-2xl font-mono font-bold text-center border-2 border-dashed border-orange-300 rounded-lg outline-none focus:border-orange-500 bg-white shadow-inner">
+                        <div class="card overflow-hidden min-h-[400px]">
+                            <table class="w-full table-vscan">
+                                <thead><tr><th width="80">STT</th><th>Serial Number (SN)</th><th class="text-right">Giờ quét</th><th width="60"></th></tr></thead>
+                                <tbody id="scan-tbody"></tbody>
+                            </table>
+                            <div id="empty-scan-msg" class="p-10 text-center text-gray-400 text-sm italic">Đang chờ quét SN...</div>
+                        </div>
+                    </div>
+                    <div class="col-span-4">
+                        <div class="card p-8 text-center border-t-4 border-t-[#ee4d2d] sticky top-24">
+                            <h4 class="text-6xl font-black shopee-orange mb-2" id="box-count">0</h4>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">SN trong thùng hiện tại</p>
+                            <div id="edit-mode-label" class="mt-4 hidden text-blue-600 font-bold text-[11px] bg-blue-50 py-1 rounded">ĐANG SỬA BOX</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Data -->
+            <section id="page-data" class="hidden">
+                <div id="sub-page-box" class="hidden space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử Box</h3>
+                        <button id="btn-export-excel" class="bg-emerald-600 text-white px-4 py-1.5 rounded text-[11px] font-bold uppercase hover:bg-emerald-700 shadow-sm">Xuất Báo Cáo (.xlsx)</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="box-history-grid"></div>
+                </div>
+                <div id="sub-page-po" class="hidden space-y-4">
+                    <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
+                    <div class="card overflow-hidden">
+                        <table class="w-full table-vscan">
+                            <thead>
+                                <tr>
+                                    <th>Mã PO</th>
+                                    <th class="text-center">Số Model (SKU)</th>
+                                    <th class="text-center">Tổng SN</th>
+                                    <th class="text-center font-bold text-green-600">Đã quét</th>
+                                    <th class="text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-po-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page Admin -->
+            <section id="page-admin" class="hidden space-y-6">
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="card p-6">
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
+                        <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
+                        <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
+                        <div class="flex gap-2 mb-4">
+                            <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
+                            <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
+                            <select id="new-role" class="input-wms w-24">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button id="btn-add-user" class="btn-shopee px-4 rounded font-bold text-xs">THÊM</button>
+                        </div>
+                        <div id="staff-list" class="divide-y text-sm max-h-[400px] overflow-y-auto"></div>
+                    </div>
+                </div>
+                
+                <!-- Edit User Modal -->
+                <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg w-96">
+                        <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
+                        <input type="hidden" id="edit-user-id">
+                        <div class="space-y-4">
+                            <input type="text" id="edit-username" placeholder="Username" class="w-full input-wms">
+                            <input type="password" id="edit-password" placeholder="Password mới (để trống nếu không đổi)" class="w-full input-wms">
+                            <select id="edit-role" class="w-full input-wms">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-6">
+                            <button onclick="closeEditUserModal()" class="px-4 py-2 bg-gray-200 rounded font-bold text-xs">HỦY</button>
+                            <button onclick="updateUser()" class="px-4 py-2 btn-shopee rounded font-bold text-xs">CẬP NHẬT</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="toast"></div>
+
+    <div id="detail-modal" class="p-4">
+        <div class="modal-content shadow-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 id="modal-title" class="font-bold uppercase text-sm">Chi tiết</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div id="modal-body" class="p-0 overflow-y-auto flex-1 max-h-[60vh]"></div>
+            <div class="p-4 border-t flex justify-end bg-gray-50">
+                <button onclick="closeModal()" class="px-6 py-2 bg-gray-200 rounded font-bold text-xs uppercase">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CẤU HÌNH GITHUB ====================
+        const GITHUB_CONFIG = {
+            token: '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',  // THAY BẰNG TOKEN MỚI CỦA BẠN
+            owner: 'huuthienphan-max',          // Tên GitHub của bạn
+            repo: 'vscan-data',                  // Tên repository
+            filePath: 'data.json'                 // File lưu dữ liệu
+        };
+
+        // ==================== BIẾN TOÀN CỤC ====================
+        let currentUser = null;
+        let currentUserRole = 'user';
+        let currentUserId = null;
+        let masterData = [];
+        let boxData = [];
+        let users = [];
+        let sessionScans = [];
+        let allScannedSerials = new Set();
+        let editingBoxId = null;
+        let isSyncing = false;
+
+        const audio = { 
+            ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
+            err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
+        };
+
+        // ==================== HÀM ĐỒNG BỘ GITHUB ====================
+        async function loadFromGitHub() {
+    try {
+        setSyncStatus('Đang tải...', '🔄');
+        
+        // Log để debug
+        console.log('Đang đọc từ GitHub...');
+        console.log('Owner:', GITHUB_CONFIG.owner);
+        console.log('Repo:', GITHUB_CONFIG.repo);
+        
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`, {
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        console.log('Response status:', response.status);
+
+        if (response.status === 401) {
+            console.error('Token không hợp lệ hoặc không có quyền');
+            setSyncStatus('Token không hợp lệ', '❌');
+            
+            // Fallback: đọc từ localStorage
+            masterData = JSON.parse(localStorage.getItem('masterData') || '[]');
+            boxData = JSON.parse(localStorage.getItem('boxData') || '[]');
+            users = JSON.parse(localStorage.getItem('users') || '[]');
+            return false;
+        }
+
+        if (response.status === 404) {
+            console.log('Repository chưa có file data.json');
+            setSyncStatus('Chưa có dữ liệu', '⚠️');
+            
+            // Đọc từ localStorage
+            masterData = JSON.parse(localStorage.getItem('masterData') || '[]');
+            boxData = JSON.parse(localStorage.getItem('boxData') || '[]');
+            users = JSON.parse(localStorage.getItem('users') || '[]');
+            return false;
+        }
+
+        if (response.ok) {
+            const data = await response.json();
+            const content = decodeURIComponent(escape(atob(data.content)));
+            const githubData = JSON.parse(content);
+            
+            masterData = githubData.masterData || [];
+            boxData = githubData.boxData || [];
+            users = githubData.users || [];
+            
+            // Lưu vào localStorage
+            localStorage.setItem('masterData', JSON.stringify(masterData));
+            localStorage.setItem('boxData', JSON.stringify(boxData));
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            setSyncStatus('Đã đồng bộ', '✅');
+            return true;
+        } else {
+            console.error('Lỗi GitHub:', response.status);
+            setSyncStatus(`Lỗi ${response.status}`, '❌');
+            
+            // Fallback: đọc từ localStorage
+            masterData = JSON.parse(localStorage.getItem('masterData') || '[]');
+            boxData = JSON.parse(localStorage.getItem('boxData') || '[]');
+            users = JSON.parse(localStorage.getItem('users') || '[]');
+            return false;
+        }
+    } catch (error) {
+        console.error('Lỗi đọc từ GitHub:', error);
+        setSyncStatus('Lỗi kết nối', '❌');
+        
+        // Fallback: đọc từ localStorage
+        masterData = JSON.parse(localStorage.getItem('masterData') || '[]');
+        boxData = JSON.parse(localStorage.getItem('boxData') || '[]');
+        users = JSON.parse(localStorage.getItem('users') || '[]');
+        return false;
+    }
+}
+
+async function saveToGitHub(isInitial = false) {
+    if (isSyncing) return false;
+    
+    try {
+        isSyncing = true;
+        setSyncStatus('Đang lưu...', '🔄');
+        
+        console.log('Đang lưu lên GitHub...');
+        
+        // Chuẩn bị dữ liệu
+        const allData = {
+            masterData: masterData,
+            boxData: boxData,
+            users: users,
+            lastUpdated: new Date().toISOString()
+        };
+
+        // Kiểm tra file đã tồn tại chưa
+        const getResponse = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`, {
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        console.log('GET response status:', getResponse.status);
+
+        if (getResponse.status === 401) {
+            console.error('Token không hợp lệ');
+            setSyncStatus('Token không hợp lệ', '❌');
+            
+            // Vẫn lưu local
+            localStorage.setItem('masterData', JSON.stringify(masterData));
+            localStorage.setItem('boxData', JSON.stringify(boxData));
+            localStorage.setItem('users', JSON.stringify(users));
+            return false;
+        }
+
+        let sha = null;
+        if (getResponse.ok) {
+            const fileData = await getResponse.json();
+            sha = fileData.sha;
+        }
+
+        // Mã hóa và lưu
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(allData, null, 2))));
+        
+        const putResponse = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: isInitial ? 'Khởi tạo dữ liệu V-Scan' : 'Cập nhật dữ liệu V-Scan',
+                content: content,
+                sha: sha
+            })
+        });
+
+        console.log('PUT response status:', putResponse.status);
+
+        if (putResponse.ok) {
+            setSyncStatus('Đã đồng bộ', '✅');
+            return true;
+        } else {
+            const error = await putResponse.json();
+            console.error('Lỗi lưu GitHub:', error);
+            setSyncStatus(`Lỗi ${putResponse.status}`, '❌');
+            
+            // Vẫn lưu local
+            localStorage.setItem('masterData', JSON.stringify(masterData));
+            localStorage.setItem('boxData', JSON.stringify(boxData));
+            localStorage.setItem('users', JSON.stringify(users));
+            return false;
+        }
+    } catch (error) {
+        console.error('Lỗi lưu lên GitHub:', error);
+        setSyncStatus('Lỗi kết nối', '❌');
+        
+        // Vẫn lưu local
+        localStorage.setItem('masterData', JSON.stringify(masterData));
+        localStorage.setItem('boxData', JSON.stringify(boxData));
+        localStorage.setItem('users', JSON.stringify(users));
+        return false;
+    } finally {
+        isSyncing = false;
+    }
+}
+
+        function setSyncStatus(text, icon = '') {
+            document.getElementById('sync-status').innerHTML = `${icon} ${text}`;
+            document.getElementById('sync-status-header').innerHTML = `${icon} ${text}`;
+        }
+
+        // ==================== KHỞI TẠO DỮ LIỆU ====================
+        async function initData() {
+            setSyncStatus('Đang đồng bộ...', '🔄');
+            
+            // Đọc từ GitHub
+            await loadFromGitHub();
+
+            // Nếu chưa có users, tạo admin mặc định
+            if (users.length === 0) {
+                users = [
+                    { id: '1', username: 'admin', password: '123456', role: 'admin' }
+                ];
+                localStorage.setItem('users', JSON.stringify(users));
+                await saveToGitHub();
+            }
+
+            updateScannedSerials();
+            renderPOSelect();
+            renderMasterPOList();
+            renderBoxHistory();
+        }
+
+        function updateScannedSerials() {
+            allScannedSerials.clear();
+            boxData.forEach(box => {
+                if (box.id !== editingBoxId && box.serials) {
+                    box.serials.forEach(s => allScannedSerials.add(s));
+                }
+            });
+        }
+
+        // ==================== TOAST ====================
+        window.notify = (msg, isError = false) => { 
+            const t = document.getElementById('toast'); 
+            t.innerText = msg; 
+            t.style.backgroundColor = isError ? '#dc2626' : '#333';
+            t.style.display = 'block'; 
+            setTimeout(() => t.style.display = 'none', 3000); 
+        };
+
+        // ==================== LOGIN ====================
+        document.getElementById('btn-do-login').onclick = async () => {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+
+            if (!u || !p) {
+                alert("Vui lòng nhập đầy đủ tài khoản và mật khẩu!");
+                return;
+            }
+
+            // Admin mặc định
+            if (u === 'admin' && p === '123456') {
+                currentUser = 'admin';
+                currentUserRole = 'admin';
+                currentUserId = '1';
+                
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-ui').classList.remove('hidden');
+                
+                document.getElementById('admin-only-menu').classList.remove('hidden');
+                document.getElementById('user-display').innerText = `NV: admin`;
+                document.getElementById('role-display').innerText = 'ADMIN';
+                document.getElementById('role-display').className = 'role-badge role-admin';
+                
+                await initData();
+                renderStaffList();
+                
+                setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
+                return;
+            }
+
+            // Kiểm tra users từ GitHub
+            const user = users.find(user => user.username === u && user.password === p);
+            if (user) {
+                currentUser = user.username;
+                currentUserRole = user.role || 'user';
+                currentUserId = user.id;
+                
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-ui').classList.remove('hidden');
+                
+                if(currentUserRole === 'admin') {
+                    document.getElementById('admin-only-menu').classList.remove('hidden');
+                }
+                
+                document.getElementById('user-display').innerText = `NV: ${currentUser}`;
+                document.getElementById('role-display').innerText = currentUserRole === 'admin' ? 'ADMIN' : 'USER';
+                document.getElementById('role-display').className = `role-badge ${currentUserRole === 'admin' ? 'role-admin' : 'role-user'}`;
+                
+                await initData();
+                renderStaffList();
+                
+                setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
+            } else {
+                alert("Sai tài khoản hoặc mật khẩu!");
+            }
+        };
+
+        window.logout = () => {
+            location.reload();
+        };
+
+        // ==================== STAFF MANAGEMENT ====================
+        function renderStaffList() {
+            if (currentUserRole !== 'admin') return;
+            
+            const list = document.getElementById('staff-list');
+            list.innerHTML = '';
+            
+            users.sort((a, b) => a.username.localeCompare(b.username));
+            
+            users.forEach(user => {
+                list.innerHTML += `
+                    <div class="py-3 flex justify-between items-center border-b last:border-0">
+                        <div>
+                            <span class="font-bold">${user.username}</span>
+                            <span class="ml-2 role-badge ${user.role === 'admin' ? 'role-admin' : 'role-user'}">${user.role || 'user'}</span>
+                        </div>
+                        <div class="space-x-2">
+                            <button onclick="openEditUserModal('${user.id}', '${user.username}', '${user.role || 'user'}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                            ${user.username !== 'admin' ? `<button onclick="deleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.openEditUserModal = (id, username, role) => {
+            document.getElementById('edit-user-id').value = id;
+            document.getElementById('edit-username').value = username;
+            document.getElementById('edit-role').value = role;
+            document.getElementById('edit-password').value = '';
+            document.getElementById('edit-user-modal').style.display = 'flex';
+        };
+
+        window.closeEditUserModal = () => {
+            document.getElementById('edit-user-modal').style.display = 'none';
+        };
+
+        window.updateUser = async () => {
+            const id = document.getElementById('edit-user-id').value;
+            const username = document.getElementById('edit-username').value.trim();
+            const password = document.getElementById('edit-password').value.trim();
+            const role = document.getElementById('edit-role').value;
+
+            if (!username) {
+                notify("Vui lòng nhập username!", true);
+                return;
+            }
+
+            const index = users.findIndex(u => u.id === id);
+            if (index !== -1) {
+                users[index].username = username;
+                users[index].role = role;
+                if (password) {
+                    users[index].password = password;
+                }
+                
+                // Lưu vào localStorage và GitHub
+                localStorage.setItem('users', JSON.stringify(users));
+                await saveToGitHub();
+                
+                notify("Cập nhật nhân viên thành công!");
+                closeEditUserModal();
+                renderStaffList();
+            }
+        };
+
+        document.getElementById('btn-add-user').onclick = async () => { 
+            const u = document.getElementById('new-user').value.trim(); 
+            const p = document.getElementById('new-pass').value.trim(); 
+            const r = document.getElementById('new-role').value;
+            
+            if(u && p) { 
+                if (users.some(user => user.username === u)) {
+                    notify("Username đã tồn tại!", true);
+                    return;
+                }
+                
+                const newUser = {
+                    id: Date.now().toString(),
+                    username: u,
+                    password: p,
+                    role: r
+                };
+                
+                users.push(newUser);
+                
+                // Lưu vào localStorage và GitHub
+                localStorage.setItem('users', JSON.stringify(users));
+                await saveToGitHub();
+                
+                document.getElementById('new-user').value = ''; 
+                document.getElementById('new-pass').value = ''; 
+                
+                notify("Thêm nhân viên thành công!");
+                renderStaffList();
+            } else {
+                notify("Vui lòng nhập đầy đủ thông tin!", true);
+            }
+        };
+
+        window.deleteUser = async (id) => { 
+            if(confirm("Xóa nhân viên này?")) {
+                users = users.filter(u => u.id !== id);
+                
+                // Lưu vào localStorage và GitHub
+                localStorage.setItem('users', JSON.stringify(users));
+                await saveToGitHub();
+                
+                notify("Đã xóa nhân viên!");
+                renderStaffList();
+            } 
+        };
+
+        // ==================== SCAN LOGIC ====================
+        document.getElementById('barcode-scanner').onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const sn = e.target.value.trim().toUpperCase();
+                e.target.value = '';
+                
+                if (!sn) return;
+                
+                const po = document.getElementById('sel-po').value;
+                const sku = document.getElementById('sel-sku').value;
+                
+                if(!po || !sku) {
+                    notify("Chưa chọn PO/Model!", true);
+                    audio.err.play();
+                    return;
+                }
+                
+                const isValid = masterData.some(x => {
+                    const masterSn = (x.SN || x.sn || '').toUpperCase();
+                    const masterPo = x.PO || x.po;
+                    const masterSku = x.SKU || x.sku;
+                    return masterSn === sn && masterPo === po && masterSku === sku;
+                });
+                
+                const isScanned = allScannedSerials.has(sn) || sessionScans.some(x => x.sn === sn);
+                
+                if(!isValid) {
+                    audio.err.play();
+                    document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
+                    setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
+                    notify("SN không đúng với PO/Model đã chọn!", true);
+                    return;
+                }
+                
+                if(isScanned) {
+                    audio.err.play();
+                    document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
+                    setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
+                    notify("SN đã được quét trước đó!", true);
+                    return;
+                }
+                
+                audio.ok.play();
+                document.getElementById('barcode-scanner').parentElement.classList.add('scan-success');
+                setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-success'), 500);
+                
+                sessionScans.unshift({ sn, time: new Date().toLocaleTimeString('vi-VN') });
+                renderScanList();
+            }
+        };
+
+        window.removeSN = (index) => {
+            if (confirm('Xóa SN này khỏi danh sách?')) {
+                sessionScans.splice(index, 1);
+                renderScanList();
+                document.getElementById('barcode-scanner').focus();
+            }
+        };
+
+        function renderScanList() {
+            document.getElementById('box-count').innerText = sessionScans.length;
+            const tbody = document.getElementById('scan-tbody');
+            const emptyMsg = document.getElementById('empty-scan-msg');
+            
+            if (sessionScans.length === 0) {
+                emptyMsg.style.display = 'block';
+                tbody.innerHTML = '';
+            } else {
+                emptyMsg.style.display = 'none';
+                tbody.innerHTML = sessionScans.map((s, i) => {
+                    const stt = sessionScans.length - i;
+                    return `<tr>
+                        <td class="font-bold">${stt}</td>
+                        <td class="font-mono font-bold text-orange-600">${s.sn}</td>
+                        <td class="text-right text-gray-400">${s.time}</td>
+                        <td class="text-right">
+                            <button onclick="removeSN(${i})" class="text-red-500 hover:text-red-700 font-bold px-2">✕</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        // ==================== SAVE BOX ====================
+        document.getElementById('btn-complete-box').onclick = async () => {
+            const box = document.getElementById('inp-box').value.trim().toUpperCase();
+            const po = document.getElementById('sel-po').value;
+            const sku = document.getElementById('sel-sku').value;
+            
+            if(!sessionScans.length) {
+                notify("Chưa có SN nào được quét!", true);
+                return;
+            }
+            
+            if(!box) {
+                notify("Thiếu mã Box!", true);
+                return;
+            }
+            
+            if(!po || !sku) {
+                notify("Thiếu PO hoặc Model!", true);
+                return;
+            }
+            
+            const existingBoxIndex = boxData.findIndex(b => b.box === box && b.id !== editingBoxId);
+            
+            if(existingBoxIndex !== -1) {
+                if(!confirm(`Mã Box "${box}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
+                    return;
+                }
+                boxData.splice(existingBoxIndex, 1);
+            }
+            
+            const newBox = {
+                id: editingBoxId || Date.now().toString(),
+                po,
+                sku,
+                box,
+                serials: sessionScans.map(x => x.sn),
+                total: sessionScans.length,
+                user: currentUser,
+                userRole: currentUserRole,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (editingBoxId) {
+                const index = boxData.findIndex(b => b.id === editingBoxId);
+                if (index !== -1) {
+                    boxData[index] = newBox;
+                }
+            } else {
+                boxData.push(newBox);
+            }
+            
+            // Lưu vào localStorage và GitHub
+            localStorage.setItem('boxData', JSON.stringify(boxData));
+            await saveToGitHub();
+            
+            notify(editingBoxId ? "Đã cập nhật box thành công!" : "Đã lưu box thành công!");
+            forceReset();
+        };
+
+        function forceReset() { 
+            sessionScans = []; 
+            editingBoxId = null; 
+            document.getElementById('inp-box').value = ''; 
+            document.getElementById('edit-mode-label').classList.add('hidden'); 
+            renderScanList(); 
+            document.getElementById('barcode-scanner').focus();
+            updateScannedSerials();
+        }
+
+        document.getElementById('btn-manual-reset').onclick = () => { 
+            if(sessionScans.length > 0) {
+                if(confirm("Xóa tất cả SN đã quét?")) {
+                    forceReset();
+                }
+            } else {
+                forceReset();
+            }
+        };
+
+        // ==================== MASTER DATA ====================
+        window.downloadSampleFile = () => {
+            const ws = XLSX.utils.aoa_to_sheet([["PO", "SKU", "SN"], ["PO_001", "MODEL_X", "SN_001"]]);
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "Master");
+            XLSX.writeFile(wb, "VScan_Form_Mau.xlsx");
+        };
+
+        document.getElementById('master-file').onchange = async (e) => {
+            if (currentUserRole !== 'admin') {
+                notify("Chỉ admin mới có quyền cập nhật Master Data!", true);
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    
+                    if(json.length === 0) {
+                        notify("File không có dữ liệu!", true);
+                        return;
+                    }
+                    
+                    masterData = json;
+                    
+                    // Lưu vào localStorage và GitHub
+                    localStorage.setItem('masterData', JSON.stringify(masterData));
+                    await saveToGitHub();
+                    
+                    renderPOSelect();
+                    renderMasterPOList();
+                    notify("Đã cập nhật Master Data thành công!");
+                } catch (error) {
+                    notify("Lỗi khi đọc file Excel!", true);
+                }
+            };
+            reader.readAsBinaryString(e.target.files[0]);
+        };
+
+        function renderPOSelect() {
+            const pos = [...new Set(masterData.map(x => x.PO || x.po))].filter(p => p);
+            const select = document.getElementById('sel-po');
+            select.innerHTML = '<option value="">Chọn PO</option>' + pos.map(p => `<option value="${p}">${p}</option>`).join('');
+        }
+        
+        document.getElementById('sel-po').onchange = (e) => {
+            const skus = [...new Set(masterData.filter(x => (x.PO || x.po) === e.target.value).map(x => x.SKU || x.sku))].filter(s => s);
+            const select = document.getElementById('sel-sku');
+            select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
+            
+            if(sessionScans.length > 0) {
+                if(confirm("Thay đổi PO sẽ xóa danh sách SN hiện tại. Tiếp tục?")) {
+                    forceReset();
+                }
+            }
+        };
+
+        function renderMasterPOList() {
+            const g = {}; 
+            masterData.forEach(i => { 
+                const p = i.PO || i.po; 
+                if(!p) return;
+                if(!g[p]) g[p] = {skus: new Set(), sns: []}; 
+                g[p].skus.add(i.SKU || i.sku); 
+                g[p].sns.push(i.SN || i.sn); 
+            });
+            
+            document.getElementById('master-po-tbody').innerHTML = Object.keys(g).map(p => {
+                const scanned = g[p].sns.filter(s => allScannedSerials.has(s)).length;
+                return `<tr>
+                    <td class="font-bold">${p}</td>
+                    <td class="text-center">${g[p].skus.size}</td>
+                    <td class="text-center">${g[p].sns.length}</td>
+                    <td class="text-center font-bold ${scanned === g[p].sns.length ? 'text-green-600' : 'text-orange-600'}">${scanned}/${g[p].sns.length}</td>
+                    <td class="text-right space-x-2">
+                        <button onclick="scanPO('${p}')" class="btn-scan-po text-white font-bold text-xs uppercase px-3 py-1 rounded">SCAN PO</button>
+                        <button onclick="viewPODetail('${p}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs uppercase px-3 py-1 rounded border border-blue-200">CHI TIẾT</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.scanPO = (poCode) => {
+            switchPage('inbound');
+            document.getElementById('sel-po').value = poCode;
+            document.getElementById('sel-po').dispatchEvent(new Event('change'));
+            notify(`Đã chuyển sang scan PO: ${poCode}`);
+            setTimeout(() => document.getElementById('barcode-scanner').focus(), 100);
+        };
+
+        window.viewPODetail = (poCode) => {
+            const poSerials = masterData.filter(x => (x.PO || x.po) === poCode);
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = '<table class="w-full table-vscan"><thead><tr><th>STT</th><th>SKU</th><th>SN</th><th>Trạng thái</th></tr></thead><tbody>' +
+                poSerials.map((item, index) => {
+                    const sn = item.SN || item.sn;
+                    const isScanned = allScannedSerials.has(sn);
+                    return `<tr>
+                        <td>${index + 1}</td>
+                        <td>${item.SKU || item.sku}</td>
+                        <td class="font-mono">${sn}</td>
+                        <td class="${isScanned ? 'sn-scanned' : 'sn-missing'} font-bold">${isScanned ? 'ĐÃ QUÉT' : 'CHƯA QUÉT'}</td>
+                    </tr>`;
+                }).join('') + '</tbody></table>';
+            document.getElementById('modal-title').innerText = `Chi tiết PO: ${poCode}`;
+            document.getElementById('detail-modal').style.display = 'flex';
+        };
+
+        // ==================== BOX HISTORY ====================
+        function renderBoxHistory() {
+            const grid = document.getElementById('box-history-grid');
+            if(boxData.length === 0) {
+                grid.innerHTML = '<div class="col-span-4 text-center text-gray-400 p-8">Chưa có dữ liệu box</div>';
+                return;
+            }
+            
+            grid.innerHTML = boxData.map(d => {
+                const canEdit = currentUserRole === 'admin';
+                const date = d.createdAt ? new Date(d.createdAt).toLocaleString('vi-VN') : '';
+                return `
+                <div class="card p-4">
+                    <div class="font-bold text-orange-600">${d.box}</div>
+                    <div class="text-xs mt-2">PO: ${d.po} | SKU: ${d.sku}</div>
+                    <div class="text-xs">SL: ${d.total || d.serials?.length || 0}</div>
+                    <div class="text-[10px] text-gray-400">NV: ${d.user} - ${date}</div>
+                    <div class="flex gap-2 mt-3">
+                        ${canEdit ? `
+                            <button onclick="editBox('${d.id}')" class="flex-1 bg-blue-500 text-white py-1 rounded text-[10px]">SỬA</button>
+                            <button onclick="deleteBox('${d.id}')" class="flex-1 bg-red-500 text-white py-1 rounded text-[10px]">XÓA</button>
+                        ` : `
+                            <button disabled class="flex-1 bg-gray-300 text-gray-500 py-1 rounded text-[10px]">CHỈ XEM</button>
+                        `}
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        window.editBox = (id) => {
+            if (currentUserRole !== 'admin') {
+                notify("Chỉ admin mới có quyền sửa box!", true);
+                return;
+            }
+            
+            const b = boxData.find(x => x.id === id); 
+            if(!b) return;
+            
+            switchPage('inbound'); 
+            editingBoxId = id; 
+            document.getElementById('edit-mode-label').classList.remove('hidden');
+            document.getElementById('sel-po').value = b.po; 
+            document.getElementById('sel-po').dispatchEvent(new Event('change'));
+            
+            setTimeout(() => { 
+                document.getElementById('sel-sku').value = b.sku; 
+                document.getElementById('inp-box').value = b.box; 
+                sessionScans = (b.serials || []).map(s => ({ sn: s, time: 'Đã lưu' })); 
+                renderScanList(); 
+            }, 100);
+        };
+
+        window.deleteBox = async (id) => { 
+            if (currentUserRole !== 'admin') {
+                notify("Chỉ admin mới có quyền xóa box!", true);
+                return;
+            }
+            
+            if(confirm("Xác nhận xóa box này?")) {
+                boxData = boxData.filter(b => b.id !== id);
+                
+                // Lưu vào localStorage và GitHub
+                localStorage.setItem('boxData', JSON.stringify(boxData));
+                await saveToGitHub();
+                
+                updateScannedSerials();
+                renderBoxHistory();
+                renderMasterPOList();
+                notify("Đã xóa box thành công!");
+            } 
+        };
+
+        document.getElementById('btn-export-excel').onclick = () => {
+            const data = []; 
+            boxData.forEach(b => {
+                (b.serials || []).forEach(s => {
+                    data.push({
+                        "Box": b.box, "PO": b.po, "SKU": b.sku, "SN": s, "User": b.user
+                    });
+                });
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(data); 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "BaoCao");
+            XLSX.writeFile(wb, `BaoCao_VScan_${new Date().toISOString().slice(0,10)}.xlsx`);
+        };
+
+        // ==================== NAVIGATION ====================
+        window.switchPage = (p, sub=null) => {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`page-${p}`).classList.remove('hidden');
+            
+            if(sub) { 
+                document.getElementById('sub-page-box').classList.add('hidden'); 
+                document.getElementById('sub-page-po').classList.add('hidden');
+                document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
+            }
+            
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            if (p === 'inbound') {
+                document.getElementById('menu-inbound').classList.add('active');
+            } else if (p === 'data') {
+                document.getElementById('menu-data').classList.add('active');
+            } else if (p === 'admin') {
+                document.getElementById('menu-admin').classList.add('active');
+            }
+        };
+        
+        window.toggleSubMenu = (id) => document.getElementById(`sub-${id}`).classList.toggle('open');
+        window.closeModal = () => document.getElementById('detail-modal').style.display = 'none';
+    </script>
+</body>
+</html>
+
+
+
+
+
+
