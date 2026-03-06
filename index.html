@@ -254,8 +254,8 @@
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtY3BobmZodmxkZ3dncGdoeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTQ5MjgsImV4cCI6MjA4ODM3MDkyOH0.js_iAomljFrQXSC8gxFwbyC1hdqB2SVqgAapww_Hylo'  // THAY BẰNG ANON KEY CỦA BẠN
         };
 
-        // Khởi tạo Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        // Khởi tạo Supabase client - CHỈ 1 LẦN DUY NHẤT
+        const supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
         // ==================== BIẾN TOÀN CỤC ====================
         let currentUser = null;
@@ -274,14 +274,16 @@
 
         // ==================== HÀM CẬP NHẬT TRẠNG THÁI ====================
         function setDbStatus(text, icon = '') {
-            document.getElementById('db-status').innerHTML = `${icon} ${text}`;
-            document.getElementById('db-status-header').innerHTML = `${icon} ${text}`;
+            const statusEl = document.getElementById('db-status');
+            const headerEl = document.getElementById('db-status-header');
+            if (statusEl) statusEl.innerHTML = `${icon} ${text}`;
+            if (headerEl) headerEl.innerHTML = `${icon} ${text}`;
         }
 
         // ==================== HÀM KIỂM TRA KẾT NỐI ====================
         async function testConnection() {
             try {
-                const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+                const { data, error } = await supabaseClient.from('users').select('count', { count: 'exact', head: true });
                 if (error) throw error;
                 setDbStatus('✅ Kết nối thành công', '✅');
                 return true;
@@ -295,7 +297,7 @@
         // ==================== HÀM XỬ LÝ USER ====================
         async function getUser(username, password) {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('username', username)
@@ -311,7 +313,7 @@
 
         async function getAllUsers() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .order('username');
@@ -326,7 +328,7 @@
 
         async function addUser(username, password, role) {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .insert([{ username, password, role }])
                     .select();
@@ -344,7 +346,7 @@
                 const updateData = { username, role };
                 if (password) updateData.password = password;
                 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('users')
                     .update(updateData)
                     .eq('id', id);
@@ -359,7 +361,7 @@
 
         async function deleteUser(id) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('users')
                     .delete()
                     .eq('id', id);
@@ -375,7 +377,7 @@
         // ==================== HÀM XỬ LÝ MASTER DATA ====================
         async function loadMasterData() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('master_serials')
                     .select('*')
                     .order('po');
@@ -400,10 +402,10 @@
         async function saveMasterData(data) {
             try {
                 // Xóa dữ liệu cũ
-                await supabase.from('master_serials').delete().neq('id', 0);
+                await supabaseClient.from('master_serials').delete().neq('id', 0);
                 
                 // Thêm dữ liệu mới
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('master_serials')
                     .insert(data);
                 
@@ -422,7 +424,7 @@
         async function loadAllBoxes() {
             try {
                 // Lấy danh sách boxes
-                const { data: boxes, error: boxError } = await supabase
+                const { data: boxes, error: boxError } = await supabaseClient
                     .from('boxes')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -431,7 +433,7 @@
                 
                 // Lấy chi tiết từng box
                 const boxDataPromises = boxes.map(async (box) => {
-                    const { data: details, error: detailError } = await supabase
+                    const { data: details, error: detailError } = await supabaseClient
                         .from('box_details')
                         .select('serial')
                         .eq('box_code', box.box_code);
@@ -473,7 +475,7 @@
         async function saveBox(boxCode, po, sku, serials, user) {
             try {
                 // Kiểm tra box đã tồn tại chưa
-                const { data: existingBox } = await supabase
+                const { data: existingBox } = await supabaseClient
                     .from('boxes')
                     .select('id')
                     .eq('box_code', boxCode)
@@ -481,8 +483,8 @@
                 
                 if (existingBox && editingBoxId) {
                     // Đang sửa box cũ
-                    await supabase.from('box_details').delete().eq('box_code', boxCode);
-                    await supabase.from('boxes').update({
+                    await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
+                    await supabaseClient.from('boxes').update({
                         po, sku, total: serials.length, created_by: user
                     }).eq('id', editingBoxId);
                 } else if (existingBox) {
@@ -490,7 +492,7 @@
                     return { success: false, exists: true };
                 } else {
                     // Thêm box mới
-                    const { data: newBox, error: boxError } = await supabase
+                    const { data: newBox, error: boxError } = await supabaseClient
                         .from('boxes')
                         .insert([{
                             box_code: boxCode,
@@ -510,7 +512,7 @@
                         serial: sn
                     }));
                     
-                    const { error: detailError } = await supabase
+                    const { error: detailError } = await supabaseClient
                         .from('box_details')
                         .insert(details);
                     
@@ -532,10 +534,10 @@
                 if (!box) return { success: false };
                 
                 // Xóa chi tiết trước
-                await supabase.from('box_details').delete().eq('box_code', box.box);
+                await supabaseClient.from('box_details').delete().eq('box_code', box.box);
                 
                 // Xóa box
-                await supabase.from('boxes').delete().eq('id', id);
+                await supabaseClient.from('boxes').delete().eq('id', id);
                 
                 // Load lại dữ liệu
                 await loadAllBoxes();
@@ -547,7 +549,7 @@
         }
 
         async function checkSerialScanned(serial) {
-            const { count, error } = await supabase
+            const { count, error } = await supabaseClient
                 .from('box_details')
                 .select('*', { count: 'exact', head: true })
                 .eq('serial', serial);
