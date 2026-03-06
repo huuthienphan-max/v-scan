@@ -249,12 +249,15 @@
 
     <script>
         // ==================== CẤU HÌNH GITHUB ====================
-        const GITHUB_CONFIG = {
-            token: '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',  // THAY BẰNG TOKEN MỚI CỦA BẠN
-            owner: 'huuthienphan-max',          // Tên GitHub của bạn
-            repo: 'vscan-data',                  // Tên repository
-            filePath: 'data.json'                 // File lưu dữ liệu
-        };
+        // ==================== CẤU HÌNH GITHUB ====================
+const GITHUB_CONFIG = {
+    token: typeof process !== 'undefined' && process.env.GITHUB_TOKEN 
+        ? process.env.GITHUB_TOKEN 
+        : window.GITHUB_TOKEN || '',
+    owner: 'huuthienphan-max',
+    repo: 'vscan-data',  // Tạo repository mới cho dữ liệu
+    filePath: 'data.json'
+    };
 
         // ==================== BIẾN TOÀN CỤC ====================
         let currentUser = null;
@@ -1053,6 +1056,7 @@ async function saveToGitHub(isInitial = false) {
     </script>
 </body>
 </html>
+
 
 
 
