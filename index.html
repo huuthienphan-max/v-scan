@@ -12,7 +12,6 @@
         * { transition: background-color 0.3s, border-color 0.3s; }
         body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; margin: 0; }
         
-        /* Sidebar styles */
         .sidebar { 
             width: 260px; 
             background-color: #191c24; 
@@ -51,7 +50,6 @@
             display: none;
         }
         
-        /* Toggle button inside sidebar */
         .sidebar-toggle {
             display: flex;
             align-items: center;
@@ -115,7 +113,6 @@
             font-weight: 600; 
         }
         
-        /* Main content */
         .main-content { 
             margin-left: 260px; 
             flex: 1; 
@@ -176,6 +173,7 @@
         .db-status { font-size: 10px; color: #666; margin-left: 10px; }
         .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; transition: left 0.3s ease; }
         .hotkey-hint.expanded { left: 80px; }
+        .edit-mode { background-color: #fef3c7; border-color: #fbbf24; }
     </style>
 </head>
 <body class="flex">
@@ -199,7 +197,6 @@
 
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar hidden">
-        <!-- Nút toggle nằm trong sidebar -->
         <div class="sidebar-toggle" onclick="toggleSidebar()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 6h16M4 12h16M4 18h16"/>
@@ -244,7 +241,6 @@
             </div>
             <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">
                 <span class="logout-text">ĐĂNG XUẤT</span>
-                <span class="icon-only hidden">🚪</span>
             </button>
         </div>
     </aside>
@@ -298,7 +294,7 @@
                         <div class="card p-8 text-center border-t-4 border-t-[#ee4d2d] sticky top-24">
                             <h4 class="text-6xl font-black shopee-orange mb-2" id="box-count">0</h4>
                             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">SN trong thùng hiện tại</p>
-                            <div id="edit-mode-label" class="mt-4 hidden text-blue-600 font-bold text-[11px] bg-blue-50 py-1 rounded">ĐANG SỬA BOX</div>
+                            <div id="edit-mode-label" class="mt-4 hidden text-yellow-600 font-bold text-[11px] bg-yellow-50 py-1 rounded">ĐANG SỬA BOX - ID: <span id="editing-box-id"></span></div>
                         </div>
                     </div>
                 </div>
@@ -306,7 +302,7 @@
 
             <!-- Page Data -->
             <section id="page-data" class="hidden">
-                <!-- Lịch sử Box - Dạng bảng như Danh mục SN Gốc -->
+                <!-- Lịch sử Box -->
                 <div id="sub-page-box" class="hidden space-y-4">
                     <div class="flex justify-between items-center">
                         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Lịch sử đóng Box</h3>
@@ -315,14 +311,12 @@
                         </div>
                     </div>
                     
-                    <!-- Thanh tìm kiếm cho Box -->
                     <div class="flex gap-2 mb-4">
                         <input type="text" id="search-box" placeholder="🔍 Tìm kiếm mã Box, PO, SKU, người tạo..." class="input-wms flex-1">
                         <button onclick="searchBoxHistory()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
                         <button onclick="clearBoxSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
                     </div>
 
-                    <!-- Bảng lịch sử Box -->
                     <div class="card overflow-hidden">
                         <table class="w-full table-vscan">
                             <thead>
@@ -342,7 +336,7 @@
                     </div>
                 </div>
 
-                <!-- Danh mục SN Gốc (giữ nguyên) -->
+                <!-- Danh mục SN Gốc -->
                 <div id="sub-page-po" class="hidden space-y-4">
                     <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
                     <div class="flex gap-2 mb-4">
@@ -481,6 +475,7 @@
         let sessionScans = [];
         let allScannedSerials = new Set();
         let editingBoxId = null;
+        let editingBoxCode = null;
 
         const audio = { 
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
@@ -777,15 +772,9 @@
 
         async function saveBox(boxCode, po, sku, serials, user) {
             try {
-                const { data: existingBox } = await supabaseClient
-                    .from('boxes')
-                    .select('id')
-                    .eq('box_code', boxCode)
-                    .maybeSingle();
-                
                 if (editingBoxId) {
-                    // Đang sửa box
-                    console.log('Đang sửa box ID:', editingBoxId);
+                    // ĐANG SỬA BOX - Cập nhật box cũ
+                    console.log('Đang cập nhật box ID:', editingBoxId, 'với mã:', boxCode);
                     
                     // Xóa chi tiết cũ
                     await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
@@ -806,25 +795,33 @@
                     const { error: updateError } = await supabaseClient
                         .from('boxes')
                         .update({
-                            po, 
-                            sku, 
+                            po: po,
+                            sku: sku,
                             total: serials.length
                         })
                         .eq('id', editingBoxId);
                     
                     if (updateError) throw updateError;
                     
-                } else if (existingBox) {
-                    // Box đã tồn tại và không phải đang sửa
-                    return { exists: true };
                 } else {
+                    // THÊM BOX MỚI - Kiểm tra box đã tồn tại chưa
+                    const { data: existingBox } = await supabaseClient
+                        .from('boxes')
+                        .select('id')
+                        .eq('box_code', boxCode)
+                        .maybeSingle();
+                    
+                    if (existingBox) {
+                        return { exists: true };
+                    }
+                    
                     // Thêm box mới
                     const { data: newBox, error: boxError } = await supabaseClient
                         .from('boxes')
                         .insert([{
                             box_code: boxCode,
-                            po,
-                            sku,
+                            po: po,
+                            sku: sku,
                             total: serials.length,
                             created_by: user
                         }])
@@ -846,7 +843,7 @@
                 }
                 
                 await loadAllBoxes();
-                await logActivity('SAVE_BOX', { box: boxCode, total: serials.length });
+                await logActivity(editingBoxId ? 'UPDATE_BOX' : 'SAVE_BOX', { box: boxCode, total: serials.length });
                 return { success: true };
             } catch (error) {
                 console.error('Lỗi lưu box:', error);
@@ -1166,16 +1163,16 @@
             
             const serials = sessionScans.map(x => x.sn);
             
-            // Kiểm tra box đã tồn tại chưa (chỉ kiểm tra nếu không phải đang sửa)
-            if (!editingBoxId) {
-                const existingBox = boxData.find(b => b.box === box);
-                if(existingBox) { 
-                    if(!confirm(`Mã Box "${box}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
-                        return; 
+            // Kiểm tra nếu đang sửa box
+            if (editingBoxId) {
+                console.log('Đang sửa box với ID:', editingBoxId);
+                if (editingBoxCode && editingBoxCode !== box) {
+                    if (!confirm(`Bạn đang đổi mã box từ "${editingBoxCode}" thành "${box}". Tiếp tục?`)) {
+                        return;
                     }
                 }
             }
-
+            
             const result = await saveBox(box, po, sku, serials, currentUser);
             
             if (result.success) {
@@ -1191,8 +1188,10 @@
         function forceReset() { 
             sessionScans = []; 
             editingBoxId = null; 
+            editingBoxCode = null;
             document.getElementById('inp-box').value = ''; 
             document.getElementById('edit-mode-label').classList.add('hidden'); 
+            document.getElementById('editing-box-id').innerText = '';
             renderScanList(); 
             document.getElementById('barcode-scanner').focus();
             updateScannedSerials();
@@ -1264,7 +1263,7 @@
             const select = document.getElementById('sel-sku');
             select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
             
-            if(sessionScans.length > 0 && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
+            if(sessionScans.length > 0 && !editingBoxId && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
                 forceReset();
             }
         };
@@ -1353,7 +1352,7 @@
             document.getElementById('detail-modal').style.display = 'flex';
         };
 
-        // ==================== BOX HISTORY - DẠNG BẢNG ====================
+        // ==================== BOX HISTORY ====================
         window.searchBoxHistory = () => {
             renderBoxHistory(document.getElementById('search-box').value.toLowerCase());
         };
@@ -1406,7 +1405,7 @@
                     <td class="text-xs text-gray-500">${date}</td>
                     <td class="text-right space-x-2">
                         ${canEdit ? `
-                            <button onclick="editBox('${d.id}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                            <button onclick="editBox('${d.id}', '${d.box}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
                             <button onclick="deleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
                         ` : `
                             <span class="text-gray-400 text-xs">(không có quyền)</span>
@@ -1416,7 +1415,7 @@
             }).join('');
         }
 
-        window.editBox = (id) => {
+        window.editBox = (id, boxCode) => {
             if (!['admin', 'manager'].includes(currentUserRole)) {
                 window.notify("Không có quyền sửa!", true);
                 return;
@@ -1426,11 +1425,13 @@
             if(!b) return;
             
             if(confirm(`Chỉnh sửa box: ${b.box}?`)) {
-                // Lưu ID box đang sửa
+                // Lưu thông tin box đang sửa
                 editingBoxId = id; 
+                editingBoxCode = b.box;
                 
                 // Hiển thị label đang sửa
                 document.getElementById('edit-mode-label').classList.remove('hidden');
+                document.getElementById('editing-box-id').innerText = b.box;
                 
                 // Chuyển sang trang scan
                 switchPage('inbound'); 
@@ -1456,7 +1457,7 @@
                     // Focus vào ô scan
                     document.getElementById('barcode-scanner').focus();
                     
-                    window.notify(`Đang sửa box: ${b.box}`);
+                    window.notify(`Đang sửa box: ${b.box} (có ${sessionScans.length} SN)`);
                 }, 300);
             }
         };
@@ -1595,11 +1596,6 @@
                 document.getElementById('sub-page-box').classList.add('hidden'); 
                 document.getElementById('sub-page-po').classList.add('hidden');
                 document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
-                
-                // Load lại dữ liệu khi chuyển trang
-                if (sub === 'box') {
-                    renderBoxHistory();
-                }
             }
             
             document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
