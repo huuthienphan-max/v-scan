@@ -7,35 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { transition: background-color 0.3s, border-color 0.3s; }
-        body { font-family: 'Inter', sans-serif; margin: 0; }
-        
-        body.light-mode {
-            background-color: #f4f7f9;
-            color: #333;
-        }
-        body.light-mode .sidebar { background-color: #191c24; color: #a9abb0; }
-        body.light-mode .card { background: white; border-color: #e5e7eb; }
-        body.light-mode .top-nav { background: white; border-color: #e5e7eb; }
-        body.light-mode .input-wms { background: white; border-color: #d1d5db; color: #333; }
-        
-        body.dark-mode {
-            background-color: #1a1e24;
-            color: #e5e7eb;
-        }
-        body.dark-mode .sidebar { background-color: #0f1116; color: #9ca3af; }
-        body.dark-mode .card { background: #242933; border-color: #374151; color: #e5e7eb; }
-        body.dark-mode .top-nav { background: #242933; border-color: #374151; color: #e5e7eb; }
-        body.dark-mode .input-wms { background: #1a1e24; border-color: #4b5563; color: #e5e7eb; }
-        body.dark-mode .table-vscan th { background: #1f2937; color: #9ca3af; }
-        body.dark-mode .table-vscan td { border-color: #374151; }
-        body.dark-mode .btn-shopee { background-color: #ee4d2d; }
-        body.dark-mode .btn-shopee:hover { background-color: #d73211; }
-
-        .sidebar { width: 260px; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; margin: 0; }
+        .sidebar { width: 260px; background-color: #191c24; color: #a9abb0; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
         .sidebar-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; font-size: 14px; transition: 0.2s; position: relative; }
         .sidebar-item:hover { background-color: #0f1116; color: #fff; }
         .sidebar-item.active { background-color: #0f1116; color: #ee4d2d; border-left: 4px solid #ee4d2d; font-weight: 600; }
@@ -44,29 +20,26 @@
         .sub-item { padding: 10px 20px 10px 52px; font-size: 13px; cursor: pointer; color: #888; display: block; }
         .sub-item:hover { color: #fff; background-color: #1d2028; }
         .sub-item.active { color: #ee4d2d; font-weight: 600; }
-        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-        .top-nav { height: 60px; border-bottom: 1px solid; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
-        .card { border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid; }
+        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f4f7f9; }
+        .top-nav { height: 60px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
+        .card { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
         .shopee-orange { color: #ee4d2d; }
         .btn-shopee { background-color: #ee4d2d; color: white; transition: 0.2s; border: none; cursor: pointer; }
         .btn-shopee:hover { background-color: #d73211; }
         .btn-shopee:disabled { background-color: #ccc; cursor: not-allowed; }
-        .input-wms { border: 1px solid; border-radius: 4px; padding: 8px 12px; outline: none; transition: 0.2s; font-size: 14px; width: 100%; }
+        .input-wms { border: 1px solid #d1d5db; border-radius: 4px; padding: 8px 12px; outline: none; transition: 0.2s; font-size: 14px; width: 100%; background: white; }
         .input-wms:focus { border-color: #ee4d2d; box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.1); }
-        .table-vscan th { padding: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid; }
-        .table-vscan td { padding: 12px; border-bottom: 1px solid; font-size: 13px; }
-        @keyframes flashSuccess { 0% { background: #dcfce7; } 100% { background: transparent; } }
-        @keyframes flashError { 0% { background: #fee2e2; } 100% { background: transparent; } }
+        .table-vscan th { background: #f9fafb; padding: 12px; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
+        .table-vscan td { padding: 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+        @keyframes flashSuccess { 0% { background: #dcfce7; } 100% { background: white; } }
+        @keyframes flashError { 0% { background: #fee2e2; } 100% { background: white; } }
         .scan-success { animation: flashSuccess 0.5s ease-out; }
         .scan-error { animation: flashError 0.5s ease-out; }
         #detail-modal, #backup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 8px; display: flex; flex-direction: column; }
-        body.dark-mode .modal-content { background: #242933; color: #e5e7eb; }
         #toast { display:none; position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 12px 24px; border-radius: 4px; z-index: 200; }
         .sn-scanned { background-color: #e6f7e6; color: #00a000; }
         .sn-missing { background-color: #fff0f0; color: #ff4444; }
-        body.dark-mode .sn-scanned { background-color: #065f46; color: #6ee7b7; }
-        body.dark-mode .sn-missing { background-color: #7f1d1d; color: #fca5a5; }
         .btn-scan-po { background-color: #4f46e5; color: white; }
         .btn-scan-po:hover { background-color: #4338ca; }
         .role-badge { font-size: 8px; padding: 2px 6px; border-radius: 10px; font-weight: bold; }
@@ -74,22 +47,13 @@
         .role-manager { background-color: #fef3c7; color: #d97706; }
         .role-scanner { background-color: #dbeafe; color: #2563eb; }
         .role-viewer { background-color: #e0e7ff; color: #4f46e5; }
-        body.dark-mode .role-admin { background-color: #7f1d1d; color: #fecaca; }
-        body.dark-mode .role-manager { background-color: #92400e; color: #fde68a; }
-        body.dark-mode .role-scanner { background-color: #1e3a8a; color: #bfdbfe; }
-        body.dark-mode .role-viewer { background-color: #312e81; color: #c7d2fe; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #ee4d2d; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .db-status { font-size: 10px; color: #666; margin-left: 10px; }
-        .theme-toggle { cursor: pointer; padding: 8px; border-radius: 50%; }
-        .theme-toggle:hover { background-color: rgba(0,0,0,0.1); }
-        .stat-card { transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); }
         .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; }
-        body.dark-mode .hotkey-hint { color: #aaa; background: rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="light-mode flex">
+<body class="flex">
 
     <!-- Auth Screen -->
     <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f0f2f5]">
@@ -142,13 +106,8 @@
                 <p id="user-display" class="text-[10px] text-slate-500 uppercase font-bold"></p>
                 <span id="role-display" class="role-badge"></span>
             </div>
-            <div class="flex items-center justify-between mb-2">
+            <div class="text-center mb-2">
                 <span id="db-status" class="db-status">⚡ Kết nối database</span>
-                <div class="theme-toggle" onclick="toggleTheme()">
-                    <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </div>
             </div>
             <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">ĐĂNG XUẤT</button>
         </div>
@@ -157,7 +116,7 @@
     <!-- Main Content -->
     <main id="main-ui" class="main-content hidden">
         <header class="top-nav">
-            <h1 id="page-title" class="text-lg font-bold uppercase tracking-tight">Màn hình làm việc</h1>
+            <h1 id="page-title" class="text-lg font-bold text-gray-800 uppercase tracking-tight">Màn hình làm việc</h1>
             <div class="flex items-center gap-4">
                 <span id="db-status-header" class="text-[10px] text-gray-500">🔄 Đang kết nối...</span>
                 <div id="status-badge" class="px-3 py-1 bg-green-100 rounded-full text-[10px] font-bold text-green-600 uppercase tracking-widest">Online</div>
@@ -244,62 +203,17 @@
 
             <!-- Page Admin -->
             <section id="page-admin" class="hidden space-y-6">
-                <!-- Dashboard -->
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                    <div class="card p-4 stat-card">
-                        <h4 class="text-xs uppercase text-gray-500">Tổng Box</h4>
-                        <p class="text-3xl font-bold" id="stat-total-boxes">0</p>
-                    </div>
-                    <div class="card p-4 stat-card">
-                        <h4 class="text-xs uppercase text-gray-500">Tổng SN đã quét</h4>
-                        <p class="text-3xl font-bold" id="stat-total-scans">0</p>
-                    </div>
-                    <div class="card p-4 stat-card">
-                        <h4 class="text-xs uppercase text-gray-500">User hoạt động</h4>
-                        <p class="text-3xl font-bold" id="stat-active-users">0</p>
-                    </div>
-                    <div class="card p-4 stat-card">
-                        <h4 class="text-xs uppercase text-gray-500">Tỉ lệ hoàn thành</h4>
-                        <p class="text-3xl font-bold" id="stat-completion-rate">0%</p>
-                    </div>
-                </div>
-
-                <!-- Chart -->
-                <div class="card p-6 mb-6">
-                    <h3 class="font-bold text-sm mb-4">Thống kê theo ngày</h3>
-                    <canvas id="stats-chart" height="100"></canvas>
-                </div>
-
-                <!-- Activity Log -->
-                <div class="card p-6 mb-6">
-                    <h3 class="font-bold text-sm mb-4">Hoạt động gần đây</h3>
-                    <div class="overflow-auto max-h-96">
-                        <table class="w-full table-vscan">
-                            <thead>
-                                <tr>
-                                    <th>Thời gian</th>
-                                    <th>User</th>
-                                    <th>Hành động</th>
-                                    <th>Chi tiết</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activity-log-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- User Management -->
                 <div class="grid grid-cols-2 gap-6">
                     <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2">Cập nhật Master Data</h3>
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
                         <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
-                        <input type="file" id="master-file" accept=".xlsx" class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+                        <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
                         <div class="mt-4">
                             <button onclick="showBackupModal()" class="w-full bg-purple-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-purple-700 transition">Backup dữ liệu</button>
                         </div>
                     </div>
                     <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2">Quản lý nhân viên</h3>
+                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
                         <div class="flex gap-2 mb-4">
                             <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
                             <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
@@ -359,7 +273,7 @@
 
     <!-- Edit User Modal -->
     <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+        <div class="bg-white p-6 rounded-lg w-96">
             <h3 class="font-bold text-lg mb-4">Chỉnh sửa nhân viên</h3>
             <input type="hidden" id="edit-user-id">
             <div class="space-y-4">
@@ -401,33 +315,11 @@
         let sessionScans = [];
         let allScannedSerials = new Set();
         let editingBoxId = null;
-        let chart = null;
 
         const audio = { 
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
         };
-
-        window.toggleTheme = function() {
-            const body = document.body;
-            if (body.classList.contains('light-mode')) {
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-                localStorage.setItem('theme', 'dark');
-                document.getElementById('theme-icon').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-            } else {
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-                localStorage.setItem('theme', 'light');
-                document.getElementById('theme-icon').innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
-            }
-        };
-
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.classList.add(savedTheme + '-mode');
-        if (savedTheme === 'dark') {
-            document.getElementById('theme-icon').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-        }
 
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'f') {
@@ -472,8 +364,7 @@
                         user_id: currentUserId,
                         username: currentUser,
                         action,
-                        details,
-                        created_at: new Date().toISOString()
+                        details
                     }]);
             } catch (error) {
                 console.error('Lỗi ghi log:', error);
@@ -501,7 +392,7 @@
                     .from('users')
                     .select('id')
                     .eq('username', username)
-                    .single();
+                    .maybeSingle();
                 
                 if (existing) {
                     window.notify('Username đã tồn tại!', true);
@@ -689,7 +580,7 @@
                     .from('boxes')
                     .select('id')
                     .eq('box_code', boxCode)
-                    .single();
+                    .maybeSingle();
                 
                 if (existingBox && editingBoxId) {
                     await supabaseClient.from('box_details').delete().eq('box_code', boxCode);
@@ -804,7 +695,6 @@
                 await loadMasterData();
                 await loadAllBoxes();
                 await renderStaffList();
-                await loadStatistics();
                 
                 await logActivity('LOGIN', { method: 'default_admin' });
                 
@@ -817,7 +707,7 @@
                 .select('*, roles(*)')
                 .eq('username', u)
                 .eq('password', p)
-                .single();
+                .maybeSingle();
             
             if (user && user.is_active) {
                 currentUser = user.username;
@@ -847,7 +737,6 @@
                 await loadMasterData();
                 await loadAllBoxes();
                 await renderStaffList();
-                await loadStatistics();
                 
                 setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
             } else {
@@ -1329,105 +1218,6 @@
             XLSX.writeFile(wb, `BaoCao_VScan_${new Date().toISOString().slice(0,10)}.xlsx`);
         };
 
-        async function loadStatistics() {
-            try {
-                const { count: totalBoxes } = await supabaseClient
-                    .from('boxes')
-                    .select('*', { count: 'exact', head: true });
-                
-                const { count: totalScans } = await supabaseClient
-                    .from('box_details')
-                    .select('*', { count: 'exact', head: true });
-                
-                const { count: activeUsers } = await supabaseClient
-                    .from('users')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('is_active', true);
-                
-                const totalMaster = masterData.length;
-                const completionRate = totalMaster > 0 ? Math.round((allScannedSerials.size / totalMaster) * 100) : 0;
-                
-                document.getElementById('stat-total-boxes').innerText = totalBoxes || 0;
-                document.getElementById('stat-total-scans').innerText = totalScans || 0;
-                document.getElementById('stat-active-users').innerText = activeUsers || 0;
-                document.getElementById('stat-completion-rate').innerText = completionRate + '%';
-                
-                const { data: logs } = await supabaseClient
-                    .from('activity_log')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-                
-                const tbody = document.getElementById('activity-log-tbody');
-                if (tbody) {
-                    tbody.innerHTML = logs ? logs.map(log => `
-                        <tr>
-                            <td class="text-xs">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
-                            <td class="text-xs font-bold">${log.username}</td>
-                            <td class="text-xs">${log.action}</td>
-                            <td class="text-xs">${JSON.stringify(log.details)}</td>
-                        </tr>
-                    `).join('') : '';
-                }
-                
-                await loadChartData();
-            } catch (error) {
-                console.error('Lỗi load thống kê:', error);
-            }
-        }
-
-        async function loadChartData() {
-            try {
-                const { data: boxes } = await supabaseClient
-                    .from('boxes')
-                    .select('created_at')
-                    .order('created_at');
-                
-                if (!boxes || boxes.length === 0) return;
-                
-                const last7Days = [];
-                const counts = [];
-                
-                for (let i = 6; i >= 0; i--) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    last7Days.push(dateStr);
-                    
-                    const count = boxes.filter(b => 
-                        new Date(b.created_at).toISOString().split('T')[0] === dateStr
-                    ).length;
-                    counts.push(count);
-                }
-                
-                const ctx = document.getElementById('stats-chart').getContext('2d');
-                if (chart) chart.destroy();
-                
-                chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: last7Days,
-                        datasets: [{
-                            label: 'Số box đóng',
-                            data: counts,
-                            borderColor: '#ee4d2d',
-                            backgroundColor: 'rgba(238, 77, 45, 0.1)',
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Lỗi load chart:', error);
-            }
-        }
-
         window.showBackupModal = () => {
             document.getElementById('backup-modal').style.display = 'flex';
         };
@@ -1534,7 +1324,6 @@
                 document.getElementById('menu-data').classList.add('active');
             } else if (p === 'admin') {
                 document.getElementById('menu-admin').classList.add('active');
-                loadStatistics();
             }
         };
         
