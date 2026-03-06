@@ -11,18 +11,147 @@
     <style>
         * { transition: background-color 0.3s, border-color 0.3s; }
         body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; margin: 0; }
-        .sidebar { width: 260px; background-color: #191c24; color: #a9abb0; transition: all 0.3s; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
-        .sidebar-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; font-size: 14px; transition: 0.2s; position: relative; }
-        .sidebar-item:hover { background-color: #0f1116; color: #fff; }
-        .sidebar-item.active { background-color: #0f1116; color: #ee4d2d; border-left: 4px solid #ee4d2d; font-weight: 600; }
-        .sub-menu { background-color: #111319; overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
-        .sub-menu.open { max-height: 500px; }
-        .sub-item { padding: 10px 20px 10px 52px; font-size: 13px; cursor: pointer; color: #888; display: block; }
-        .sub-item:hover { color: #fff; background-color: #1d2028; }
-        .sub-item.active { color: #ee4d2d; font-weight: 600; }
-        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: #f4f7f9; }
-        .top-nav { height: 60px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 40; }
-        .card { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        
+        /* Sidebar styles */
+        .sidebar { 
+            width: 260px; 
+            background-color: #191c24; 
+            color: #a9abb0; 
+            transition: width 0.3s ease; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            position: fixed; 
+            left: 0; 
+            top: 0; 
+            z-index: 50; 
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+        .sidebar.collapsed { 
+            width: 70px; 
+        }
+        .sidebar.collapsed .sidebar-item span:not(.icon-only),
+        .sidebar.collapsed .sub-item,
+        .sidebar.collapsed .user-info,
+        .sidebar.collapsed .db-status,
+        .sidebar.collapsed #user-display,
+        .sidebar.collapsed #role-display,
+        .sidebar.collapsed .logout-text {
+            display: none;
+        }
+        .sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding: 12px 0;
+        }
+        .sidebar.collapsed .sidebar-item svg {
+            margin-right: 0;
+        }
+        .sidebar.collapsed .sub-menu {
+            display: none;
+        }
+        
+        .sidebar-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: 0.2s; 
+            position: relative; 
+        }
+        .sidebar-item:hover { 
+            background-color: #0f1116; 
+            color: #fff; 
+        }
+        .sidebar-item.active { 
+            background-color: #0f1116; 
+            color: #ee4d2d; 
+            border-left: 4px solid #ee4d2d; 
+            font-weight: 600; 
+        }
+        .sub-menu { 
+            background-color: #111319; 
+            overflow: hidden; 
+            transition: max-height 0.3s ease-out; 
+            max-height: 0; 
+        }
+        .sub-menu.open { 
+            max-height: 500px; 
+        }
+        .sub-item { 
+            padding: 10px 20px 10px 52px; 
+            font-size: 13px; 
+            cursor: pointer; 
+            color: #888; 
+            display: block; 
+        }
+        .sub-item:hover { 
+            color: #fff; 
+            background-color: #1d2028; 
+        }
+        .sub-item.active { 
+            color: #ee4d2d; 
+            font-weight: 600; 
+        }
+        
+        /* Toggle button */
+        .sidebar-toggle {
+            position: fixed;
+            left: 270px;
+            top: 10px;
+            width: 30px;
+            height: 30px;
+            background: #ee4d2d;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 60;
+            transition: left 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .sidebar-toggle.collapsed {
+            left: 80px;
+        }
+        .sidebar-toggle:hover {
+            background: #d73211;
+        }
+        
+        /* Main content */
+        .main-content { 
+            margin-left: 260px; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            background: #f4f7f9;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded {
+            margin-left: 70px;
+        }
+        
+        .top-nav { 
+            height: 60px; 
+            background: white; 
+            border-bottom: 1px solid #e5e7eb; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 24px; 
+            position: sticky; 
+            top: 0; 
+            z-index: 40; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 4px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            border: 1px solid #e5e7eb; 
+        }
         .shopee-orange { color: #ee4d2d; }
         .btn-shopee { background-color: #ee4d2d; color: white; transition: 0.2s; border: none; cursor: pointer; }
         .btn-shopee:hover { background-color: #d73211; }
@@ -50,7 +179,8 @@
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #ee4d2d; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .db-status { font-size: 10px; color: #666; margin-left: 10px; }
-        .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; }
+        .hotkey-hint { position: fixed; bottom: 10px; left: 270px; font-size: 10px; color: #666; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; z-index: 40; transition: left 0.3s ease; }
+        .hotkey-hint.expanded { left: 80px; }
     </style>
 </head>
 <body class="flex">
@@ -72,6 +202,13 @@
         </div>
     </div>
 
+    <!-- Sidebar Toggle Button -->
+    <div id="sidebar-toggle" class="sidebar-toggle hidden" onclick="toggleSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+    </div>
+
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar hidden">
         <div class="p-6 border-b border-slate-800 flex items-center gap-2">
@@ -81,12 +218,12 @@
         <nav class="flex-1 mt-4 overflow-y-auto">
             <div onclick="switchPage('inbound')" id="menu-inbound" class="sidebar-item active">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                Đối soát SN (Scan)
+                <span>Đối soát SN (Scan)</span>
             </div>
             <div>
                 <div onclick="toggleSubMenu('inventory')" id="menu-data" class="sidebar-item">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Dữ liệu hệ thống
+                    <span>Dữ liệu hệ thống</span>
                     <svg class="w-3 h-3 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
                 </div>
                 <div id="sub-inventory" class="sub-menu">
@@ -97,19 +234,22 @@
             <div id="admin-only-menu" class="hidden border-t border-slate-800 mt-2 pt-2">
                 <div onclick="switchPage('admin')" id="menu-admin" class="sidebar-item text-orange-200">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    Quản trị hệ thống
+                    <span>Quản trị hệ thống</span>
                 </div>
             </div>
         </nav>
         <div class="p-4 border-t border-slate-800">
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between mb-2 user-info">
                 <p id="user-display" class="text-[10px] text-slate-500 uppercase font-bold"></p>
                 <span id="role-display" class="role-badge"></span>
             </div>
-            <div class="text-center mb-2">
+            <div class="text-center mb-2 db-status">
                 <span id="db-status" class="db-status">⚡ Kết nối database</span>
             </div>
-            <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">ĐĂNG XUẤT</button>
+            <button onclick="logout()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500 rounded transition-all">
+                <span class="logout-text">ĐĂNG XUẤT</span>
+                <span class="icon-only hidden">🚪</span>
+            </button>
         </div>
     </aside>
 
@@ -320,6 +460,39 @@
             ok: new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'), 
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
         };
+
+        // ==================== SIDEBAR TOGGLE ====================
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const mainContent = document.getElementById('main-ui');
+            const hotkeyHint = document.getElementById('hotkey-hint');
+            
+            sidebar.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            hotkeyHint.classList.toggle('expanded');
+            
+            // Lưu trạng thái vào localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        };
+
+        // Khôi phục trạng thái sidebar
+        function loadSidebarState() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                const sidebar = document.getElementById('sidebar');
+                const toggleBtn = document.getElementById('sidebar-toggle');
+                const mainContent = document.getElementById('main-ui');
+                const hotkeyHint = document.getElementById('hotkey-hint');
+                
+                sidebar.classList.add('collapsed');
+                toggleBtn.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                hotkeyHint.classList.add('expanded');
+            }
+        }
 
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'f') {
@@ -684,6 +857,7 @@
                 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('sidebar-toggle').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
                 document.getElementById('admin-only-menu').classList.remove('hidden');
@@ -695,6 +869,7 @@
                 await loadMasterData();
                 await loadAllBoxes();
                 await renderStaffList();
+                loadSidebarState();
                 
                 await logActivity('LOGIN', { method: 'default_admin' });
                 
@@ -723,6 +898,7 @@
                 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('sidebar-toggle').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
                 if(['admin', 'manager'].includes(currentUserRole)) {
@@ -737,6 +913,7 @@
                 await loadMasterData();
                 await loadAllBoxes();
                 await renderStaffList();
+                loadSidebarState();
                 
                 setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
             } else {
