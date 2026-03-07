@@ -98,103 +98,83 @@
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - CHẮC CHẮN LOAD SAU CÙNG -->
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - CHẠY LIÊN TỤC -->
 <script>
-// ĐỢI TRANG LOAD HOÀN TOÀN RỒI MỚI CHẠY
-window.addEventListener('load', function() {
-    console.log('📌 Window loaded - bắt đầu hiển thị thông tin box');
+// CÁCH ĐƠN GIẢN NHẤT: KIỂM TRA LIÊN TỤC ĐẾN KHI CÓ DỮ LIỆU
+(function() {
+    console.log('🔄 Bắt đầu kiểm tra box info...');
     
-    // Đợi thêm 1.5 giây để đảm bảo mọi thứ đã sẵn sàng
-    setTimeout(function() {
-        console.log('🔄 Đang xử lý hiển thị thông tin box...');
-        
-        // Lấy dữ liệu từ sessionStorage
-        const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 Dữ liệu từ session:', savedInfo ? 'Có' : 'Không');
-        
+    function displayBoxInfo() {
         const infoDiv = document.getElementById('massput-box-info');
         const boxInput = document.getElementById('mass-box');
         
-        console.log('🔍 Element infoDiv:', infoDiv ? '✅ Tìm thấy' : '❌ Không thấy');
-        console.log('🔍 Element boxInput:', boxInput ? '✅ Tìm thấy' : '❌ Không thấy');
+        if (!infoDiv) {
+            console.log('❌ Chưa có infoDiv, thử lại sau...');
+            return false;
+        }
         
-        if (!savedInfo || !infoDiv) {
-            if (infoDiv) infoDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box nào được chọn</div>';
-            return;
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        if (!savedInfo) {
+            console.log('📭 Chưa có dữ liệu trong sessionStorage');
+            infoDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
+            return false;
         }
         
         try {
             const boxData = JSON.parse(savedInfo);
-            console.log('✅ Dữ liệu box:', boxData.box);
+            console.log('✅ Có dữ liệu box:', boxData.box);
             
-            // Điền vào ô input (nếu chưa được điền)
-            if (boxInput && !boxInput.value) {
-                boxInput.value = boxData.box;
-                console.log('✅ Đã điền box vào input:', boxData.box);
-            }
+            // Điền vào ô input
+            if (boxInput) boxInput.value = boxData.box;
             
-            // Tạo HTML hiển thị
-            let snHtml = '';
-            if (boxData.snList && boxData.snList.length > 0) {
-                snHtml = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #c7d2fe;">';
-                snHtml += '<div style="font-weight: bold; margin-bottom: 5px;">📋 Danh sách SN:</div>';
-                snHtml += '<div style="max-height: 100px; overflow-y: auto;">';
-                boxData.snList.forEach(sn => {
-                    snHtml += `<div style="font-family: monospace; font-size: 11px;">• ${sn}</div>`;
-                });
-                snHtml += '</div></div>';
-            }
-            
-            // Hiển thị thông tin
+            // HIỂN THỊ - dùng style trực tiếp cho chắc
             infoDiv.innerHTML = `
-                <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4f46e5;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size: 18px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
-                        <span style="background: #4f46e5; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px;">${boxData.total || 0} SN</span>
+                <div style="background: #eef2ff; padding: 20px; border-radius: 10px; border-left: 5px solid #4f46e5; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span style="font-size: 22px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
+                        <span style="background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;">${boxData.total || 0} SN</span>
                     </div>
-                    <div style="margin-top: 10px;">
-                        <div><span style="color: #6b7280;">PO:</span> <span style="font-weight: 500;">${boxData.po || ''}</span></div>
-                        <div><span style="color: #6b7280;">SKU:</span> <span style="font-weight: 500;">${boxData.sku || ''}</span></div>
-                        <div><span style="color: #6b7280;">Ngày tạo:</span> ${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                        <div><span style="color: #6b7280;">Người tạo:</span> ${boxData.created_by || ''}</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; margin-bottom: 8px;">
+                            <span style="width: 80px; color: #6b7280;">MÃ PO:</span>
+                            <span style="font-weight: 500;">${boxData.po || ''}</span>
+                        </div>
+                        <div style="display: flex; margin-bottom: 8px;">
+                            <span style="width: 80px; color: #6b7280;">SKU:</span>
+                            <span style="font-weight: 500;">${boxData.sku || ''}</span>
+                        </div>
+                        <div style="display: flex; margin-bottom: 8px;">
+                            <span style="width: 80px; color: #6b7280;">NGÀY TẠO:</span>
+                            <span>${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</span>
+                        </div>
+                        <div style="display: flex; margin-bottom: 8px;">
+                            <span style="width: 80px; color: #6b7280;">NGƯỜI TẠO:</span>
+                            <span>${boxData.created_by || ''}</span>
+                        </div>
                     </div>
-                    ${snHtml}
                 </div>
             `;
             
-            console.log('✅ Đã hiển thị thông tin box thành công');
-            
+            console.log('✅ Đã hiển thị box:', boxData.box);
+            return true;
         } catch (e) {
             console.error('❌ Lỗi:', e);
-            infoDiv.innerHTML = '<div class="text-red-400 text-center py-4">Lỗi hiển thị dữ liệu</div>';
+            return false;
         }
-    }, 1500); // Đợi 1.5 giây
-});
-
-// Hàm xử lý Mass Put
-window.processMassPutaway = function() {
-    const account = document.getElementById('mass-account').value;
-    const box = document.getElementById('mass-box').value;
-    const location = document.getElementById('mass-location').value;
-    
-    if (!box || !location) {
-        alert('❌ Vui lòng nhập Box và Location!');
-        return;
     }
     
-    const resultDiv = document.getElementById('mass-result');
-    resultDiv.classList.remove('hidden');
-    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
-    resultDiv.innerHTML = '🔄 Đang xử lý...';
+    // Thử ngay lập tức
+    displayBoxInfo();
     
-    setTimeout(() => {
-        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
-        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
-    }, 1500);
-};
-
-// Hàm làm mới danh sách SN
-window.refreshMassSNList = function() {
-    console.log('🔄 Làm mới danh sách SN...');
-};
+    // Thử lại sau 1 giây
+    setTimeout(displayBoxInfo, 1000);
+    
+    // Thử lại sau 2 giây
+    setTimeout(displayBoxInfo, 2000);
+    
+    // Thử lại sau 3 giây
+    setTimeout(displayBoxInfo, 3000);
+})();
 </script>
+
