@@ -225,21 +225,22 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             console.error('❌ Lỗi lấy SN:', detailError);
         }
         
-        // Tạo cache object
+        // Tạo cache object với cấu trúc ĐÚNG
         const massPutCache = {
             box: boxCode,
             po: po,
             sku: sku,
             total: box.total || 0,
-            snList: details?.map(d => d.serial) || [],
+            snList: details ? details.map(d => d.serial) : [],
             timestamp: new Date().toISOString(),
-            preparedBy: currentUser
+            preparedBy: currentUser || 'unknown'
         };
         
-        // Lưu vào sessionStorage
+        // Lưu vào sessionStorage - DÙNG JSON.stringify ĐÚNG CÁCH
         sessionStorage.setItem('massPutCache', JSON.stringify(massPutCache));
         
         console.log('📦 Đã lưu cache Mass Put:', massPutCache);
+        console.log('🔍 Cache sau khi lưu:', sessionStorage.getItem('massPutCache'));
         
         // Hiển thị thông báo
         window.notify(`✅ Đã chọn box ${boxCode} (${massPutCache.snList.length} SN) cho Mass Put`);
@@ -249,13 +250,15 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             window.switchPage('mass-putaway');
         } else {
             console.error('❌ Không tìm thấy hàm switchPage');
+            // Thử cách khác
+            window.location.hash = '#mass-putaway';
+            location.reload();
         }
         
     } catch (error) {
         console.error('❌ Lỗi prepare Mass Put:', error);
         window.notify('❌ Lỗi khi chuẩn bị Mass Put!', true);
     }
-    console.log('🔍 Cache sau khi lưu:', sessionStorage.getItem('massPutCache'));
 };
 
 // ==================== LẤY CACHE CHO MASS PUT ====================
@@ -342,5 +345,6 @@ window.clearMassPutCache = function() {
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
 };
+
 
 
