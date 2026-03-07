@@ -232,13 +232,21 @@
                 <span>Đối soát SN (Scan)</span>
             </div>
             
-            <!-- Menu Putaway HV -->
-            <div onclick="switchPage('putaway')" id="menu-putaway" class="sidebar-item hidden">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                </svg>
-                <span>Putaway HV</span>
-            </div>
+            <div onclick="switchPage('box-hv')" id="menu-box-hv" class="sidebar-item hidden">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+         <!-- Menu Box HV (đổi tên từ Putaway) -->
+        <span>Box HV</span>
+    </div>
+    
+    <!-- Menu Mass Putaway (mới) -->
+    <div onclick="switchPage('mass-putaway')" id="menu-mass-putaway" class="sidebar-item hidden">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        <span>Mass Putaway</span>
+    </div>
             
             <!-- Dữ liệu hệ thống -->
             <div>
@@ -420,6 +428,7 @@
                                 <option value="scanner">Scanner</option>
                                 <option value="viewer">Viewer</option>
                                 <option value="putaway">Putaway HV</option>
+                                <option value="mass-putaway">Mass Putaway</option>
                             </select>
                             <button id="btn-add-user" class="btn-shopee px-4 rounded font-bold text-xs">THÊM</button>
                         </div>
@@ -428,12 +437,16 @@
                 </div>
             </section>
             
-            <!-- Page Putaway HV -->
-            <section id="page-putaway" class="hidden">
-                <!-- Container để load module Putaway -->
-                <div id="putaway-container"></div>
-            </section>
-        </div>
+                        <!-- Page Box HV (đổi tên từ putaway) -->
+                <section id="page-box-hv" class="hidden">
+                    <div id="box-hv-container"></div>
+                </section>
+                
+                <!-- Page Mass Putaway (mới) -->
+                <section id="page-mass-putaway" class="hidden">
+                    <div id="mass-putaway-container"></div>
+                </section>
+            </div>
     </main>
         <div id="toast"></div>
 
@@ -554,18 +567,22 @@
                     document.getElementById('menu-putaway').classList.add('hidden');
                     
                     // Hiển thị menu theo role
-                    if (currentUserRole === 'admin') {
-                        document.getElementById('admin-only-menu').classList.remove('hidden');
-                        document.getElementById('menu-inbound').classList.remove('hidden');
-                        document.getElementById('menu-putaway').classList.remove('hidden');
-                    } else if (currentUserRole === 'manager') {
-                        document.getElementById('menu-inbound').classList.remove('hidden');
-                        document.getElementById('menu-putaway').classList.remove('hidden');
-                    } else if (currentUserRole === 'scanner') {
-                        document.getElementById('menu-inbound').classList.remove('hidden');
-                    } else if (currentUserRole === 'putaway') {
-                        document.getElementById('menu-putaway').classList.remove('hidden');
-                    }
+                        if (currentUserRole === 'admin') {
+                            document.getElementById('admin-only-menu').classList.remove('hidden');
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        } else if (currentUserRole === 'manager') {
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        } else if (currentUserRole === 'scanner') {
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                        } else if (currentUserRole === 'box-hv') {
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                        } else if (currentUserRole === 'mass-putaway') {
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        }
                     
                     document.getElementById('user-display').innerText = `NV: ${currentUser}`;
                     document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
@@ -1219,23 +1236,28 @@
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 
-                // Ẩn tất cả menu trước
+                    // Ẩn tất cả menu trước
                 document.getElementById('admin-only-menu').classList.add('hidden');
                 document.getElementById('menu-inbound').classList.add('hidden');
-                document.getElementById('menu-putaway').classList.add('hidden');
+                document.getElementById('menu-box-hv').classList.add('hidden');
+                document.getElementById('menu-mass-putaway').classList.add('hidden');
                 
                 // Hiển thị menu theo role
                 if (currentUserRole === 'admin') {
                     document.getElementById('admin-only-menu').classList.remove('hidden');
                     document.getElementById('menu-inbound').classList.remove('hidden');
-                    document.getElementById('menu-putaway').classList.remove('hidden');
+                    document.getElementById('menu-box-hv').classList.remove('hidden');
+                    document.getElementById('menu-mass-putaway').classList.remove('hidden');
                 } else if (currentUserRole === 'manager') {
                     document.getElementById('menu-inbound').classList.remove('hidden');
-                    document.getElementById('menu-putaway').classList.remove('hidden');
+                    document.getElementById('menu-box-hv').classList.remove('hidden');
+                    document.getElementById('menu-mass-putaway').classList.remove('hidden');
                 } else if (currentUserRole === 'scanner') {
                     document.getElementById('menu-inbound').classList.remove('hidden');
-                } else if (currentUserRole === 'putaway') {
-                    document.getElementById('menu-putaway').classList.remove('hidden');
+                } else if (currentUserRole === 'box-hv') {
+                    document.getElementById('menu-box-hv').classList.remove('hidden');
+                } else if (currentUserRole === 'mass-putaway') {
+                    document.getElementById('menu-mass-putaway').classList.remove('hidden');
                 }
                 
                 document.getElementById('user-display').innerText = `NV: ${currentUser}`;
@@ -1299,40 +1321,53 @@
         };
 
         async function renderStaffList() {
-            if (!['admin', 'manager'].includes(currentUserRole)) return;
-            
-            const users = await getAllUsers();
-            const list = document.getElementById('staff-list');
-            list.innerHTML = '';
-            
-            users.sort((a, b) => a.username.localeCompare(b.username));
-            
-            users.forEach(user => {
-                const roleName = user.roles?.name || 'viewer';
-                const isAdmin = user.username === 'admin';
-                
-                let roleClass = 'role-badge role-' + roleName;
-                if (roleName === 'putaway') {
-                    roleClass = 'role-badge bg-green-100 text-green-700';
-                }
-                
-                list.innerHTML += `
-                    <div class="py-3 flex justify-between items-center border-b last:border-0">
-                        <div>
-                            <span class="font-bold">${user.username}</span>
-                            ${user.full_name ? `<span class="text-xs text-gray-500 ml-2">(${user.full_name})</span>` : ''}
-                            <span class="ml-2 ${roleClass}">${roleName}</span>
-                        </div>
-                        <div class="space-x-2">
-                            <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
-                            ${!isAdmin ? 
-                                `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
-                                : ''}
-                        </div>
-                    </div>
-                `;
-            });
+    if (!['admin', 'manager'].includes(currentUserRole)) return;
+    
+    const users = await getAllUsers();
+    const list = document.getElementById('staff-list');
+    list.innerHTML = '';
+    
+    users.sort((a, b) => a.username.localeCompare(b.username));
+    
+    users.forEach(user => {
+        const roleName = user.roles?.name || 'viewer';
+        const isAdmin = user.username === 'admin';
+        
+        // Xác định class cho role badge
+        let roleClass = 'role-badge role-' + roleName;
+        
+        // Custom class cho các role đặc biệt
+        if (roleName === 'putaway' || roleName === 'box-hv') {
+            roleClass = 'role-badge bg-green-100 text-green-700';
+        } else if (roleName === 'mass-putaway') {
+            roleClass = 'role-badge bg-indigo-100 text-indigo-700';
+        } else if (roleName === 'admin') {
+            roleClass = 'role-badge role-admin'; // giữ nguyên
+        } else if (roleName === 'manager') {
+            roleClass = 'role-badge role-manager'; // giữ nguyên
+        } else if (roleName === 'scanner') {
+            roleClass = 'role-badge role-scanner'; // giữ nguyên
+        } else if (roleName === 'viewer') {
+            roleClass = 'role-badge role-viewer'; // giữ nguyên
         }
+        
+        list.innerHTML += `
+            <div class="py-3 flex justify-between items-center border-b last:border-0">
+                <div>
+                    <span class="font-bold">${user.username}</span>
+                    ${user.full_name ? `<span class="text-xs text-gray-500 ml-2">(${user.full_name})</span>` : ''}
+                    <span class="ml-2 ${roleClass}">${roleName}</span>
+                </div>
+                <div class="space-x-2">
+                    <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                    ${!isAdmin ? 
+                        `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
+                        : ''}
+                </div>
+            </div>
+        `;
+    });
+}
 
         window.openEditUserModal = (id, username, role, fullName, isActive) => {
             document.getElementById('edit-user-id').value = id;
@@ -1854,32 +1889,37 @@
 
         // ==================== CẬP NHẬT HÀM SWITCH PAGE ====================
         window.switchPage = function(p, sub=null) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            
-            if (p === 'putaway') {
-                document.getElementById(`page-${p}`).classList.remove('hidden');
-                loadPutawayModule();
-            } else {
-                document.getElementById(`page-${p}`).classList.remove('hidden');
-            }
-            
-            if (sub) { 
-                document.getElementById('sub-page-box').classList.add('hidden'); 
-                document.getElementById('sub-page-po').classList.add('hidden');
-                document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
-            }
-            
-            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-            if (p === 'inbound') {
-                document.getElementById('menu-inbound').classList.add('active');
-            } else if (p === 'data') {
-                document.getElementById('menu-data').classList.add('active');
-            } else if (p === 'admin') {
-                document.getElementById('menu-admin').classList.add('active');
-            } else if (p === 'putaway') {
-                document.getElementById('menu-putaway').classList.add('active');
-            }
-        };
+                document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+                
+                if (p === 'box-hv') {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                    loadBoxHVModule();
+                } else if (p === 'mass-putaway') {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                    loadMassPutawayModule();
+                } else {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                }
+                
+                if (sub) { 
+                    document.getElementById('sub-page-box').classList.add('hidden'); 
+                    document.getElementById('sub-page-po').classList.add('hidden');
+                    document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
+                }
+                
+                document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+                if (p === 'inbound') {
+                    document.getElementById('menu-inbound').classList.add('active');
+                } else if (p === 'data') {
+                    document.getElementById('menu-data').classList.add('active');
+                } else if (p === 'admin') {
+                    document.getElementById('menu-admin').classList.add('active');
+                } else if (p === 'box-hv') {
+                    document.getElementById('menu-box-hv').classList.add('active');
+                } else if (p === 'mass-putaway') {
+                    document.getElementById('menu-mass-putaway').classList.add('active');
+                }
+            };
         
         window.toggleSubMenu = (id) => {
             document.getElementById(`sub-${id}`).classList.toggle('open');
@@ -1889,28 +1929,47 @@
             document.getElementById('detail-modal').style.display = 'none';
         };
 
-        // ==================== PUTAWAY MODULE FUNCTIONS ====================
-        async function loadPutawayModule() {
-            const container = document.getElementById('putaway-container');
-            
-            try {
-                const response = await fetch('putaway-hv.html?' + new Date().getTime());
-                const html = await response.text();
-                container.innerHTML = html;
-                
-                if (typeof window.initPutawayModule === 'function') {
-                    window.initPutawayModule();
-                }
-                
-                if (typeof window.startAutoRefresh === 'function') {
-                    window.startAutoRefresh(30000);
-                }
-                
-            } catch (error) {
-                console.error('Lỗi load putaway module:', error);
-                container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Putaway</div>';
-            }
+       // ==================== LOAD MODULE BOX HV ====================
+async function loadBoxHVModule() {
+    const container = document.getElementById('box-hv-container');
+    
+    try {
+        const response = await fetch('box-hv.html?' + new Date().getTime());
+        const html = await response.text();
+        container.innerHTML = html;
+        
+        if (typeof window.initBoxHVModule === 'function') {
+            window.initBoxHVModule();
         }
+        
+        if (typeof window.startAutoRefresh === 'function') {
+            window.startAutoRefresh(30000);
+        }
+        
+    } catch (error) {
+        console.error('Lỗi load box HV module:', error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Box HV</div>';
+    }
+}
+
+// ==================== LOAD MODULE MASS PUTAWAY ====================
+async function loadMassPutawayModule() {
+    const container = document.getElementById('mass-putaway-container');
+    
+    try {
+        const response = await fetch('mass-putaway.html?' + new Date().getTime());
+        const html = await response.text();
+        container.innerHTML = html;
+        
+        if (typeof window.initMassPutawayModule === 'function') {
+            window.initMassPutawayModule();
+        }
+        
+    } catch (error) {
+        console.error('Lỗi load mass putaway module:', error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
+    }
+}
 
         // ==================== KHỞI TẠO ====================
         window.onload = async function() {
@@ -1926,6 +1985,7 @@
 
 </body>
 </html>
+
 
 
 
