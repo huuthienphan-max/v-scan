@@ -1161,9 +1161,9 @@
                 await renderStaffList();
                 loadSidebarState();
                 
-                if (typeof cleanupPutaway === 'function') {
-                    cleanupPutaway();
-                }
+                if (typeof window.cleanupPutaway === 'function') {
+    window.cleanupPutaway();
+}
                 
                 setTimeout(() => {
                     if (currentUserRole === 'putaway' || currentUserRole === 'admin' || currentUserRole === 'manager') {
@@ -1214,13 +1214,15 @@
                         <div class="space-x-2">
                             <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
                             ${!isAdmin ? 
-                                `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
-                                : ''}
+    `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
+    : ''}
                         </div>
                     </div>
                 `;
-            });
+                      });
         }
+    }
+}
 
         window.openEditUserModal = (id, username, role, fullName, isActive) => {
             document.getElementById('edit-user-id').value = id;
@@ -1852,3 +1854,4 @@
 
 </body>
 </html>
+
