@@ -15,12 +15,8 @@ window.initPutawayModule = function() {
     const fromDate = document.getElementById('putaway-from-date');
     const toDate = document.getElementById('putaway-to-date');
     
-    if (fromDate) {
-        fromDate.value = lastWeek.toISOString().split('T')[0];
-    }
-    if (toDate) {
-        toDate.value = today.toISOString().split('T')[0];
-    }
+    if (fromDate) fromDate.value = lastWeek.toISOString().split('T')[0];
+    if (toDate) toDate.value = today.toISOString().split('T')[0];
     
     // Load dữ liệu
     loadPutawayStats();
@@ -114,7 +110,7 @@ async function loadPutawayBoxes() {
         let query = supabaseClient
             .from('boxes')
             .select('*')
-            .eq('is_active', true)  // CHỈ LẤY BOX ACTIVE
+            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
         // Thêm bộ lọc ngày
@@ -166,7 +162,7 @@ function renderPutawayBoxes() {
         const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
         const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
         
-        // Kiểm tra quyền xử lý (chỉ putaway, admin, manager mới được xử lý)
+        // Kiểm tra quyền xử lý
         const canProcess = isPending && ['putaway', 'admin', 'manager'].includes(currentUserRole);
 
         return `
@@ -199,26 +195,31 @@ function renderPutawayBoxes() {
     }).join('');
 }
 
-// ==================== XỬ LÝ BOX ====================
+// ==================== XỬ LÝ BOX - CHỈ CẬP NHẬT TRẠNG THÁI ====================
 window.processPutawayBox = async function(id) {
     if (!confirm('Xác nhận đã xử lý box này?')) return;
 
     try {
+        console.log('🔄 Đang xử lý box ID:', id);
+        
         // CHỈ UPDATE putaway_status, KHÔNG XÓA, KHÔNG ẨN
-        const { error } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from('boxes')
             .update({
                 putaway_status: 'completed',
                 putaway_date: new Date().toISOString(),
                 putaway_by: currentUser
             })
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
         if (error) throw error;
 
+        console.log('✅ Đã cập nhật:', data);
+
         // Log hoạt động
-        if (typeof logActivity === 'function') {
-            await logActivity('PUTAWAY_PROCESS', { 
+        if (typeof window.logActivity === 'function') {
+            await window.logActivity('PUTAWAY_PROCESS', { 
                 box_id: id,
                 action: 'completed'
             });
