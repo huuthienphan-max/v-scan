@@ -8,32 +8,25 @@
 </div>
 
 <script>
-console.log('🔥🔥🔥 JAVASCRIPT ĐANG CHẠY 🔥🔥🔥');
-
-// HIỂN THỊ NGAY LẬP TỨC
-document.getElementById('massput-box-info').innerHTML = '✅ JAVASCRIPT ĐÃ CHẠY THÀNH CÔNG!';
-
-// Lấy dữ liệu từ sessionStorage
-setTimeout(function() {
-    try {
-        const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 Dữ liệu từ session:', savedInfo);
-        
-        if (savedInfo) {
-            const box = JSON.parse(savedInfo);
+window.onload = function() {
+    console.log('🔥 WINDOW ONLOAD ĐÃ CHẠY');
+    
+    // HIỂN THỊ TEST
+    document.getElementById('massput-box-info').innerHTML = '✅ ONLOAD ĐÃ CHẠY!';
+    
+    // Lấy dữ liệu
+    setTimeout(function() {
+        const data = sessionStorage.getItem('massPutFullInfo');
+        if (data) {
+            const box = JSON.parse(data);
             document.getElementById('massput-box-info').innerHTML = `
-                <div style="background:#eef2ff; color:#333; padding:20px; border-radius:10px;">
-                    <div style="font-size:24px; font-weight:bold; color:#4f46e5;">📦 ${box.box}</div>
-                    <div style="margin-top:10px;">📍 PO: ${box.po}</div>
-                    <div>🏷️ SKU: ${box.sku}</div>
-                    <div>🔢 SL: ${box.total}</div>
+                <div style="background:#eef2ff; color:#333; padding:20px;">
+                    <div style="font-size:24px;">📦 ${box.box}</div>
+                    <div>PO: ${box.po}</div>
+                    <div>SKU: ${box.sku}</div>
                 </div>
             `;
-        } else {
-            document.getElementById('massput-box-info').innerHTML = '❌ Không có dữ liệu box';
         }
-    } catch (e) {
-        console.error('Lỗi:', e);
-    }
-}, 500);
+    }, 1000);
+};
 </script>
