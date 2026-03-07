@@ -228,29 +228,25 @@ window.refreshMassSNList = function() {
 };
 </script>
 <script>
-// TEST CỰC KỲ ĐƠN GIẢN - ĐIỀN CHỮ "TEST"
 setTimeout(function() {
-    console.log('🔧 ĐANG TEST...');
+    console.log('🔧 TEST VỚI CLASS...');
     
-    // Tìm element PO
-    const poElement = document.getElementById('box-po-display');
-    console.log('🔍 poElement:', poElement);
+    // Tìm bằng class
+    const elements = document.querySelectorAll('.text-gray-700 div');
+    console.log('🔍 Tìm thấy', elements.length, 'element');
     
-    if (poElement) {
-        poElement.innerText = '🔴 TEST 123';
-        poElement.style.color = 'red';
-        poElement.style.fontWeight = 'bold';
-        poElement.style.fontSize = '20px';
-        console.log('✅ Đã điền TEST thành công!');
-    } else {
-        console.log('❌ Không tìm thấy element box-po-display');
-        
-        // Thử tìm element khác
-        const infoDiv = document.getElementById('massput-box-info');
-        if (infoDiv) {
-            infoDiv.innerHTML = '<div style="color:red; font-size:30px; padding:20px;">🔴 TEST HIỂN THỊ</div>';
-            console.log('✅ Đã điền TEST vào infoDiv');
-        }
-    }
+    // Liệt kê tất cả element
+    elements.forEach((el, index) => {
+        console.log(`Element ${index}:`, el);
+        console.log(`   ID: ${el.id}`);
+        console.log(`   Class: ${el.className}`);
+        console.log(`   Text: ${el.innerText}`);
+    });
+    
+    // Thử tìm tất cả div
+    const allDivs = document.getElementsByTagName('div');
+    console.log('📦 Tổng số div:', allDivs.length);
+    
 }, 2000);
 </script>
+
