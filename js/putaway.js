@@ -255,9 +255,9 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         if (typeof window.switchPage === 'function') {
             window.switchPage('mass-putaway');
             
-            // TỰ ĐỘNG ĐIỀN BOX
+            // TỰ ĐỘNG ĐIỀN BOX VÀ HIỂN THỊ THÔNG TIN
             setTimeout(() => {
-                // Tìm ô input box và điền
+                // 1. ĐIỀN BOX VÀO Ô INPUT (ĐÃ HOẠT ĐỘNG)
                 const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
                 if (boxInput) {
                     boxInput.value = boxCode;
@@ -265,11 +265,61 @@ window.prepareMassPut = async function(boxCode, po, sku) {
                     console.log('✅ Đã tự động điền box:', boxCode);
                 }
                 
-                // 👉 THÊM: Gọi hàm hiển thị thông tin box nếu có
-                if (typeof window.displayBoxInfo === 'function') {
-                    window.displayBoxInfo(fullBoxInfo);
+                // 2. HIỂN THỊ THÔNG TIN BOX (THÊM MỚI)
+                const infoDiv = document.querySelector('#mass-putaway-container #massput-box-info');
+                if (infoDiv) {
+                    infoDiv.innerHTML = `
+                        <div style="background:#eef2ff; padding:20px; border-radius:10px; border-left:5px solid #4f46e5;">
+                            <div style="font-size:22px; font-weight:bold; color:#4f46e5; margin-bottom:15px;">
+                                📦 ${fullBoxInfo.box}
+                            </div>
+                            <div style="margin-top:10px;">
+                                <div style="margin-bottom:8px;">
+                                    <span style="color:#6b7280; width:80px; display:inline-block;">PO:</span> 
+                                    <span style="font-weight:500;">${fullBoxInfo.po}</span>
+                                </div>
+                                <div style="margin-bottom:8px;">
+                                    <span style="color:#6b7280; width:80px; display:inline-block;">SKU:</span> 
+                                    <span style="font-weight:500;">${fullBoxInfo.sku}</span>
+                                </div>
+                                <div style="margin-bottom:8px;">
+                                    <span style="color:#6b7280; width:80px; display:inline-block;">SL:</span> 
+                                    <span style="font-weight:bold; color:#f97316;">${fullBoxInfo.total}</span>
+                                </div>
+                                <div style="margin-bottom:8px;">
+                                    <span style="color:#6b7280; width:80px; display:inline-block;">Ngày:</span> 
+                                    <span>${fullBoxInfo.created_at ? new Date(fullBoxInfo.created_at).toLocaleDateString('vi-VN') : ''}</span>
+                                </div>
+                                <div style="margin-bottom:8px;">
+                                    <span style="color:#6b7280; width:80px; display:inline-block;">NV:</span> 
+                                    <span>${fullBoxInfo.created_by || ''}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    console.log('✅ Đã hiển thị thông tin box:', fullBoxInfo.box);
+                } else {
+                    console.log('❌ Không tìm thấy #massput-box-info');
+                    
+                    // THỬ TẠO MỚI NẾU CHƯA CÓ
+                    const container = document.querySelector('#mass-putaway-container .col-span-4 .bg-white');
+                    if (container) {
+                        const newDiv = document.createElement('div');
+                        newDiv.id = 'massput-box-info';
+                        newDiv.innerHTML = `
+                            <div style="background:#eef2ff; padding:20px; border-radius:10px;">
+                                <div style="font-size:22px; font-weight:bold; color:#4f46e5;">📦 ${fullBoxInfo.box}</div>
+                                <div>PO: ${fullBoxInfo.po}</div>
+                                <div>SKU: ${fullBoxInfo.sku}</div>
+                                <div>SL: ${fullBoxInfo.total}</div>
+                            </div>
+                        `;
+                        container.appendChild(newDiv);
+                        console.log('✅ Đã tạo và hiển thị thông tin box');
+                    }
                 }
-            }, 1000);
+                
+            }, 1500); // Tăng lên 1.5 giây để đảm bảo DOM đã load
             
         } else {
             window.location.href = '#mass-putaway';
@@ -345,4 +395,3 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
-
