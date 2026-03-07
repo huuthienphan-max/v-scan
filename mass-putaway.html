@@ -1,143 +1,123 @@
 <!DOCTYPE html>
 <div class="p-6">
-    <!-- THÔNG TIN BOX - Ngăn 1 -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-indigo-500">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm mr-3">📦</span>
-            THÔNG TIN BOX ĐANG XỬ LÝ
-        </h3>
-        
-        <div id="massput-box-info" class="grid grid-cols-4 gap-4">
-            <!-- Thông tin sẽ được điền bằng JavaScript -->
-            <div class="col-span-4 text-center text-gray-400 py-4">
-                Chưa có box nào được chọn
+    <!-- CHIA 2 CỘT: BÊN TRÁI - THÔNG TIN BOX, BÊN PHẢI - DANH SÁCH SN -->
+    <div class="grid grid-cols-12 gap-6">
+        <!-- CỘT TRÁI: THÔNG TIN BOX (3 phần) -->
+        <div class="col-span-3">
+            <div class="bg-white rounded-lg shadow-md p-4 border-t-4 border-indigo-500 sticky top-24">
+                <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                    <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                    THÔNG TIN BOX
+                </h3>
+                
+                <div id="massput-box-info" class="space-y-3 text-sm">
+                    <div class="text-center text-gray-400 py-4">
+                        Chưa chọn box
+                    </div>
+                </div>
+
+                <!-- Nút xử lý -->
+                <div id="massput-actions" class="mt-4 pt-3 border-t hidden">
+                    <button class="w-full btn-shopee py-2 rounded text-xs font-bold mb-2">
+                        XỬ LÝ MASS PUT
+                    </button>
+                    <button class="w-full bg-gray-200 py-2 rounded text-xs font-bold hover:bg-gray-300">
+                        HỦY
+                    </button>
+                </div>
             </div>
         </div>
-        
-        <!-- Nút xác nhận sau khi xử lý xong -->
-        <div class="mt-4 text-right hidden" id="massput-action">
-            <button onclick="completeMassPut()" 
-                class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition">
-                ✅ XÁC NHẬN HOÀN THÀNH
-            </button>
-            <button onclick="cancelMassPut()" 
-                class="ml-2 bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-400 transition">
-                ✕ HỦY
-            </button>
-        </div>
-    </div>
 
-    <!-- DANH SÁCH SN - Ngăn 2 (giữ nguyên) -->
-    <div class="bg-white rounded-lg shadow-md">
-        <div class="p-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800">
-                <span class="text-orange-600">📋</span> DANH SÁCH SN CHƯA XỬ LÝ
-            </h3>
-            <span id="sn-count" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">0 SN</span>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">THỜI GIAN</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">BOX</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">SERIAL NUMBER</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">LOCATION</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">WH</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">NGƯỜI XỬ LÝ</th>
-                    </tr>
-                </thead>
-                <tbody id="sn-list-tbody" class="divide-y divide-gray-100">
-                    <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-gray-400">
-                            Đang tải dữ liệu...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- CỘT PHẢI: DANH SÁCH SN (9 phần) - THU NHỎ LẠI -->
+        <div class="col-span-9">
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="p-3 border-b flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-700 text-sm">
+                        <span class="text-blue-600 mr-1">📋</span> 
+                        DANH SÁCH SN CHƯA XỬ LÝ
+                    </h3>
+                    <span id="sn-count" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">0 SN</span>
+                </div>
+                
+                <div class="overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                    <table class="w-full text-xs">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">TG</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">BOX</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">SN</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">LOC</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">WH</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-500 uppercase">NV</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sn-list-tbody" class="divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="6" class="px-2 py-8 text-center text-gray-400 text-xs">
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-// Hiển thị thông tin box khi load
-function displayBoxInfo(boxData) {
+// Hàm hiển thị thông tin box
+window.displayBoxInfo = function(boxData) {
     const container = document.getElementById('massput-box-info');
-    const actionDiv = document.getElementById('massput-action');
+    const actions = document.getElementById('massput-actions');
     
     if (!boxData) {
-        container.innerHTML = '<div class="col-span-4 text-center text-gray-400 py-4">Chưa có box nào được chọn</div>';
-        actionDiv.classList.add('hidden');
+        container.innerHTML = '<div class="text-center text-gray-400 py-4 text-xs">Chưa chọn box</div>';
+        if (actions) actions.classList.add('hidden');
         return;
     }
     
     container.innerHTML = `
-        <div class="bg-indigo-50 p-4 rounded-lg">
-            <div class="grid grid-cols-4 gap-4">
-                <div>
-                    <label class="text-xs text-gray-500">MÃ BOX</label>
-                    <div class="font-bold text-lg text-indigo-700">${boxData.box || ''}</div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">MÃ PO</label>
-                    <div class="font-bold">${boxData.po || ''}</div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">SKU</label>
-                    <div class="font-bold">${boxData.sku || ''}</div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">TỔNG SN</label>
-                    <div class="font-bold text-orange-600">${boxData.total || 0}</div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">NGÀY TẠO</label>
-                    <div class="text-sm">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">NGƯỜI TẠO</label>
-                    <div class="text-sm">${boxData.created_by || ''}</div>
-                </div>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-500">Mã Box:</span>
+                <span class="font-bold text-indigo-600">${boxData.box || ''}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Mã PO:</span>
+                <span class="font-medium">${boxData.po || ''}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">SKU:</span>
+                <span class="font-medium">${boxData.sku || ''}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Số lượng:</span>
+                <span class="font-bold text-orange-600">${boxData.total || 0}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Ngày tạo:</span>
+                <span class="text-xs">${boxData.created_at ? new Date(boxData.created_at).toLocaleDateString('vi-VN') : ''}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Người tạo:</span>
+                <span class="text-xs">${boxData.created_by || ''}</span>
             </div>
         </div>
     `;
     
-    actionDiv.classList.remove('hidden');
-}
-
-// Hàm xác nhận hoàn thành
-window.completeMassPut = function() {
-    if (confirm('Xác nhận hoàn thành xử lý box này?')) {
-        // Gọi API Python sau này
-        alert('Sẽ gọi Python để xử lý');
-        
-        // Clear thông tin
-        sessionStorage.removeItem('massPutFullInfo');
-        sessionStorage.removeItem('massPutBox');
-        displayBoxInfo(null);
-    }
+    actions.classList.remove('hidden');
 };
 
-// Hàm hủy
-window.cancelMassPut = function() {
-    if (confirm('Hủy xử lý box này?')) {
-        sessionStorage.removeItem('massPutFullInfo');
-        sessionStorage.removeItem('massPutBox');
-        displayBoxInfo(null);
-    }
-};
-
-// Load thông tin khi trang được load
+// Load dữ liệu khi vào trang
 document.addEventListener('DOMContentLoaded', function() {
-    // Lấy thông tin từ prepareMassPut đã lưu
     const savedInfo = sessionStorage.getItem('massPutFullInfo');
     if (savedInfo) {
         try {
             const boxData = JSON.parse(savedInfo);
-            displayBoxInfo(boxData);
+            window.displayBoxInfo(boxData);
         } catch (e) {
-            console.error('Lỗi parse dữ liệu:', e);
+            console.error('Lỗi:', e);
         }
     }
 });
