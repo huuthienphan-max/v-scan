@@ -1988,13 +1988,6 @@ async function loadMassPutawayModule() {
         container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
     }
 }
-        
-    } catch (error) {
-        console.error('Lỗi load mass putaway module:', error);
-        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
-    }
-}
-
         // ==================== KHỞI TẠO ====================
         window.onload = async function() {
             const hasSession = await loadSavedSession();
@@ -2009,6 +2002,7 @@ async function loadMassPutawayModule() {
 
 </body>
 </html>
+
 
 
 
