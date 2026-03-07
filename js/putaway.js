@@ -257,11 +257,17 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             
             // TỰ ĐỘNG ĐIỀN BOX
             setTimeout(() => {
+                // Tìm ô input box và điền
                 const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
                 if (boxInput) {
                     boxInput.value = boxCode;
                     boxInput.dispatchEvent(new Event('input'));
                     console.log('✅ Đã tự động điền box:', boxCode);
+                }
+                
+                // 👉 THÊM: Gọi hàm hiển thị thông tin box nếu có
+                if (typeof window.displayBoxInfo === 'function') {
+                    window.displayBoxInfo(fullBoxInfo);
                 }
             }, 1000);
             
@@ -339,3 +345,4 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
+
