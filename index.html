@@ -908,14 +908,31 @@
             }
         }
 
-        async function saveBox(boxCode, po, sku, serials, user) {
+                async function saveBox(boxCode, po, sku, serials, user) {
             try {
                 if (editingBoxId) {
+                    // ===== ĐANG SỬA BOX =====
+                    // Kiểm tra box code mới có bị trùng với box khác không (chỉ check active)
+                    const { data: existingActive } = await supabaseClient
+                        .from('boxes')
+                        .select('id')
+                        .eq('box_code', boxCode)
+                        .eq('is_active', true)
+                        .neq('id', editingBoxId) // Không tính box đang sửa
+                        .maybeSingle();
+                    
+                    if (existingActive) {
+                        window.notify(`Mã Box "${boxCode}" đã tồn tại ở box khác!`, true);
+                        return { exists: true };
+                    }
+                    
+                    // Xóa chi tiết cũ (soft delete)
                     await supabaseClient
                         .from('box_details')
                         .update({ is_active: false })
                         .eq('box_code', boxCode);
                     
+                    // Thêm chi tiết mới
                     const details = serials.map(sn => ({
                         box_code: boxCode,
                         serial: sn,
@@ -928,6 +945,7 @@
                     
                     if (detailError) throw detailError;
                     
+                    // Cập nhật thông tin box
                     const { error: updateError } = await supabaseClient
                         .from('boxes')
                         .update({
@@ -939,51 +957,113 @@
                     
                     if (updateError) throw updateError;
                     
+                    window.notify("Đã cập nhật box thành công!");
+                    
                 } else {
-                    const { data: existingBox } = await supabaseClient
+                    // ===== THÊM BOX MỚI =====
+                    // Kiểm tra box đã tồn tại và đang ACTIVE chưa
+                    const { data: existingActive } = await supabaseClient
                         .from('boxes')
                         .select('id')
                         .eq('box_code', boxCode)
                         .eq('is_active', true)
                         .maybeSingle();
                     
-                    if (existingBox) {
+                    if (existingActive) {
+                        window.notify(`Mã Box "${boxCode}" đang được sử dụng!`, true);
                         return { exists: true };
                     }
                     
-                    const { data: newBox, error: boxError } = await supabaseClient
+                    // Kiểm tra box đã tồn tại ở dạng inactive (đã xóa mềm)
+                    const { data: existingInactive } = await supabaseClient
                         .from('boxes')
-                        .insert([{
+                        .select('id')
+                        .eq('box_code', boxCode)
+                        .eq('is_active', false)
+                        .maybeSingle();
+                    
+                    if (existingInactive) {
+                        // Box đã xóa mềm - có thể tái sử dụng
+                        console.log(`🔄 Tái sử dụng box cũ: ${boxCode}`);
+                        
+                        // Reactivate box cũ
+                        const { error: reactivateError } = await supabaseClient
+                            .from('boxes')
+                            .update({ 
+                                is_active: true,
+                                po: po,
+                                sku: sku,
+                                total: serials.length,
+                                created_by: user,
+                                created_at: new Date().toISOString() // Cập nhật thời gian mới
+                            })
+                            .eq('id', existingInactive.id);
+                        
+                        if (reactivateError) throw reactivateError;
+                        
+                        // Xóa details cũ (soft delete)
+                        await supabaseClient
+                            .from('box_details')
+                            .update({ is_active: false })
+                            .eq('box_code', boxCode);
+                        
+                        // Thêm details mới
+                        const details = serials.map(sn => ({
                             box_code: boxCode,
-                            po: po,
-                            sku: sku,
-                            total: serials.length,
-                            created_by: user,
+                            serial: sn,
                             is_active: true
-                        }])
-                        .select()
-                        .single();
-                    
-                    if (boxError) throw boxError;
-                    
-                    const details = serials.map(sn => ({
-                        box_code: boxCode,
-                        serial: sn,
-                        is_active: true
-                    }));
-                    
-                    const { error: detailError } = await supabaseClient
-                        .from('box_details')
-                        .insert(details);
-                    
-                    if (detailError) throw detailError;
+                        }));
+                        
+                        const { error: detailError } = await supabaseClient
+                            .from('box_details')
+                            .insert(details);
+                        
+                        if (detailError) throw detailError;
+                        
+                        window.notify(`Đã tái sử dụng box cũ: ${boxCode}`);
+                        
+                    } else {
+                        // Box hoàn toàn mới
+                        console.log(`🆕 Tạo box mới: ${boxCode}`);
+                        
+                        const { data: newBox, error: boxError } = await supabaseClient
+                            .from('boxes')
+                            .insert([{
+                                box_code: boxCode,
+                                po: po,
+                                sku: sku,
+                                total: serials.length,
+                                created_by: user,
+                                is_active: true
+                            }])
+                            .select()
+                            .single();
+                        
+                        if (boxError) throw boxError;
+                        
+                        const details = serials.map(sn => ({
+                            box_code: boxCode,
+                            serial: sn,
+                            is_active: true
+                        }));
+                        
+                        const { error: detailError } = await supabaseClient
+                            .from('box_details')
+                            .insert(details);
+                        
+                        if (detailError) throw detailError;
+                        
+                        window.notify("Đã lưu box thành công!");
+                    }
                 }
                 
                 await loadAllBoxes();
                 await logActivity(editingBoxId ? 'UPDATE_BOX' : 'SAVE_BOX', { box: boxCode, total: serials.length });
                 return { success: true };
+                
             } catch (error) {
                 console.error('Lỗi lưu box:', error);
+                window.notify("Lỗi khi lưu dữ liệu: " + error.message, true);
                 return { error: true };
             }
         }
@@ -1060,133 +1140,41 @@
         };
 
         // ==================== LOGIN ====================
-        document.getElementById('btn-do-login').onclick = async () => {
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
-
-            if (!u || !p) {
-                alert("Vui lòng nhập đầy đủ tài khoản!");
-                return;
-            }
-
-            if (u === 'admin' && p === '123456') {
-                currentUser = 'admin';
-                currentUserRole = 'admin';
-                currentUserId = '1';
-                
-                localStorage.setItem('currentUser', currentUser);
-                localStorage.setItem('currentUserRole', currentUserRole);
-                localStorage.setItem('currentUserId', currentUserId);
-                
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('sidebar').classList.remove('hidden');
-                document.getElementById('main-ui').classList.remove('hidden');
-                
-                document.getElementById('admin-only-menu').classList.remove('hidden');
-                document.getElementById('menu-inbound').classList.remove('hidden');
-                document.getElementById('menu-putaway').classList.remove('hidden');
-                
-                document.getElementById('user-display').innerText = `NV: admin`;
-                document.getElementById('role-display').innerText = 'ADMIN';
-                document.getElementById('role-display').className = 'role-badge role-admin';
-                
-                await testConnection();
-                await loadMasterData();
-                await loadAllBoxes();
-                await renderStaffList();
-                loadSidebarState();
-                
-                await logActivity('LOGIN', { method: 'default_admin' });
-                
-                setTimeout(() => document.getElementById('barcode-scanner').focus(), 500);
-                return;
-            }
-
-            const { data: user, error } = await supabaseClient
-                .from('users')
-                .select('*, roles(*)')
-                .eq('username', u)
-                .eq('password', p)
-                .eq('is_active', true)
-                .maybeSingle();
+                // ==================== XỬ LÝ NÚT LƯU BOX ====================
+        document.getElementById('btn-complete-box').onclick = async () => {
+            const box = document.getElementById('inp-box').value.trim().toUpperCase();
+            const po = document.getElementById('sel-po').value;
+            const sku = document.getElementById('sel-sku').value;
             
-            if (user) {
-                currentUser = user.username;
-                currentUserRole = user.roles?.name || 'viewer';
-                currentUserId = user.id;
-                
-                localStorage.setItem('currentUser', currentUser);
-                localStorage.setItem('currentUserRole', currentUserRole);
-                localStorage.setItem('currentUserId', currentUserId);
-                
-                await supabaseClient
-                    .from('users')
-                    .update({ last_login: new Date().toISOString() })
-                    .eq('id', user.id);
-                
-                await logActivity('LOGIN', { role: currentUserRole });
-                
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('sidebar').classList.remove('hidden');
-                document.getElementById('main-ui').classList.remove('hidden');
-                
-                // Ẩn tất cả menu trước
-                document.getElementById('admin-only-menu').classList.add('hidden');
-                document.getElementById('menu-inbound').classList.add('hidden');
-                document.getElementById('menu-putaway').classList.add('hidden');
-                
-                // Hiển thị menu theo role
-                if (currentUserRole === 'admin') {
-                    document.getElementById('admin-only-menu').classList.remove('hidden');
-                    document.getElementById('menu-inbound').classList.remove('hidden');
-                    document.getElementById('menu-putaway').classList.remove('hidden');
-                } else if (currentUserRole === 'manager') {
-                    document.getElementById('menu-inbound').classList.remove('hidden');
-                    document.getElementById('menu-putaway').classList.remove('hidden');
-                } else if (currentUserRole === 'scanner') {
-                    document.getElementById('menu-inbound').classList.remove('hidden');
-                } else if (currentUserRole === 'putaway') {
-                    document.getElementById('menu-putaway').classList.remove('hidden');
-                }
-                
-                document.getElementById('user-display').innerText = `NV: ${currentUser}`;
-                document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
-                
-                if (currentUserRole === 'putaway') {
-                    document.getElementById('role-display').className = 'role-badge bg-green-100 text-green-700';
-                } else {
-                    document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
-                }
-                
-                await testConnection();
-                await loadMasterData();
-                await loadAllBoxes();
-                await renderStaffList();
-                loadSidebarState();
-                
-                if (typeof window.cleanupPutaway === 'function') {
-                    window.cleanupPutaway();
-                }
-                
-                setTimeout(() => {
-                    if (currentUserRole === 'putaway' || currentUserRole === 'admin' || currentUserRole === 'manager') {
-                        document.getElementById('barcode-scanner').focus();
-                    }
-                }, 500);
-                
-            } else {
-                alert("Sai tài khoản hoặc mật khẩu!");
+            // Kiểm tra đầu vào
+            if (!sessionScans.length) {
+                window.notify("❌ Chưa có SN nào được quét!", true);
+                return;
             }
-        };
-
-        window.logout = () => {
-            if (typeof window.cleanupPutaway === 'function') {
-                window.cleanupPutaway();
+            
+            if (!box) {
+                window.notify("❌ Thiếu mã Box!", true);
+                return;
             }
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('currentUserRole');
-            localStorage.removeItem('currentUserId');
-            location.reload();
+            
+            if (!po || !sku) {
+                window.notify("❌ Thiếu PO hoặc Model!", true);
+                return;
+            }
+            
+            // Hiển thị thông báo đang xử lý
+            window.notify("🔄 Đang xử lý...");
+            
+            const serials = sessionScans.map(x => x.sn);
+            
+            // Gọi hàm lưu box
+            const result = await saveBox(box, po, sku, serials, currentUser);
+            
+            // Nếu lưu thành công, reset form
+            if (result && result.success) {
+                forceReset();
+            }
+            // Các lỗi đã được xử lý trong saveBox với window.notify
         };
 
         async function renderStaffList() {
@@ -1857,6 +1845,7 @@
 
 </body>
 </html>
+
 
 
 
