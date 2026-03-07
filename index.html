@@ -1999,9 +1999,30 @@ async function loadMassPutawayModule() {
 
     <!-- Load script Putaway HV -->
     <script src="js/putaway.js"></script>
-
+<script>
+    // ==================== HÀM ĐĂNG XUẤT ====================
+    window.logout = function() {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('currentUserRole');
+        localStorage.removeItem('currentUserId');
+        localStorage.removeItem('sidebarCollapsed');
+        
+        sessionStorage.clear();
+        
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('main-ui').classList.add('hidden');
+        document.getElementById('auth-screen').classList.remove('hidden');
+        
+        document.getElementById('login-user').value = '';
+        document.getElementById('login-pass').value = '';
+        
+        console.log('👋 Đã đăng xuất');
+    };
+    </script>
+    
 </body>
 </html>
+
 
 
 
