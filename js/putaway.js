@@ -194,6 +194,7 @@ window.viewBoxHVDetail = async function(boxCode) {
 };
 
 // ==================== CHUẨN BỊ MASS PUT ====================
+// ==================== CHUẨN BỊ MASS PUT ====================
 window.prepareMassPut = async function(boxCode, po, sku) {
     if (!boxCode) return;
     
@@ -225,33 +226,40 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             console.error('❌ Lỗi lấy SN:', detailError);
         }
         
-        // Tạo cache object với cấu trúc ĐÚNG
-        const massPutCache = {
+        // TẠO OBJECT ĐẦY ĐỦ THÔNG TIN
+        const fullBoxInfo = {
             box: boxCode,
             po: po,
             sku: sku,
             total: box.total || 0,
             snList: details ? details.map(d => d.serial) : [],
+            created_by: box.created_by,
+            created_at: box.created_at,
             timestamp: new Date().toISOString(),
-            preparedBy: currentUser || 'unknown'
+            preparedBy: currentUser || 'admin'
         };
         
-        // Lưu vào sessionStorage - DÙNG JSON.stringify ĐÚNG CÁCH
-        sessionStorage.setItem('massPutCache', JSON.stringify(massPutCache));
+        // LƯU CẢ HAI:
+        // 1. Lưu đầy đủ thông tin (dùng cho mục đích khác sau này)
+        sessionStorage.setItem('massPutFullInfo', JSON.stringify(fullBoxInfo));
         
-        console.log('📦 Đã lưu cache Mass Put:', massPutCache);
-        console.log('🔍 Cache sau khi lưu:', sessionStorage.getItem('massPutCache'));
+        // 2. Lưu riêng box để điền form (đơn giản, dễ đọc)
+        sessionStorage.setItem('massPutBox', boxCode);
         
-        // Hiển thị thông báo
-        window.notify(`✅ Đã chọn box ${boxCode} (${massPutCache.snList.length} SN) cho Mass Put`);
+        console.log('📦 Đã lưu đầy đủ thông tin:', fullBoxInfo);
+        console.log('📦 Đã lưu box riêng:', boxCode);
+        console.log('🔍 Kiểm tra cache:', {
+            full: sessionStorage.getItem('massPutFullInfo'),
+            box: sessionStorage.getItem('massPutBox')
+        });
+        
+        window.notify(`✅ Đã chọn box ${boxCode} (${fullBoxInfo.snList.length} SN) cho Mass Put`);
         
         // Chuyển sang trang Mass Putaway
         if (typeof window.switchPage === 'function') {
             window.switchPage('mass-putaway');
         } else {
-            console.error('❌ Không tìm thấy hàm switchPage');
-            // Thử cách khác
-            window.location.hash = '#mass-putaway';
+            window.location.href = '#mass-putaway';
             location.reload();
         }
         
@@ -345,6 +353,7 @@ window.clearMassPutCache = function() {
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
 };
+
 
 
 
