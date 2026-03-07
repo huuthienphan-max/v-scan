@@ -1,11 +1,16 @@
 // js/mass-putaway.js - Module Mass Putaway
 
-let massHistory = [];
+let massSNList = [];
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initMassPutawayModule = function() {
     console.log('🚀 Khởi tạo Mass Putaway module...');
-    loadMassHistory();
+    
+    // Set WH mặc định
+    document.getElementById('mass-wh').value = 'VNS';
+    
+    // Load danh sách SN
+    loadMassSNList();
     
     // Log thông tin API cho Python
     console.log('📡 API Endpoint cho Python: POST /api/mass-putaway');
@@ -16,9 +21,9 @@ window.processMassPutaway = async function() {
     // Lấy dữ liệu từ form
     const account = document.getElementById('mass-account').value.trim();
     const password = document.getElementById('mass-password').value.trim();
-    const wh = document.getElementById('mass-wh').value;
+    const wh = document.getElementById('mass-wh').value; // VNS mặc định
     const box = document.getElementById('mass-box').value.trim().toUpperCase();
-    const location = document.getElementById('mass-location').value;
+    const location = document.getElementById('mass-location').value.trim();
     
     // Kiểm tra đầu vào
     if (!account || !password) {
@@ -31,8 +36,8 @@ window.processMassPutaway = async function() {
         return;
     }
     
-    if (!wh || !location) {
-        showMassResult('❌ Vui lòng chọn WH và Location!', 'error');
+    if (!location) {
+        showMassResult('❌ Vui lòng nhập Location Put!', 'error');
         return;
     }
     
@@ -73,37 +78,51 @@ window.processMassPutaway = async function() {
         }
         
         // Bước 3: Lấy chi tiết SN
-        const { data: details } = await supabaseClient
+        const { data: details, error: detailError } = await supabaseClient
             .from('box_details')
             .select('serial')
             .eq('box_code', box)
             .eq('is_active', true);
         
-        // Bước 4: Lưu vào lịch sử
-        await supabaseClient
-            .from('activity_log')
-            .insert([{
-                user_id: user.id,
-                username: account,
-                action: 'MASS_PUTAWAY',
-                details: {
-                    box: box,
-                    wh: wh,
-                    location: location,
-                    total_sn: details?.length || 0
-                },
-                is_active: true
-            }]);
+        if (detailError) throw detailError;
+        
+        if (!details || details.length === 0) {
+            showMassResult(`❌ Box "${box}" không có SN nào!`, 'error');
+            return;
+        }
+        
+        // Bước 4: Lưu vào lịch sử MASS PUTAWAY (thêm bảng mới nếu cần)
+        // Tạm thời lưu vào activity_log
+        const snList = details.map(d => d.serial);
+        
+        // Lưu từng SN vào lịch sử
+        for (const sn of snList) {
+            await supabaseClient
+                .from('activity_log')
+                .insert([{
+                    user_id: user.id,
+                    username: account,
+                    action: 'MASS_PUTAWAY_SN',
+                    details: {
+                        box: box,
+                        sn: sn,
+                        wh: wh,
+                        location: location,
+                        timestamp: new Date().toISOString()
+                    },
+                    is_active: true
+                }]);
+        }
         
         // Hiển thị kết quả
-        const snCount = details?.length || 0;
-        showMassResult(`✅ Xử lý thành công! Box ${box} (${snCount} SN) đã được chuyển đến ${location} (${wh})`, 'success');
+        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN)`, 'success');
         
-        // Clear ô nhập box
+        // Clear ô nhập
         document.getElementById('mass-box').value = '';
+        document.getElementById('mass-location').value = '';
         
-        // Load lại lịch sử
-        loadMassHistory();
+        // Load lại danh sách SN
+        loadMassSNList();
         
     } catch (error) {
         console.error('❌ Lỗi Mass Putaway:', error);
@@ -117,11 +136,11 @@ function showMassResult(message, type) {
     resultDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'bg-blue-100', 'text-green-700', 'text-red-700', 'text-blue-700');
     
     if (type === 'success') {
-        resultDiv.classList.add('bg-green-100', 'text-green-700');
+        resultDiv.classList.add('bg-green-100', 'text-green-700', 'p-4', 'rounded');
     } else if (type === 'error') {
-        resultDiv.classList.add('bg-red-100', 'text-red-700');
+        resultDiv.classList.add('bg-red-100', 'text-red-700', 'p-4', 'rounded');
     } else {
-        resultDiv.classList.add('bg-blue-100', 'text-blue-700');
+        resultDiv.classList.add('bg-blue-100', 'text-blue-700', 'p-4', 'rounded');
     }
     
     resultDiv.innerHTML = message;
@@ -133,74 +152,124 @@ function showMassResult(message, type) {
     }
 }
 
-// ==================== LOAD LỊCH SỬ ====================
-async function loadMassHistory() {
+// ==================== LOAD DANH SÁCH SN ====================
+async function loadMassSNList() {
     try {
+        // Lấy 50 bản ghi MASS_PUTAWAY_SN gần nhất
         const { data, error } = await supabaseClient
             .from('activity_log')
             .select('*')
-            .eq('action', 'MASS_PUTAWAY')
+            .eq('action', 'MASS_PUTAWAY_SN')
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(50);
         
         if (error) throw error;
         
-        massHistory = data || [];
-        renderMassHistory();
+        massSNList = data || [];
+        renderMassSNList();
         
     } catch (error) {
-        console.error('❌ Lỗi load lịch sử:', error);
+        console.error('❌ Lỗi load SN list:', error);
+        const tbody = document.getElementById('mass-sn-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
+        }
     }
 }
 
-// ==================== RENDER LỊCH SỬ ====================
-function renderMassHistory() {
-    const tbody = document.getElementById('mass-history-tbody');
+// ==================== RENDER DANH SÁCH SN ====================
+function renderMassSNList() {
+    const tbody = document.getElementById('mass-sn-tbody');
     if (!tbody) return;
     
-    if (!massHistory.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">Chưa có lịch sử xử lý</td></tr>';
+    if (!massSNList.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Chưa có SN nào được xử lý</td></tr>';
         return;
     }
     
-    tbody.innerHTML = massHistory.map(item => {
+    tbody.innerHTML = massSNList.map(item => {
         const details = item.details || {};
         const time = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '';
         
         return `
             <tr>
                 <td class="text-xs">${time}</td>
-                <td>${details.wh || 'N/A'}</td>
-                <td class="font-bold text-indigo-600">${details.box || 'N/A'}</td>
-                <td>${details.location || 'N/A'}</td>
-                <td>${item.username || 'N/A'}</td>
-                <td><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Thành công</span></td>
+                <td class="font-bold text-indigo-600">${details.box || ''}</td>
+                <td class="font-mono">${details.sn || ''}</td>
+                <td>${details.location || ''}</td>
+                <td>${details.wh || 'VNS'}</td>
+                <td>${item.username || ''}</td>
             </tr>
         `;
     }).join('');
 }
 
-// ==================== REFRESH LỊCH SỬ ====================
-window.refreshMassHistory = function() {
-    loadMassHistory();
+// ==================== REFRESH DANH SÁCH SN ====================
+window.refreshMassSNList = function() {
+    loadMassSNList();
 };
 
 // ==================== API SIMULATION CHO PYTHON ====================
-// Đây là phần sẽ được Python gọi sau này
 window.massPutawayAPI = async function(data) {
     // data = { account, password, wh, box, location }
     console.log('📡 API called with:', data);
     
-    // Giả lập xử lý
-    const result = {
-        success: true,
-        message: 'Box processed successfully',
-        data: {
-            box: data.box,
-            location: data.location,
-            timestamp: new Date().toISOString()
+    try {
+        // Xác thực
+        const { data: user } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('username', data.account)
+            .eq('password', data.password)
+            .eq('is_active', true)
+            .maybeSingle();
+        
+        if (!user) {
+            return { success: false, error: 'Invalid credentials' };
         }
-    };
-    
-    return result;
+        
+        // Lấy SN từ box
+        const { data: details } = await supabaseClient
+            .from('box_details')
+            .select('serial')
+            .eq('box_code', data.box)
+            .eq('is_active', true);
+        
+        if (!details || details.length === 0) {
+            return { success: false, error: 'Box has no SN' };
+        }
+        
+        // Lưu log
+        for (const sn of details) {
+            await supabaseClient
+                .from('activity_log')
+                .insert([{
+                    user_id: user.id,
+                    username: data.account,
+                    action: 'MASS_PUTAWAY_SN',
+                    details: {
+                        box: data.box,
+                        sn: sn.serial,
+                        wh: data.wh || 'VNS',
+                        location: data.location
+                    },
+                    is_active: true
+                }]);
+        }
+        
+        return {
+            success: true,
+            message: `Processed ${details.length} SN from box ${data.box}`,
+            data: {
+                box: data.box,
+                location: data.location,
+                wh: data.wh || 'VNS',
+                sn_count: details.length,
+                timestamp: new Date().toISOString()
+            }
+        };
+        
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 };
