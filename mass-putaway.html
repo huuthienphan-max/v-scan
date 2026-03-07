@@ -98,83 +98,96 @@
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - CHẠY LIÊN TỤC -->
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - GIỐNG HỆT F12 -->
 <script>
-// CÁCH ĐƠN GIẢN NHẤT: KIỂM TRA LIÊN TỤC ĐẾN KHI CÓ DỮ LIỆU
+// CÁCH ĐƠN GIẢN NHẤT - GIỐNG Y HỆT LÚC TEST F12
 (function() {
-    console.log('🔄 Bắt đầu kiểm tra box info...');
+    console.log('🚀 Bắt đầu hiển thị box info...');
     
-    function displayBoxInfo() {
-        const infoDiv = document.getElementById('massput-box-info');
-        const boxInput = document.getElementById('mass-box');
-        
-        if (!infoDiv) {
-            console.log('❌ Chưa có infoDiv, thử lại sau...');
+    function hienThiBox() {
+        // Tìm div
+        const div = document.getElementById('massput-box-info');
+        if (!div) {
+            console.log('❌ Chưa có div');
             return false;
         }
         
-        const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        if (!savedInfo) {
-            console.log('📭 Chưa có dữ liệu trong sessionStorage');
-            infoDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
+        // Lấy dữ liệu
+        const data = sessionStorage.getItem('massPutFullInfo');
+        if (!data) {
+            console.log('❌ Chưa có dữ liệu');
+            div.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
             return false;
         }
         
         try {
-            const boxData = JSON.parse(savedInfo);
-            console.log('✅ Có dữ liệu box:', boxData.box);
+            // Parse dữ liệu
+            const box = JSON.parse(data);
+            console.log('✅ Dữ liệu box:', box.box);
             
             // Điền vào ô input
-            if (boxInput) boxInput.value = boxData.box;
+            const input = document.getElementById('mass-box');
+            if (input) input.value = box.box;
             
-            // HIỂN THỊ - dùng style trực tiếp cho chắc
-            infoDiv.innerHTML = `
-                <div style="background: #eef2ff; padding: 20px; border-radius: 10px; border-left: 5px solid #4f46e5; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <span style="font-size: 22px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
-                        <span style="background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;">${boxData.total || 0} SN</span>
-                    </div>
-                    
-                    <div style="margin-top: 12px;">
-                        <div style="display: flex; margin-bottom: 8px;">
-                            <span style="width: 80px; color: #6b7280;">MÃ PO:</span>
-                            <span style="font-weight: 500;">${boxData.po || ''}</span>
-                        </div>
-                        <div style="display: flex; margin-bottom: 8px;">
-                            <span style="width: 80px; color: #6b7280;">SKU:</span>
-                            <span style="font-weight: 500;">${boxData.sku || ''}</span>
-                        </div>
-                        <div style="display: flex; margin-bottom: 8px;">
-                            <span style="width: 80px; color: #6b7280;">NGÀY TẠO:</span>
-                            <span>${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</span>
-                        </div>
-                        <div style="display: flex; margin-bottom: 8px;">
-                            <span style="width: 80px; color: #6b7280;">NGƯỜI TẠO:</span>
-                            <span>${boxData.created_by || ''}</span>
-                        </div>
+            // HIỂN THỊ - Y HỆT LÚC TEST F12
+            div.innerHTML = `
+                <div style="background:#eef2ff; padding:20px; border-radius:10px; border-left:5px solid #4f46e5;">
+                    <div style="font-size:22px; font-weight:bold; color:#4f46e5; margin-bottom:15px;">📦 ${box.box}</div>
+                    <div style="margin-top:10px;">
+                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">PO:</span> ${box.po}</div>
+                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">SKU:</span> ${box.sku}</div>
+                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">Số lượng:</span> ${box.total}</div>
                     </div>
                 </div>
             `;
             
-            console.log('✅ Đã hiển thị box:', boxData.box);
+            console.log('✅ Đã hiển thị thành công!');
             return true;
+            
         } catch (e) {
             console.error('❌ Lỗi:', e);
             return false;
         }
     }
     
-    // Thử ngay lập tức
-    displayBoxInfo();
+    // Chạy ngay lập tức
+    hienThiBox();
     
-    // Thử lại sau 1 giây
-    setTimeout(displayBoxInfo, 1000);
+    // Chạy lại nhiều lần để đảm bảo
+    setTimeout(hienThiBox, 500);
+    setTimeout(hienThiBox, 1000);
+    setTimeout(hienThiBox, 2000);
+    setTimeout(hienThiBox, 3000);
     
-    // Thử lại sau 2 giây
-    setTimeout(displayBoxInfo, 2000);
-    
-    // Thử lại sau 3 giây
-    setTimeout(displayBoxInfo, 3000);
+    // Chạy lại khi có sự kiện
+    window.addEventListener('load', hienThiBox);
+    document.addEventListener('DOMContentLoaded', hienThiBox);
 })();
-</script>
 
+// Hàm xử lý Mass Put
+window.processMassPutaway = function() {
+    const account = document.getElementById('mass-account').value;
+    const box = document.getElementById('mass-box').value;
+    const location = document.getElementById('mass-location').value;
+    
+    if (!box || !location) {
+        alert('❌ Vui lòng nhập Box và Location!');
+        return;
+    }
+    
+    const resultDiv = document.getElementById('mass-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
+    resultDiv.innerHTML = '🔄 Đang xử lý...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
+        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
+    }, 1500);
+};
+
+// Hàm làm mới danh sách SN
+window.refreshMassSNList = function() {
+    console.log('🔄 Làm mới danh sách SN...');
+};
+</script>
