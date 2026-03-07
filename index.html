@@ -1966,6 +1966,29 @@ async function loadMassPutawayModule() {
             window.initMassPutawayModule();
         }
         
+        // 👉 THÊM ĐOẠN NÀY: ĐỢI LOAD XONG RỒI ĐIỀN BOX
+        setTimeout(() => {
+            const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
+            if (boxInput) {
+                // Lấy box từ biến toàn cục hoặc localStorage
+                const boxNumber = window.selectedMassBox || localStorage.getItem('massPutBox');
+                if (boxNumber) {
+                    boxInput.value = boxNumber;
+                    boxInput.dispatchEvent(new Event('input'));
+                    console.log('✅ Đã điền box:', boxNumber);
+                    
+                    // Xóa khỏi localStorage sau khi dùng (tùy chọn)
+                    // localStorage.removeItem('massPutBox');
+                }
+            }
+        }, 1000); // Đợi 1 giây cho giao diện load xong
+        
+    } catch (error) {
+        console.error('Lỗi load mass putaway module:', error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
+    }
+}
+        
     } catch (error) {
         console.error('Lỗi load mass putaway module:', error);
         container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
@@ -1986,6 +2009,7 @@ async function loadMassPutawayModule() {
 
 </body>
 </html>
+
 
 
 
