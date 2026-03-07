@@ -1,7 +1,8 @@
-// js/putaway.js - ĐỔI TÊN THÀNH BOX HV, BỎ NÚT XỬ LÝ
+// js/box-hv.js - Module Box HV (cập nhật thêm bộ nhớ đệm Mass Put)
 
 let boxHVInterval = null;
 let boxHVData = [];
+let massPutCache = null; // Bộ nhớ đệm cho Mass Put
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initBoxHVModule = function() {
@@ -21,6 +22,13 @@ window.initBoxHVModule = function() {
     // Load dữ liệu
     loadBoxHVStats();
     loadBoxHVData();
+    
+    // Kiểm tra cache từ sessionStorage
+    const savedCache = sessionStorage.getItem('massPutCache');
+    if (savedCache) {
+        massPutCache = JSON.parse(savedCache);
+        console.log('📦 Có box đang chờ Mass Put:', massPutCache);
+    }
 };
 
 // ==================== AUTO REFRESH ====================
@@ -110,6 +118,10 @@ async function loadBoxHVData() {
 
     } catch (error) {
         console.error('❌ Lỗi load data:', error);
+        const tbody = document.getElementById('boxhv-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
+        }
     }
 }
 
@@ -127,9 +139,13 @@ function renderBoxHVData() {
         const isPending = box.putaway_status === 'pending';
         const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
         const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
+        
+        // Kiểm tra box này có đang trong cache không
+        const isCached = massPutCache && massPutCache.box === box.box_code;
+        const rowClass = isCached ? 'bg-indigo-50' : '';
 
         return `
-            <tr>
+            <tr class="${rowClass}">
                 <td class="font-bold text-blue-600">${box.box_code || ''}</td>
                 <td>${box.po || ''}</td>
                 <td>${box.sku || ''}</td>
@@ -141,10 +157,14 @@ function renderBoxHVData() {
                         ${statusText}
                     </span>
                 </td>
-                <td class="text-center">
+                <td class="text-center space-x-2">
                     <button onclick="viewBoxHVDetail('${box.box_code}')" 
-                        class="text-blue-500 hover:text-blue-700 text-xs font-medium border border-blue-200 px-3 py-1 rounded">
+                        class="text-blue-500 hover:text-blue-700 text-xs font-medium border border-blue-200 px-2 py-1 rounded">
                         XEM SN
+                    </button>
+                    <button onclick="prepareMassPut('${box.box_code}', '${box.po}', '${box.sku}')" 
+                        class="bg-indigo-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-indigo-600 transition">
+                        ⚡ MASS PUT
                     </button>
                 </td>
             </tr>
@@ -171,6 +191,84 @@ window.viewBoxHVDetail = async function(boxCode) {
     } catch (error) {
         window.notify('❌ Lỗi tải chi tiết!', true);
     }
+};
+
+// ==================== CHUẨN BỊ MASS PUT ====================
+window.prepareMassPut = async function(boxCode, po, sku) {
+    if (!boxCode) return;
+    
+    try {
+        // Lấy thông tin chi tiết box
+        const { data: box } = await supabaseClient
+            .from('boxes')
+            .select('*')
+            .eq('box_code', boxCode)
+            .eq('is_active', true)
+            .single();
+        
+        if (!box) {
+            window.notify('❌ Không tìm thấy box!', true);
+            return;
+        }
+        
+        // Lấy danh sách SN
+        const { data: details } = await supabaseClient
+            .from('box_details')
+            .select('serial')
+            .eq('box_code', boxCode)
+            .eq('is_active', true);
+        
+        // Tạo cache object
+        massPutCache = {
+            box: boxCode,
+            po: po,
+            sku: sku,
+            total: box.total || 0,
+            snList: details?.map(d => d.serial) || [],
+            timestamp: new Date().toISOString(),
+            preparedBy: currentUser
+        };
+        
+        // Lưu vào sessionStorage
+        sessionStorage.setItem('massPutCache', JSON.stringify(massPutCache));
+        
+        console.log('📦 Đã lưu cache Mass Put:', massPutCache);
+        
+        // Hiển thị thông báo
+        window.notify(`✅ Đã chọn box ${boxCode} (${massPutCache.snList.length} SN) cho Mass Put`);
+        
+        // Chuyển sang trang Mass Putaway
+        switchPage('mass-putaway');
+        
+        // Load lại dữ liệu để highlight box đã chọn
+        renderBoxHVData();
+        
+    } catch (error) {
+        console.error('❌ Lỗi prepare Mass Put:', error);
+        window.notify('❌ Lỗi khi chuẩn bị Mass Put!', true);
+    }
+};
+
+// ==================== LẤY CACHE CHO MASS PUT ====================
+window.getMassPutCache = function() {
+    // Đọc từ sessionStorage nếu chưa có
+    if (!massPutCache) {
+        const saved = sessionStorage.getItem('massPutCache');
+        if (saved) {
+            massPutCache = JSON.parse(saved);
+        }
+    }
+    return massPutCache;
+};
+
+// ==================== XÓA CACHE MASS PUT ====================
+window.clearMassPutCache = function() {
+    massPutCache = null;
+    sessionStorage.removeItem('massPutCache');
+    console.log('🗑️ Đã xóa cache Mass Put');
+    
+    // Reload lại danh sách để bỏ highlight
+    renderBoxHVData();
 };
 
 // ==================== FILTER ====================
