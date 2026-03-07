@@ -908,7 +908,8 @@
             }
         }
 
-                async function saveBox(boxCode, po, sku, serials, user) {
+                        // ==================== HÀM LƯU BOX (THÊM MỚI HOẶC SỬA) ====================
+        async function saveBox(boxCode, po, sku, serials, user) {
             try {
                 if (editingBoxId) {
                     // ===== ĐANG SỬA BOX =====
@@ -957,7 +958,7 @@
                     
                     if (updateError) throw updateError;
                     
-                    window.notify("Đã cập nhật box thành công!");
+                    window.notify("✅ Đã cập nhật box thành công!");
                     
                 } else {
                     // ===== THÊM BOX MỚI =====
@@ -970,7 +971,7 @@
                         .maybeSingle();
                     
                     if (existingActive) {
-                        window.notify(`Mã Box "${boxCode}" đang được sử dụng!`, true);
+                        window.notify(`❌ Mã Box "${boxCode}" đang được sử dụng!`, true);
                         return { exists: true };
                     }
                     
@@ -986,7 +987,7 @@
                         // Box đã xóa mềm - có thể tái sử dụng
                         console.log(`🔄 Tái sử dụng box cũ: ${boxCode}`);
                         
-                        // Reactivate box cũ
+                        // Reactivate box cũ - THÊM putaway_status = 'pending'
                         const { error: reactivateError } = await supabaseClient
                             .from('boxes')
                             .update({ 
@@ -995,7 +996,8 @@
                                 sku: sku,
                                 total: serials.length,
                                 created_by: user,
-                                created_at: new Date().toISOString() // Cập nhật thời gian mới
+                                created_at: new Date().toISOString(), // Cập nhật thời gian mới
+                                putaway_status: 'pending'  // 👈 THÊM DÒNG NÀY
                             })
                             .eq('id', existingInactive.id);
                         
@@ -1020,10 +1022,10 @@
                         
                         if (detailError) throw detailError;
                         
-                        window.notify(`Đã tái sử dụng box cũ: ${boxCode}`);
+                        window.notify(`🔄 Đã tái sử dụng box: ${boxCode}`);
                         
                     } else {
-                        // Box hoàn toàn mới
+                        // Box hoàn toàn mới - THÊM putaway_status = 'pending'
                         console.log(`🆕 Tạo box mới: ${boxCode}`);
                         
                         const { data: newBox, error: boxError } = await supabaseClient
@@ -1034,7 +1036,8 @@
                                 sku: sku,
                                 total: serials.length,
                                 created_by: user,
-                                is_active: true
+                                is_active: true,
+                                putaway_status: 'pending'  // 👈 THÊM DÒNG NÀY
                             }])
                             .select()
                             .single();
@@ -1053,7 +1056,7 @@
                         
                         if (detailError) throw detailError;
                         
-                        window.notify("Đã lưu box thành công!");
+                        window.notify("✅ Đã lưu box thành công!");
                     }
                 }
                 
@@ -1062,12 +1065,19 @@
                 return { success: true };
                 
             } catch (error) {
-                console.error('Lỗi lưu box:', error);
-                window.notify("Lỗi khi lưu dữ liệu: " + error.message, true);
+                console.error('❌ Lỗi lưu box:', error);
+                
+                // Xử lý lỗi unique constraint
+                if (error.code === '23505') {
+                    window.notify(`❌ Mã box "${boxCode}" đã tồn tại trong hệ thống!`, true);
+                } else {
+                    window.notify("❌ Lỗi khi lưu dữ liệu: " + error.message, true);
+                }
                 return { error: true };
             }
         }
 
+        // ==================== SOFT DELETE BOX (XÓA MỀM) ====================
         window.softDeleteBox = async (id) => { 
             if (!['admin', 'manager'].includes(currentUserRole)) {
                 window.notify("Không có quyền xóa!", true);
@@ -1104,11 +1114,11 @@
                 
                 await loadAllBoxes();
                 await logActivity('SOFT_DELETE_BOX', { box: box.box_code });
-                window.notify("Đã xóa box thành công!");
+                window.notify("✅ Đã xóa box thành công!");
                 
             } catch (error) {
-                console.error('Lỗi xóa box:', error);
-                window.notify("Lỗi khi xóa box: " + error.message, true);
+                console.error('❌ Lỗi xóa box:', error);
+                window.notify("❌ Lỗi khi xóa box: " + error.message, true);
             }
         };
 
@@ -1845,6 +1855,7 @@
 
 </body>
 </html>
+
 
 
 
