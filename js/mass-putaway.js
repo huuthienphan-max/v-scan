@@ -1,5 +1,4 @@
 // js/mass-putaway.js - Module Mass Putaway
-// Chức năng: Xử lý nhập liệu hàng loạt, kết nối Python
 
 let massSNList = [];
 let autoRefreshInterval = null;
@@ -12,9 +11,6 @@ window.initMassPutawayModule = function() {
     const whInput = document.getElementById('mass-wh');
     if (whInput) whInput.value = 'VNS';
     
-    // Kiểm tra cache từ Box HV - GỌI NGAY LẬP TỨC
-    checkMassPutCache();
-    
     // Load danh sách SN
     loadMassSNList();
     
@@ -23,6 +19,12 @@ window.initMassPutawayModule = function() {
     
     // Start auto refresh
     startAutoRefresh();
+    
+    // KIỂM TRA CACHE NGAY LẬP TỨC - QUAN TRỌNG NHẤT!
+    setTimeout(() => {
+        console.log('🔍 Đang kiểm tra cache...');
+        checkMassPutCache();
+    }, 500);
 };
 
 // ==================== AUTO REFRESH ====================
@@ -42,20 +44,21 @@ window.cleanupMassPutaway = function() {
     }
 };
 
-// ==================== KIỂM TRA CACHE TỪ BOX HV ====================
+// ==================== KIỂM TRA CACHE - HÀM NÀY ĐANG THIẾU ====================
 function checkMassPutCache() {
-    console.log('🔍 Kiểm tra cache Mass Put...');
+    console.log('🔍 Bắt đầu kiểm tra cache...');
     
+    // Đọc từ sessionStorage
     const saved = sessionStorage.getItem('massPutCache');
-    console.log('📦 Dữ liệu cache:', saved);
+    console.log('📦 Dữ liệu cache thô:', saved);
     
     if (saved) {
         try {
             const cache = JSON.parse(saved);
-            console.log('📦 Cache parsed:', cache);
+            console.log('📦 Cache đã parse:', cache);
             
             if (cache && cache.box) {
-                console.log('✅ Có box trong cache:', cache.box);
+                console.log('✅ Tìm thấy box trong cache:', cache.box);
                 
                 // Tìm ô input
                 const boxInput = document.getElementById('mass-box');
@@ -64,7 +67,7 @@ function checkMassPutCache() {
                 if (boxInput) {
                     // ĐIỀN GIÁ TRỊ
                     boxInput.value = cache.box;
-                    console.log('✅ Đã điền box:', cache.box);
+                    console.log('✅ ĐÃ ĐIỀN GIÁ TRỊ:', cache.box);
                     
                     // Highlight để thấy rõ
                     boxInput.style.border = '2px solid #4f46e5';
@@ -72,7 +75,7 @@ function checkMassPutCache() {
                     
                     // Hiển thị thông báo
                     const snCount = cache.snList?.length || 0;
-                    showMassResult(`📦 Đã nạp box ${cache.box} (${snCount} SN) từ bộ nhớ đệm`, 'info');
+                    showMassResult(`📦 Đã nạp box ${cache.box} (${snCount} SN)`, 'info');
                     
                     // Focus vào location
                     setTimeout(() => {
@@ -83,23 +86,45 @@ function checkMassPutCache() {
                         }
                     }, 500);
                     
-                    // KHÔNG XÓA CACHE Ở ĐÂY
-                    // Để nếu user refresh trang vẫn còn
-                    
+                    return true;
                 } else {
                     console.error('❌ KHÔNG TÌM THẤY ô input mass-box!');
-                    console.log('📋 Các element có sẵn:', document.getElementById('mass-account') ? 'OK' : 'Missing');
                 }
             } else {
-                console.log('📭 Cache không có box');
+                console.log('📭 Cache không có thông tin box');
             }
         } catch (e) {
             console.error('❌ Lỗi parse cache:', e);
         }
     } else {
-        console.log('📭 Không có cache');
+        console.log('📭 Không có cache trong sessionStorage');
     }
+    
+    return false;
 }
+
+// ==================== HÀM TEST CHO CONSOLE ====================
+window.testCache = function() {
+    console.log('🧪 Test cache:');
+    const saved = sessionStorage.getItem('massPutCache');
+    console.log('📦 Cache trong sessionStorage:', saved);
+    
+    if (saved) {
+        try {
+            const cache = JSON.parse(saved);
+            console.log('📦 Cache đã parse:', cache);
+            
+            const boxInput = document.getElementById('mass-box');
+            console.log('🔍 Box input element:', boxInput);
+            
+            if (boxInput) {
+                console.log('📝 Giá trị hiện tại:', boxInput.value);
+            }
+        } catch (e) {
+            console.error('❌ Lỗi:', e);
+        }
+    }
+};
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
@@ -176,7 +201,7 @@ window.processMassPutaway = async function() {
             return;
         }
         
-        // Bước 4: Cập nhật trạng thái box thành completed (đã xử lý)
+        // Bước 4: Cập nhật trạng thái box
         await supabaseClient
             .from('boxes')
             .update({
@@ -207,15 +232,13 @@ window.processMassPutaway = async function() {
                 }]);
         }
         
-        // Bước 6: Xóa cache nếu có
-        if (typeof window.clearMassPutCache === 'function') {
-            window.clearMassPutCache();
-        }
+        // Bước 6: Xóa cache sau khi xử lý
+        sessionStorage.removeItem('massPutCache');
         
         // Hiển thị kết quả
-        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN) đã được chuyển đến ${location}`, 'success');
+        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN)`, 'success');
         
-        // Clear ô nhập (giữ lại account/password)
+        // Clear ô nhập
         document.getElementById('mass-box').value = '';
         document.getElementById('mass-location').value = '';
         
@@ -255,7 +278,6 @@ function showMassResult(message, type) {
 // ==================== LOAD DANH SÁCH SN ====================
 async function loadMassSNList() {
     try {
-        // Lấy 50 bản ghi MASS_PUTAWAY_SN gần nhất
         const { data, error } = await supabaseClient
             .from('activity_log')
             .select('*')
@@ -310,22 +332,15 @@ window.refreshMassSNList = function() {
 };
 
 // ==================== API CHO PYTHON ====================
-// Hàm này sẽ được gọi từ Python sau này
 window.massPutawayAPI = async function(data) {
-    // data = { account, password, wh, box, location }
     console.log('📡 API called with:', data);
     
     try {
-        // Kiểm tra dữ liệu đầu vào
         if (!data.account || !data.password || !data.box || !data.location) {
-            return {
-                success: false,
-                error: 'Missing required fields: account, password, box, location'
-            };
+            return { success: false, error: 'Missing required fields' };
         }
         
-        // Xác thực user
-        const { data: user, error: authError } = await supabaseClient
+        const { data: user } = await supabaseClient
             .from('users')
             .select('*, roles(*)')
             .eq('username', data.account)
@@ -333,52 +348,23 @@ window.massPutawayAPI = async function(data) {
             .eq('is_active', true)
             .maybeSingle();
         
-        if (authError || !user) {
-            return { success: false, error: 'Invalid credentials' };
-        }
+        if (!user) return { success: false, error: 'Invalid credentials' };
         
-        // Kiểm tra quyền
         const userRole = user.roles?.name || 'viewer';
         if (!['admin', 'manager', 'mass-putaway'].includes(userRole)) {
             return { success: false, error: 'Insufficient permissions' };
         }
         
-        // Tìm box
-        const { data: boxData, error: boxError } = await supabaseClient
-            .from('boxes')
-            .select('*')
-            .eq('box_code', data.box)
-            .eq('is_active', true)
-            .maybeSingle();
-        
-        if (boxError || !boxData) {
-            return { success: false, error: `Box ${data.box} not found` };
-        }
-        
-        // Lấy SN từ box
-        const { data: details, error: detailError } = await supabaseClient
+        const { data: details } = await supabaseClient
             .from('box_details')
             .select('serial')
             .eq('box_code', data.box)
             .eq('is_active', true);
         
-        if (detailError) throw detailError;
-        
         if (!details || details.length === 0) {
             return { success: false, error: 'Box has no SN' };
         }
         
-        // Cập nhật trạng thái box
-        await supabaseClient
-            .from('boxes')
-            .update({
-                putaway_status: 'completed',
-                putaway_date: new Date().toISOString(),
-                putaway_by: data.account
-            })
-            .eq('id', boxData.id);
-        
-        // Lưu từng SN vào log
         for (const sn of details) {
             await supabaseClient
                 .from('activity_log')
@@ -409,43 +395,6 @@ window.massPutawayAPI = async function(data) {
         };
         
     } catch (error) {
-        console.error('❌ API Error:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Internal server error'
-        };
+        return { success: false, error: error.message };
     }
 };
-
-// ==================== XỬ LÝ PHÍM TẮT ====================
-document.addEventListener('keydown', (e) => {
-    // Chỉ xử lý khi đang ở trang Mass Putaway
-    if (document.getElementById('page-mass-putaway')?.classList.contains('hidden')) return;
-    
-    // Ctrl + Enter để xử lý
-    if (e.ctrlKey && e.key === 'Enter') {
-        e.preventDefault();
-        window.processMassPutaway();
-    }
-    
-    // Ctrl + L để focus vào location
-    if (e.ctrlKey && e.key === 'l') {
-        e.preventDefault();
-        document.getElementById('mass-location')?.focus();
-    }
-    
-    // Ctrl + B để focus vào box
-    if (e.ctrlKey && e.key === 'b') {
-        e.preventDefault();
-        document.getElementById('mass-box')?.focus();
-    }
-});
-
-// ==================== CLEANUP ====================
-window.addEventListener('beforeunload', function() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
-});
-
-
