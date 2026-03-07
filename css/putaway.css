@@ -1,10 +1,6 @@
-/* css/putaway.css - Style riêng cho module Putaway */
-
-/* Card thống kê */
+/* css/putaway.css */
 .putaway-stat-card {
     transition: all 0.3s ease;
-    border-radius: 8px;
-    overflow: hidden;
 }
 
 .putaway-stat-card:hover {
@@ -12,7 +8,6 @@
     box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.2);
 }
 
-/* Badge trạng thái */
 .putaway-badge-pending {
     background-color: #fef3c7;
     color: #d97706;
@@ -20,7 +15,6 @@
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
-    display: inline-block;
 }
 
 .putaway-badge-completed {
@@ -30,26 +24,17 @@
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
-    display: inline-block;
 }
 
-/* Animation cho số liệu */
 @keyframes countUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .putaway-stat-number {
     animation: countUp 0.5s ease-out;
 }
 
-/* Nút xử lý */
 .putaway-btn-process {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
@@ -66,135 +51,4 @@
     background: linear-gradient(135deg, #059669, #047857);
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
-}
-
-.putaway-btn-process:active {
-    transform: scale(0.95);
-}
-
-/* Nút xem chi tiết */
-.putaway-btn-view {
-    background: none;
-    color: #3b82f6;
-    border: 1px solid #3b82f6;
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.putaway-btn-view:hover {
-    background-color: #3b82f6;
-    color: white;
-}
-
-/* Bộ lọc */
-.putaway-filter-section {
-    background: white;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    border: 1px solid #e5e7eb;
-}
-
-.putaway-filter-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    display: block;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .putaway-stat-card {
-        margin-bottom: 12px;
-    }
-    
-    .putaway-btn-process, 
-    .putaway-btn-view {
-        padding: 4px 8px;
-        font-size: 10px;
-    }
-}
-
-/* Tooltip */
-.putaway-tooltip {
-    position: relative;
-    display: inline-block;
-}
-
-.putaway-tooltip:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1f2937;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-    z-index: 10;
-}
-
-/* Loading spinner */
-.putaway-spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #10b981;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    animation: putaway-spin 1s linear infinite;
-    margin: 20px auto;
-}
-
-@keyframes putaway-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Empty state */
-.putaway-empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: #9ca3af;
-    font-style: italic;
-}
-
-.putaway-empty-state svg {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 16px;
-    color: #d1d5db;
-}
-
-/* Table custom */
-.putaway-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.putaway-table th {
-    background: #f9fafb;
-    padding: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.putaway-table td {
-    padding: 12px;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 13px;
-}
-
-.putaway-table tr:hover {
-    background-color: #f9fafb;
 }
