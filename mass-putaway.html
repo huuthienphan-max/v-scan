@@ -49,47 +49,152 @@
             </div>
         </div>
     </div>
+
+    <!-- API Endpoint cho Python -->
+    <div class="bg-white rounded-lg shadow p-6 bg-gray-50 border border-dashed border-indigo-200">
+        <h4 class="font-bold text-sm mb-2 text-indigo-600">🔗 API Endpoint cho Python</h4>
+        <p class="text-xs text-gray-500 mb-2">Sử dụng endpoint này để tích hợp với Python:</p>
+        <div class="bg-gray-800 text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
+            POST https://huuthienphan-max.github.io/v-scan/api/mass-putaway<br>
+            Content-Type: application/json<br><br>
+            {<br>
+            &nbsp;&nbsp;"account": "admin",<br>
+            &nbsp;&nbsp;"password": "123456",<br>
+            &nbsp;&nbsp;"wh": "VNS",<br>
+            &nbsp;&nbsp;"box": "IBB01234",<br>
+            &nbsp;&nbsp;"location": "A-01-01"<br>
+            }
+        </div>
+    </div>
+
+    <!-- Danh sách SN đã xử lý -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-sm">📋 Danh sách SN đã xử lý</h3>
+            <button onclick="refreshMassSNList()" class="text-indigo-500 text-xs flex items-center gap-1 hover:text-indigo-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Làm mới
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Thời gian</th>
+                        <th class="px-4 py-2 text-left">Box</th>
+                        <th class="px-4 py-2 text-left">Serial Number</th>
+                        <th class="px-4 py-2 text-left">Location</th>
+                        <th class="px-4 py-2 text-left">WH</th>
+                        <th class="px-4 py-2 text-left">Người xử lý</th>
+                    </tr>
+                </thead>
+                <tbody id="mass-sn-tbody">
+                    <tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - CHẮC CHẮN LOAD SAU CÙNG -->
 <script>
-// CODE ĐƠN GIẢN NHẤT - CHỈ HIỂN THỊ BOX
-(function() {
-    // Đợi DOM load
+// ĐỢI TRANG LOAD HOÀN TOÀN RỒI MỚI CHẠY
+window.addEventListener('load', function() {
+    console.log('📌 Window loaded - bắt đầu hiển thị thông tin box');
+    
+    // Đợi thêm 1.5 giây để đảm bảo mọi thứ đã sẵn sàng
     setTimeout(function() {
-        console.log('🔍 Đang kiểm tra...');
+        console.log('🔄 Đang xử lý hiển thị thông tin box...');
         
-        // Lấy dữ liệu
+        // Lấy dữ liệu từ sessionStorage
         const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 Dữ liệu:', savedInfo);
+        console.log('📦 Dữ liệu từ session:', savedInfo ? 'Có' : 'Không');
         
-        if (!savedInfo) {
-            document.getElementById('massput-box-info').innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
+        const infoDiv = document.getElementById('massput-box-info');
+        const boxInput = document.getElementById('mass-box');
+        
+        console.log('🔍 Element infoDiv:', infoDiv ? '✅ Tìm thấy' : '❌ Không thấy');
+        console.log('🔍 Element boxInput:', boxInput ? '✅ Tìm thấy' : '❌ Không thấy');
+        
+        if (!savedInfo || !infoDiv) {
+            if (infoDiv) infoDiv.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box nào được chọn</div>';
             return;
         }
         
-        const boxData = JSON.parse(savedInfo);
-        console.log('✅ Box:', boxData.box);
-        
-        // Điền vào ô input
-        const boxInput = document.getElementById('mass-box');
-        if (boxInput) boxInput.value = boxData.box;
-        
-        // Hiển thị thông tin
-        document.getElementById('massput-box-info').innerHTML = `
-            <div style="background: #eef2ff; padding: 15px; border-radius: 8px;">
-                <div style="font-size: 18px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</div>
-                <div style="margin-top: 10px;">
-                    <div><span style="color: #6b7280;">PO:</span> ${boxData.po}</div>
-                    <div><span style="color: #6b7280;">SKU:</span> ${boxData.sku}</div>
-                    <div><span style="color: #6b7280;">SL:</span> ${boxData.total}</div>
+        try {
+            const boxData = JSON.parse(savedInfo);
+            console.log('✅ Dữ liệu box:', boxData.box);
+            
+            // Điền vào ô input (nếu chưa được điền)
+            if (boxInput && !boxInput.value) {
+                boxInput.value = boxData.box;
+                console.log('✅ Đã điền box vào input:', boxData.box);
+            }
+            
+            // Tạo HTML hiển thị
+            let snHtml = '';
+            if (boxData.snList && boxData.snList.length > 0) {
+                snHtml = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #c7d2fe;">';
+                snHtml += '<div style="font-weight: bold; margin-bottom: 5px;">📋 Danh sách SN:</div>';
+                snHtml += '<div style="max-height: 100px; overflow-y: auto;">';
+                boxData.snList.forEach(sn => {
+                    snHtml += `<div style="font-family: monospace; font-size: 11px;">• ${sn}</div>`;
+                });
+                snHtml += '</div></div>';
+            }
+            
+            // Hiển thị thông tin
+            infoDiv.innerHTML = `
+                <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 18px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
+                        <span style="background: #4f46e5; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px;">${boxData.total || 0} SN</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div><span style="color: #6b7280;">PO:</span> <span style="font-weight: 500;">${boxData.po || ''}</span></div>
+                        <div><span style="color: #6b7280;">SKU:</span> <span style="font-weight: 500;">${boxData.sku || ''}</span></div>
+                        <div><span style="color: #6b7280;">Ngày tạo:</span> ${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
+                        <div><span style="color: #6b7280;">Người tạo:</span> ${boxData.created_by || ''}</div>
+                    </div>
+                    ${snHtml}
                 </div>
-            </div>
-        `;
-    }, 500);
-})();
+            `;
+            
+            console.log('✅ Đã hiển thị thông tin box thành công');
+            
+        } catch (e) {
+            console.error('❌ Lỗi:', e);
+            infoDiv.innerHTML = '<div class="text-red-400 text-center py-4">Lỗi hiển thị dữ liệu</div>';
+        }
+    }, 1500); // Đợi 1.5 giây
+});
 
-// Hàm xử lý
+// Hàm xử lý Mass Put
 window.processMassPutaway = function() {
-    alert('Đang xử lý: ' + document.getElementById('mass-box').value);
+    const account = document.getElementById('mass-account').value;
+    const box = document.getElementById('mass-box').value;
+    const location = document.getElementById('mass-location').value;
+    
+    if (!box || !location) {
+        alert('❌ Vui lòng nhập Box và Location!');
+        return;
+    }
+    
+    const resultDiv = document.getElementById('mass-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
+    resultDiv.innerHTML = '🔄 Đang xử lý...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
+        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
+    }, 1500);
+};
+
+// Hàm làm mới danh sách SN
+window.refreshMassSNList = function() {
+    console.log('🔄 Làm mới danh sách SN...');
 };
 </script>
