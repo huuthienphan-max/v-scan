@@ -1,0 +1,142 @@
+<!-- putaway-hv.html - Giao diện module Putaway HV -->
+
+<!-- Thêm CSS -->
+<link rel="stylesheet" href="css/putaway.css">
+
+<div id="putaway-module" class="space-y-6">
+    <!-- Header với thống kê nhanh -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <!-- Pending -->
+        <div class="card p-6 putaway-stat-card" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <p class="text-white text-xs uppercase tracking-wider opacity-80">Chờ xử lý</p>
+            <p class="text-white text-4xl font-bold mt-2 putaway-stat-number" id="putaway-pending">0</p>
+            <p class="text-white text-xs mt-2 opacity-60">box cần xử lý</p>
+        </div>
+        
+        <!-- Today -->
+        <div class="card p-6 putaway-stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <p class="text-white text-xs uppercase tracking-wider opacity-80">Đã xử lý hôm nay</p>
+            <p class="text-white text-4xl font-bold mt-2 putaway-stat-number" id="putaway-today">0</p>
+            <p class="text-white text-xs mt-2 opacity-60">box đã hoàn thành</p>
+        </div>
+        
+        <!-- Total -->
+        <div class="card p-6 putaway-stat-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <p class="text-white text-xs uppercase tracking-wider opacity-80">Tổng đã xử lý</p>
+            <p class="text-white text-4xl font-bold mt-2 putaway-stat-number" id="putaway-total">0</p>
+            <p class="text-white text-xs mt-2 opacity-60">tích lũy</p>
+        </div>
+        
+        <!-- Last -->
+        <div class="card p-6 putaway-stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <p class="text-white text-xs uppercase tracking-wider opacity-80">Lần cuối</p>
+            <p class="text-white text-sm font-bold mt-2" id="putaway-last">Chưa có</p>
+            <p class="text-white text-xs mt-2 opacity-60">xử lý gần nhất</p>
+        </div>
+    </div>
+
+    <!-- Bộ lọc tìm kiếm -->
+    <div class="card p-6">
+        <h3 class="font-bold text-sm mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            Bộ lọc tìm kiếm
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="putaway-filter-label">Từ ngày</label>
+                <input type="date" id="putaway-from-date" class="w-full input-wms">
+            </div>
+            <div>
+                <label class="putaway-filter-label">Đến ngày</label>
+                <input type="date" id="putaway-to-date" class="w-full input-wms">
+            </div>
+            <div>
+                <label class="putaway-filter-label">Mã PO</label>
+                <input type="text" id="putaway-po" placeholder="Nhập mã PO..." class="w-full input-wms">
+            </div>
+            <div>
+                <label class="putaway-filter-label">Trạng thái</label>
+                <select id="putaway-status" class="w-full input-wms">
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="completed">Đã xử lý</option>
+                    <option value="all">Tất cả</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="filterPutawayBoxes()" class="btn-shopee px-6 py-2 rounded text-xs font-bold flex-1">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    LỌC
+                </button>
+                <button onclick="resetPutawayFilter()" class="bg-gray-200 px-4 py-2 rounded text-xs font-bold hover:bg-gray-300">
+                    RESET
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách Box -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+                Danh sách Box
+            </h3>
+            <button onclick="exportPutawayList()" class="bg-emerald-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-emerald-700 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Xuất Excel
+            </button>
+        </div>
+        
+        <div class="overflow-x-auto max-h-96">
+            <table class="w-full putaway-table">
+                <thead>
+                    <tr>
+                        <th>Mã Box</th>
+                        <th>Mã PO</th>
+                        <th>SKU</th>
+                        <th class="text-center">SL</th>
+                        <th>Ngày tạo</th>
+                        <th>Người tạo</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="putaway-box-tbody">
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-gray-400">
+                            <div class="putaway-spinner"></div>
+                            Đang tải dữ liệu...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Chú thích -->
+    <div class="text-xs text-gray-400 flex gap-4 justify-end">
+        <span class="flex items-center gap-1">
+            <span class="w-3 h-3 rounded-full bg-yellow-400"></span> Chờ xử lý
+        </span>
+        <span class="flex items-center gap-1">
+            <span class="w-3 h-3 rounded-full bg-green-400"></span> Đã xử lý
+        </span>
+    </div>
+</div>
+
+<!-- Thông báo khi không có quyền -->
+<div id="putaway-unauthorized" class="hidden text-center py-20">
+    <svg class="w-24 h-24 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+    </svg>
+    <p class="text-gray-400 mt-4">Bạn không có quyền truy cập module này</p>
+</div>
