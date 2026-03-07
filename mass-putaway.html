@@ -1,27 +1,39 @@
 <!-- mass-putaway.html -->
+<div style="padding:20px; background:red; color:white; font-size:24px; margin-bottom:10px;">
+🔴 ĐÂY LÀ TRANG MASS PUTAWAY - ĐÃ LOAD THÀNH CÔNG
+</div>
+
+<div id="massput-box-info" style="margin:20px; padding:30px; background:blue; color:white; font-size:20px; border-radius:10px;">
+⏳ ĐANG TẢI DỮ LIỆU...
+</div>
+
 <script>
-console.log('🔥 SCRIPT THẬT ĐANG CHẠY');
+console.log('🔥🔥🔥 JAVASCRIPT ĐANG CHẠY 🔥🔥🔥');
+
+// HIỂN THỊ NGAY LẬP TỨC
+document.getElementById('massput-box-info').innerHTML = '✅ JAVASCRIPT ĐÃ CHẠY THÀNH CÔNG!';
 
 // Lấy dữ liệu từ sessionStorage
-const savedInfo = sessionStorage.getItem('massPutFullInfo');
-console.log('📦 Dữ liệu:', savedInfo);
-
-if (savedInfo) {
+setTimeout(function() {
     try {
-        const box = JSON.parse(savedInfo);
-        console.log('✅ Box:', box.box);
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        console.log('📦 Dữ liệu từ session:', savedInfo);
         
-        // Hiển thị thông tin
-        document.getElementById('massput-box-info').innerHTML = `
-            <div style="background:#eef2ff; padding:20px; border-radius:10px;">
-                <div style="font-size:22px; font-weight:bold; color:#4f46e5;">📦 ${box.box}</div>
-                <div>PO: ${box.po}</div>
-                <div>SKU: ${box.sku}</div>
-                <div>SL: ${box.total}</div>
-            </div>
-        `;
+        if (savedInfo) {
+            const box = JSON.parse(savedInfo);
+            document.getElementById('massput-box-info').innerHTML = `
+                <div style="background:#eef2ff; color:#333; padding:20px; border-radius:10px;">
+                    <div style="font-size:24px; font-weight:bold; color:#4f46e5;">📦 ${box.box}</div>
+                    <div style="margin-top:10px;">📍 PO: ${box.po}</div>
+                    <div>🏷️ SKU: ${box.sku}</div>
+                    <div>🔢 SL: ${box.total}</div>
+                </div>
+            `;
+        } else {
+            document.getElementById('massput-box-info').innerHTML = '❌ Không có dữ liệu box';
+        }
     } catch (e) {
         console.error('Lỗi:', e);
     }
-}
+}, 500);
 </script>
