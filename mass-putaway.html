@@ -135,170 +135,132 @@
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - ĐÃ SỬA -->
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - FULL LOG -->
 <script>
-// CỰC KỲ ĐƠN GIẢN - CHỈ ĐỌC SESSIONSTORAGE
-(function() {
-    console.log('🔄 Đang kiểm tra sessionStorage...');
-    
-    // Đọc dữ liệu
-    const savedInfo = sessionStorage.getItem('massPutFullInfo');
-    console.log('📦 Dữ liệu từ session:', savedInfo);
-    
-    if (!savedInfo) {
-        console.log('📭 Không có dữ liệu');
-        return;
+// LOG CHI TIẾT ĐỂ DEBUG
+console.log('🚀 ===== BẮT ĐẦU KIỂM TRA MASS PUTAWAY =====');
+
+// 1. Kiểm tra sessionStorage có gì
+console.log('1. Kiểm tra sessionStorage:');
+const allKeys = [];
+for (let i = 0; i < sessionStorage.length; i++) {
+    allKeys.push(sessionStorage.key(i));
+}
+console.log('   📋 Các key:', allKeys);
+
+// 2. Đọc dữ liệu
+const savedInfo = sessionStorage.getItem('massPutFullInfo');
+console.log('2. Dữ liệu massPutFullInfo:', savedInfo ? savedInfo.substring(0, 100) + '...' : 'null');
+
+const savedBox = sessionStorage.getItem('massPutBox');
+console.log('3. Dữ liệu massPutBox:', savedBox);
+
+// 3. Kiểm tra container
+const infoContainer = document.getElementById('massput-box-info');
+const boxInput = document.getElementById('mass-box');
+const form = document.getElementById('mass-putaway-module');
+
+console.log('4. Kiểm tra elements:');
+console.log('   - massput-box-info:', infoContainer ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
+console.log('   - mass-box:', boxInput ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
+console.log('   - mass-putaway-module:', form ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
+
+// 4. Nếu không có dữ liệu thì dừng
+if (!savedInfo) {
+    console.log('5. ❌ KHÔNG CÓ DỮ LIỆU massPutFullInfo trong sessionStorage!');
+    if (infoContainer) {
+        infoContainer.innerHTML = '<div class="text-center text-red-400 py-4">❌ Không có dữ liệu</div>';
     }
-    
+} else {
     try {
+        console.log('5. Đang parse dữ liệu...');
         const boxData = JSON.parse(savedInfo);
-        console.log('✅ Dữ liệu box:', boxData);
-        
-        // TÌM container
-        const infoContainer = document.getElementById('massput-box-info');
-        const boxInput = document.getElementById('mass-box');
-        
-        console.log('🔍 Container:', infoContainer);
-        console.log('🔍 Input box:', boxInput);
+        console.log('6. ✅ Dữ liệu box:', {
+            box: boxData.box,
+            po: boxData.po,
+            sku: boxData.sku,
+            total: boxData.total,
+            snCount: boxData.snList ? boxData.snList.length : 0,
+            created_by: boxData.created_by,
+            created_at: boxData.created_at
+        });
         
         if (!infoContainer) {
-            console.error('❌ Không tìm thấy massput-box-info');
-            return;
+            console.error('7. ❌ KHÔNG TÌM THẤY container massput-box-info!');
+        } else {
+            console.log('7. ✅ Tìm thấy container, bắt đầu hiển thị...');
+            
+            // Tạo HTML
+            let html = `
+                <div style="background: linear-gradient(135deg, #eef2ff, #ffffff); padding: 20px; border-radius: 12px; border-left: 6px solid #4f46e5; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span style="font-size: 20px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
+                        <span style="background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">${boxData.total || 0} SN</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">MÃ PO</div>
+                            <div style="font-weight: 600; font-size: 14px;">${boxData.po || ''}</div>
+                        </div>
+                        <div>
+                            <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">SKU</div>
+                            <div style="font-weight: 600; font-size: 14px;">${boxData.sku || ''}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">NGÀY TẠO</div>
+                        <div style="font-size: 13px;">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">NGƯỜI TẠO</div>
+                        <div style="font-size: 13px;">${boxData.created_by || ''}</div>
+                    </div>
+            `;
+            
+            // Thêm SN list nếu có
+            if (boxData.snList && boxData.snList.length > 0) {
+                html += `
+                    <div style="margin-top: 15px; padding-top: 10px; border-top: 2px dashed #c7d2fe;">
+                        <div style="font-weight: bold; color: #4f46e5; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                            <span>📋 DANH SÁCH SERIAL NUMBER</span>
+                            <span style="background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 10px;">${boxData.snList.length} cái</span>
+                        </div>
+                        <div style="max-height: 120px; overflow-y: auto; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e7ff;">
+                `;
+                
+                boxData.snList.forEach((sn, index) => {
+                    html += `<div style="font-family: monospace; font-size: 11px; padding: 2px 0; border-bottom: ${index < boxData.snList.length - 1 ? '1px solid #f3f4f6' : 'none'};">• ${sn}</div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            html += `</div>`;
+            
+            infoContainer.innerHTML = html;
+            console.log('8. ✅ Đã hiển thị thông tin box');
         }
         
-        // HIỂN THỊ THÔNG TIN
-        infoContainer.innerHTML = '';
-        infoContainer.style.padding = '15px';
-        infoContainer.style.backgroundColor = '#eef2ff';
-        infoContainer.style.borderRadius = '8px';
-        infoContainer.style.borderLeft = '4px solid #4f46e5';
-        
-        // Tạo HTML hiển thị
-        let snHtml = '';
-        if (boxData.snList && boxData.snList.length > 0) {
-            snHtml = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #c7d2fe;">';
-            snHtml += '<div style="font-weight: bold; margin-bottom: 5px;">📋 Danh sách SN:</div>';
-            snHtml += '<div style="max-height: 100px; overflow-y: auto; background: white; padding: 5px; border-radius: 4px;">';
-            boxData.snList.forEach(sn => {
-                snHtml += `<div style="font-family: monospace; font-size: 11px;">• ${sn}</div>`;
-            });
-            snHtml += '</div></div>';
-        }
-        
-        infoContainer.innerHTML = `
-            <div style="font-weight: bold; font-size: 18px; color: #4f46e5; margin-bottom: 10px;">📦 BOX: ${boxData.box}</div>
-            <div style="margin-top: 10px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <div style="color: #6b7280; font-size: 11px;">MÃ PO</div>
-                        <div style="font-weight: 500;">${boxData.po || ''}</div>
-                    </div>
-                    <div>
-                        <div style="color: #6b7280; font-size: 11px;">SKU</div>
-                        <div style="font-weight: 500;">${boxData.sku || ''}</div>
-                    </div>
-                </div>
-                <div style="margin-top: 8px;">
-                    <div style="color: #6b7280; font-size: 11px;">SỐ LƯỢNG SN</div>
-                    <div style="font-weight: bold; color: #f97316;">${boxData.total || 0}</div>
-                </div>
-                <div style="margin-top: 8px;">
-                    <div style="color: #6b7280; font-size: 11px;">NGÀY TẠO</div>
-                    <div style="font-size: 12px;">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                </div>
-                <div style="margin-top: 8px;">
-                    <div style="color: #6b7280; font-size: 11px;">NGƯỜI TẠO</div>
-                    <div style="font-size: 12px;">${boxData.created_by || ''}</div>
-                </div>
-                ${snHtml}
-            </div>
-        `;
-        
-        // ĐIỀN VÀO Ô BOX
+        // Điền vào ô input
         if (boxInput) {
             boxInput.value = boxData.box;
             boxInput.style.border = '2px solid #4f46e5';
             boxInput.style.backgroundColor = '#eef2ff';
-            console.log('✅ Đã điền box vào form:', boxData.box);
+            console.log('9. ✅ Đã điền box vào ô input:', boxInput.value);
+        } else {
+            console.log('9. ❌ Không tìm thấy ô input #mass-box');
         }
         
     } catch (e) {
-        console.error('❌ Lỗi:', e);
-    }
-})();
-
-// Hàm xử lý Mass Put
-window.processMassPutaway = function() {
-    const account = document.getElementById('mass-account').value;
-    const password = document.getElementById('mass-password').value;
-    const wh = document.getElementById('mass-wh').value;
-    const box = document.getElementById('mass-box').value;
-    const location = document.getElementById('mass-location').value;
-    
-    if (!box || !location) {
-        alert('❌ Vui lòng nhập Box và Location!');
-        return;
-    }
-    
-    const resultDiv = document.getElementById('mass-result');
-    resultDiv.classList.remove('hidden');
-    resultDiv.className = 'mt-4 p-4 rounded bg-yellow-50 text-yellow-700';
-    resultDiv.innerHTML = '🔄 Đang xử lý...';
-    
-    // Mô phỏng xử lý
-    setTimeout(() => {
-        resultDiv.className = 'mt-4 p-4 rounded bg-green-50 text-green-700';
-        resultDiv.innerHTML = `✅ Xử lý thành công!<br>Box: ${box} - Location: ${location}`;
-        
-        // Thêm vào danh sách SN (demo)
-        const tbody = document.getElementById('mass-sn-tbody');
-        if (tbody) {
-            const savedInfo = sessionStorage.getItem('massPutFullInfo');
-            if (savedInfo) {
-                const boxData = JSON.parse(savedInfo);
-                const now = new Date().toLocaleString('vi-VN');
-                
-                let rows = '';
-                if (boxData.snList && boxData.snList.length > 0) {
-                    rows = boxData.snList.map(sn => `
-                        <tr>
-                            <td>${now}</td>
-                            <td>${box}</td>
-                            <td>${sn}</td>
-                            <td>${location}</td>
-                            <td>${wh}</td>
-                            <td>${account}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    rows = `
-                        <tr>
-                            <td>${now}</td>
-                            <td>${box}</td>
-                            <td>SN001</td>
-                            <td>${location}</td>
-                            <td>${wh}</td>
-                            <td>${account}</td>
-                        </tr>
-                        <tr>
-                            <td>${now}</td>
-                            <td>${box}</td>
-                            <td>SN002</td>
-                            <td>${location}</td>
-                            <td>${wh}</td>
-                            <td>${account}</td>
-                        </tr>
-                    `;
-                }
-                tbody.innerHTML = rows;
-            }
+        console.error('❌ LỖI PARSE:', e);
+        if (infoContainer) {
+            infoContainer.innerHTML = `<div class="text-center text-red-400 py-4">❌ Lỗi: ${e.message}</div>`;
         }
-    }, 1500);
-};
+    }
+}
 
-// Hàm làm mới danh sách SN
-window.refreshMassSNList = function() {
-    console.log('🔄 Làm mới danh sách SN...');
-    // Code refresh sau
-};
+console.log('🏁 ===== KẾT THÚC KIỂM TRA =====\n');
 </script>
