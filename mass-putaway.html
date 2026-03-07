@@ -4,18 +4,10 @@
     <div class="grid grid-cols-12 gap-6">
         <!-- CỘT TRÁI: THÔNG TIN BOX (4 phần) -->
         <div class="col-span-4">
-            <div class="card p-6 border-t-4 border-t-indigo-500 h-full">
-                <h4 class="font-bold text-sm mb-4 flex items-center gap-2 text-indigo-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    THÔNG TIN BOX
-                </h4>
-                
-                <div id="massput-box-info" class="space-y-4">
-                    <div class="text-center text-gray-400 py-8 text-sm">
-                        Chưa có box nào được chọn
-                    </div>
+            <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500 h-full">
+                <h4 class="font-bold text-sm mb-4 text-indigo-600">📦 THÔNG TIN BOX</h4>
+                <div id="massput-box-info" class="text-gray-700">
+                    <div class="text-gray-400 text-center py-4">Đang tải...</div>
                 </div>
             </div>
         </div>
@@ -23,244 +15,81 @@
         <!-- CỘT PHẢI: FORM MASS PUTAWAY (8 phần) -->
         <div class="col-span-8">
             <!-- Form nhập liệu -->
-            <div class="card p-6 border-t-4 border-t-indigo-500">
-                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-indigo-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
-                    Mass Putaway - Nhập hàng loạt
-                </h3>
+            <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500">
+                <h3 class="font-bold text-lg mb-4 text-indigo-600">⚡ Mass Putaway - Nhập hàng loạt</h3>
                 
-                <!-- FORM NHẬP LIỆU -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Tài khoản -->
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Tài khoản</label>
-                        <input type="text" id="mass-account" placeholder="Nhập tài khoản..." class="w-full input-wms" value="admin">
+                        <label class="text-xs font-bold text-gray-500">TÀI KHOẢN</label>
+                        <input type="text" id="mass-account" class="w-full border p-2 rounded" value="admin">
                     </div>
-                    
-                    <!-- Mật khẩu -->
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Mật khẩu</label>
-                        <input type="password" id="mass-password" placeholder="Nhập mật khẩu..." class="w-full input-wms" value="123456">
+                        <label class="text-xs font-bold text-gray-500">MẬT KHẨU</label>
+                        <input type="password" id="mass-password" class="w-full border p-2 rounded" value="123456">
                     </div>
-                    
-                    <!-- WH - mặc định VNS -->
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">WH</label>
-                        <input type="text" id="mass-wh" class="w-full input-wms bg-gray-100" value="VNS" readonly>
-                        <p class="text-[10px] text-gray-400 mt-1">Mặc định: VNS</p>
+                        <label class="text-xs font-bold text-gray-500">WH</label>
+                        <input type="text" id="mass-wh" class="w-full border p-2 rounded bg-gray-100" value="VNS" readonly>
                     </div>
-                    
-                    <!-- Box -->
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Box</label>
-                        <input type="text" id="mass-box" placeholder="Nhập mã Box..." class="w-full input-wms font-bold uppercase">
-                        <div id="mass-box-info" class="text-xs mt-1 text-indigo-600"></div>
+                        <label class="text-xs font-bold text-gray-500">BOX</label>
+                        <input type="text" id="mass-box" class="w-full border p-2 rounded font-bold uppercase" placeholder="Nhập mã Box...">
                     </div>
-                    
-                    <!-- Location Put - nhập tay -->
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Location Put</label>
-                        <input type="text" id="mass-location" placeholder="Nhập vị trí (VD: A-01-01)..." class="w-full input-wms">
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-gray-500">LOCATION PUT</label>
+                        <input type="text" id="mass-location" class="w-full border p-2 rounded" placeholder="Nhập vị trí (VD: A-01-01)...">
                     </div>
-                    
-                    <!-- Nút xử lý -->
-                    <div class="flex items-end">
-                        <button onclick="processMassPutaway()" class="bg-indigo-600 text-white px-6 py-2 rounded text-xs font-bold w-full hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            XỬ LÝ
+                    <div class="col-span-2">
+                        <button onclick="processMassPutaway()" class="w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-700">
+                            🚀 XỬ LÝ
                         </button>
                     </div>
                 </div>
-                
-                <!-- Thông báo kết quả -->
-                <div id="mass-result" class="mt-4 hidden p-4 rounded"></div>
+                <div id="mass-result" class="mt-4 hidden p-3 rounded"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- API Endpoint cho Python -->
-    <div class="card p-6 bg-gray-50 border border-dashed border-indigo-200">
-        <h4 class="font-bold text-sm mb-2 flex items-center gap-2 text-indigo-600">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-            </svg>
-            API Endpoint cho Python
-        </h4>
-        <p class="text-xs text-gray-500 mb-2">Sử dụng endpoint này để tích hợp với Python:</p>
-        <div class="bg-gray-800 text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
-            POST https://huuthienphan-max.github.io/v-scan/api/mass-putaway<br>
-            Content-Type: application/json<br><br>
-            {<br>
-            &nbsp;&nbsp;"account": "admin",<br>
-            &nbsp;&nbsp;"password": "123456",<br>
-            &nbsp;&nbsp;"wh": "VNS",<br>
-            &nbsp;&nbsp;"box": "IBB01234",<br>
-            &nbsp;&nbsp;"location": "A-01-01"<br>
-            }
-        </div>
-    </div>
-
-    <!-- Danh sách SN đã xử lý -->
-    <div class="card p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-sm">📋 Danh sách SN đã xử lý</h3>
-            <button onclick="refreshMassSNList()" class="text-indigo-500 text-xs flex items-center gap-1 hover:text-indigo-700">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Làm mới
-            </button>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full table-vscan">
-                <thead>
-                    <tr>
-                        <th>Thời gian</th>
-                        <th>Box</th>
-                        <th>Serial Number</th>
-                        <th>Location</th>
-                        <th>WH</th>
-                        <th>Người xử lý</th>
-                    </tr>
-                </thead>
-                <tbody id="mass-sn-tbody">
-                    <tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - FULL LOG -->
 <script>
-// LOG CHI TIẾT ĐỂ DEBUG
-console.log('🚀 ===== BẮT ĐẦU KIỂM TRA MASS PUTAWAY =====');
-
-// 1. Kiểm tra sessionStorage có gì
-console.log('1. Kiểm tra sessionStorage:');
-const allKeys = [];
-for (let i = 0; i < sessionStorage.length; i++) {
-    allKeys.push(sessionStorage.key(i));
-}
-console.log('   📋 Các key:', allKeys);
-
-// 2. Đọc dữ liệu
-const savedInfo = sessionStorage.getItem('massPutFullInfo');
-console.log('2. Dữ liệu massPutFullInfo:', savedInfo ? savedInfo.substring(0, 100) + '...' : 'null');
-
-const savedBox = sessionStorage.getItem('massPutBox');
-console.log('3. Dữ liệu massPutBox:', savedBox);
-
-// 3. Kiểm tra container
-const infoContainer = document.getElementById('massput-box-info');
-const boxInput = document.getElementById('mass-box');
-const form = document.getElementById('mass-putaway-module');
-
-console.log('4. Kiểm tra elements:');
-console.log('   - massput-box-info:', infoContainer ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
-console.log('   - mass-box:', boxInput ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
-console.log('   - mass-putaway-module:', form ? '✅ Tìm thấy' : '❌ KHÔNG THẤY');
-
-// 4. Nếu không có dữ liệu thì dừng
-if (!savedInfo) {
-    console.log('5. ❌ KHÔNG CÓ DỮ LIỆU massPutFullInfo trong sessionStorage!');
-    if (infoContainer) {
-        infoContainer.innerHTML = '<div class="text-center text-red-400 py-4">❌ Không có dữ liệu</div>';
-    }
-} else {
-    try {
-        console.log('5. Đang parse dữ liệu...');
-        const boxData = JSON.parse(savedInfo);
-        console.log('6. ✅ Dữ liệu box:', {
-            box: boxData.box,
-            po: boxData.po,
-            sku: boxData.sku,
-            total: boxData.total,
-            snCount: boxData.snList ? boxData.snList.length : 0,
-            created_by: boxData.created_by,
-            created_at: boxData.created_at
-        });
+// CODE ĐƠN GIẢN NHẤT - CHỈ HIỂN THỊ BOX
+(function() {
+    // Đợi DOM load
+    setTimeout(function() {
+        console.log('🔍 Đang kiểm tra...');
         
-        if (!infoContainer) {
-            console.error('7. ❌ KHÔNG TÌM THẤY container massput-box-info!');
-        } else {
-            console.log('7. ✅ Tìm thấy container, bắt đầu hiển thị...');
-            
-            // Tạo HTML
-            let html = `
-                <div style="background: linear-gradient(135deg, #eef2ff, #ffffff); padding: 20px; border-radius: 12px; border-left: 6px solid #4f46e5; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <span style="font-size: 20px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</span>
-                        <span style="background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">${boxData.total || 0} SN</span>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                        <div>
-                            <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">MÃ PO</div>
-                            <div style="font-weight: 600; font-size: 14px;">${boxData.po || ''}</div>
-                        </div>
-                        <div>
-                            <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">SKU</div>
-                            <div style="font-weight: 600; font-size: 14px;">${boxData.sku || ''}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 8px;">
-                        <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">NGÀY TẠO</div>
-                        <div style="font-size: 13px;">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 8px;">
-                        <div style="color: #6b7280; font-size: 10px; text-transform: uppercase;">NGƯỜI TẠO</div>
-                        <div style="font-size: 13px;">${boxData.created_by || ''}</div>
-                    </div>
-            `;
-            
-            // Thêm SN list nếu có
-            if (boxData.snList && boxData.snList.length > 0) {
-                html += `
-                    <div style="margin-top: 15px; padding-top: 10px; border-top: 2px dashed #c7d2fe;">
-                        <div style="font-weight: bold; color: #4f46e5; margin-bottom: 8px; display: flex; justify-content: space-between;">
-                            <span>📋 DANH SÁCH SERIAL NUMBER</span>
-                            <span style="background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 10px;">${boxData.snList.length} cái</span>
-                        </div>
-                        <div style="max-height: 120px; overflow-y: auto; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e7ff;">
-                `;
-                
-                boxData.snList.forEach((sn, index) => {
-                    html += `<div style="font-family: monospace; font-size: 11px; padding: 2px 0; border-bottom: ${index < boxData.snList.length - 1 ? '1px solid #f3f4f6' : 'none'};">• ${sn}</div>`;
-                });
-                
-                html += `</div></div>`;
-            }
-            
-            html += `</div>`;
-            
-            infoContainer.innerHTML = html;
-            console.log('8. ✅ Đã hiển thị thông tin box');
+        // Lấy dữ liệu
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        console.log('📦 Dữ liệu:', savedInfo);
+        
+        if (!savedInfo) {
+            document.getElementById('massput-box-info').innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
+            return;
         }
+        
+        const boxData = JSON.parse(savedInfo);
+        console.log('✅ Box:', boxData.box);
         
         // Điền vào ô input
-        if (boxInput) {
-            boxInput.value = boxData.box;
-            boxInput.style.border = '2px solid #4f46e5';
-            boxInput.style.backgroundColor = '#eef2ff';
-            console.log('9. ✅ Đã điền box vào ô input:', boxInput.value);
-        } else {
-            console.log('9. ❌ Không tìm thấy ô input #mass-box');
-        }
+        const boxInput = document.getElementById('mass-box');
+        if (boxInput) boxInput.value = boxData.box;
         
-    } catch (e) {
-        console.error('❌ LỖI PARSE:', e);
-        if (infoContainer) {
-            infoContainer.innerHTML = `<div class="text-center text-red-400 py-4">❌ Lỗi: ${e.message}</div>`;
-        }
-    }
-}
+        // Hiển thị thông tin
+        document.getElementById('massput-box-info').innerHTML = `
+            <div style="background: #eef2ff; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 18px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box}</div>
+                <div style="margin-top: 10px;">
+                    <div><span style="color: #6b7280;">PO:</span> ${boxData.po}</div>
+                    <div><span style="color: #6b7280;">SKU:</span> ${boxData.sku}</div>
+                    <div><span style="color: #6b7280;">SL:</span> ${boxData.total}</div>
+                </div>
+            </div>
+        `;
+    }, 500);
+})();
 
-console.log('🏁 ===== KẾT THÚC KIỂM TRA =====\n');
+// Hàm xử lý
+window.processMassPutaway = function() {
+    alert('Đang xử lý: ' + document.getElementById('mass-box').value);
+};
 </script>
