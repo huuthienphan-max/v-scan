@@ -1,4 +1,4 @@
-// js/putaway.js - Module Putaway HV - CHỈ CẬP NHẬT TRẠNG THÁI
+// js/putaway.js - Module Putaway HV
 
 let autoRefreshInterval = null;
 let putawayBoxes = [];
@@ -7,7 +7,7 @@ let putawayBoxes = [];
 window.initPutawayModule = function() {
     console.log('🚀 Khởi tạo Putaway module...');
     
-    // Set ngày mặc định (7 ngày gần nhất)
+    // Set ngày mặc định
     const today = new Date();
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
@@ -44,14 +44,14 @@ window.cleanupPutaway = function() {
 // ==================== THỐNG KÊ ====================
 async function loadPutawayStats() {
     try {
-        // Đếm pending (chờ xử lý)
+        // Đếm pending
         const { count: pending } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
             .eq('is_active', true)
             .eq('putaway_status', 'pending');
 
-        // Đếm completed (đã xử lý) hôm nay
+        // Đếm completed hôm nay
         const today = new Date().toISOString().split('T')[0];
         const { count: todayCount } = await supabaseClient
             .from('boxes')
@@ -61,14 +61,14 @@ async function loadPutawayStats() {
             .gte('putaway_date', today + 'T00:00:00')
             .lte('putaway_date', today + 'T23:59:59');
 
-        // Tổng completed (đã xử lý)
+        // Tổng completed
         const { count: total } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
             .eq('is_active', true)
             .eq('putaway_status', 'completed');
 
-        // Lần xử lý cuối
+        // Lần cuối
         const { data: last } = await supabaseClient
             .from('boxes')
             .select('putaway_date')
@@ -79,22 +79,15 @@ async function loadPutawayStats() {
             .maybeSingle();
 
         // Cập nhật UI
-        const pendingEl = document.getElementById('putaway-pending');
-        const todayEl = document.getElementById('putaway-today');
-        const totalEl = document.getElementById('putaway-total');
-        const lastEl = document.getElementById('putaway-last');
-        
-        if (pendingEl) pendingEl.innerText = pending || 0;
-        if (todayEl) todayEl.innerText = todayCount || 0;
-        if (totalEl) totalEl.innerText = total || 0;
-        if (lastEl) {
-            lastEl.innerText = last?.putaway_date 
-                ? new Date(last.putaway_date).toLocaleString('vi-VN') 
-                : 'Chưa có';
-        }
+        document.getElementById('putaway-pending').innerText = pending || 0;
+        document.getElementById('putaway-today').innerText = todayCount || 0;
+        document.getElementById('putaway-total').innerText = total || 0;
+        document.getElementById('putaway-last').innerText = last?.putaway_date 
+            ? new Date(last.putaway_date).toLocaleString('vi-VN') 
+            : 'Chưa có';
 
     } catch (error) {
-        console.error('❌ Lỗi load putaway stats:', error);
+        console.error('❌ Lỗi load stats:', error);
     }
 }
 
@@ -106,43 +99,30 @@ async function loadPutawayBoxes() {
         const po = document.getElementById('putaway-po')?.value;
         const status = document.getElementById('putaway-status')?.value || 'pending';
 
-        // Build query - CHỈ LẤY ACTIVE BOX
+        console.log('🔍 Đang lọc với:', { fromDate, toDate, po, status });
+
         let query = supabaseClient
             .from('boxes')
             .select('*')
             .eq('is_active', true)
             .order('created_at', { ascending: false });
 
-        // Thêm bộ lọc ngày
-        if (fromDate) {
-            query = query.gte('created_at', fromDate + 'T00:00:00');
-        }
-        if (toDate) {
-            query = query.lte('created_at', toDate + 'T23:59:59');
-        }
-        
-        // Lọc theo PO
-        if (po) {
-            query = query.ilike('po', `%${po}%`);
-        }
-        
-        // Lọc theo trạng thái putaway
-        if (status !== 'all') {
-            query = query.eq('putaway_status', status);
-        }
+        if (fromDate) query = query.gte('created_at', fromDate + 'T00:00:00');
+        if (toDate) query = query.lte('created_at', toDate + 'T23:59:59');
+        if (po) query = query.ilike('po', `%${po}%`);
+        if (status !== 'all') query = query.eq('putaway_status', status);
 
         const { data, error } = await query;
+        
         if (error) throw error;
 
+        console.log('📦 Dữ liệu nhận được:', data);
+        
         putawayBoxes = data || [];
         renderPutawayBoxes();
 
     } catch (error) {
-        console.error('❌ Lỗi load putaway boxes:', error);
-        const tbody = document.getElementById('putaway-box-tbody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
-        }
+        console.error('❌ Lỗi load boxes:', error);
     }
 }
 
@@ -151,18 +131,17 @@ function renderPutawayBoxes() {
     const tbody = document.getElementById('putaway-box-tbody');
     if (!tbody) return;
 
-    if (!putawayBoxes.length) {
+    console.log('🎨 Đang render với dữ liệu:', putawayBoxes);
+
+    if (!putawayBoxes || putawayBoxes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
         return;
     }
 
     tbody.innerHTML = putawayBoxes.map(box => {
-        // Xác định trạng thái và class
         const isPending = box.putaway_status === 'pending';
         const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
         const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
-        
-        // Kiểm tra quyền xử lý
         const canProcess = isPending && ['putaway', 'admin', 'manager'].includes(currentUserRole);
 
         return `
@@ -181,11 +160,11 @@ function renderPutawayBoxes() {
                 <td class="text-center">
                     ${canProcess 
                         ? `<button onclick="processPutawayBox('${box.id}')" 
-                             class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-600 transition">
+                             class="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-600">
                              XỬ LÝ
                            </button>`
                         : `<button onclick="viewPutawayBoxDetail('${box.box_code}')" 
-                             class="text-blue-500 hover:text-blue-700 text-xs font-medium">
+                             class="text-blue-500 hover:text-blue-700 text-xs">
                              XEM SN
                            </button>`
                     }
@@ -195,14 +174,13 @@ function renderPutawayBoxes() {
     }).join('');
 }
 
-// ==================== XỬ LÝ BOX - CHỈ CẬP NHẬT TRẠNG THÁI ====================
+// ==================== XỬ LÝ BOX ====================
 window.processPutawayBox = async function(id) {
     if (!confirm('Xác nhận đã xử lý box này?')) return;
 
     try {
         console.log('🔄 Đang xử lý box ID:', id);
         
-        // CHỈ UPDATE putaway_status, KHÔNG XÓA, KHÔNG ẨN
         const { data, error } = await supabaseClient
             .from('boxes')
             .update({
@@ -216,26 +194,16 @@ window.processPutawayBox = async function(id) {
         if (error) throw error;
 
         console.log('✅ Đã cập nhật:', data);
-
-        // Log hoạt động
-        if (typeof window.logActivity === 'function') {
-            await window.logActivity('PUTAWAY_PROCESS', { 
-                box_id: id,
-                action: 'completed'
-            });
-        }
-
         window.notify('✅ Đã xác nhận xử lý box!');
         
-        // Reload dữ liệu
         await Promise.all([
             loadPutawayStats(),
             loadPutawayBoxes()
         ]);
 
     } catch (error) {
-        console.error('❌ Lỗi xử lý box:', error);
-        window.notify('❌ Lỗi xử lý: ' + error.message, true);
+        console.error('❌ Lỗi xử lý:', error);
+        window.notify('❌ Lỗi: ' + error.message, true);
     }
 };
 
@@ -244,22 +212,18 @@ window.viewPutawayBoxDetail = async function(boxCode) {
     if (!boxCode) return;
 
     try {
-        const { data: details, error } = await supabaseClient
+        const { data: details } = await supabaseClient
             .from('box_details')
             .select('serial')
             .eq('box_code', boxCode)
             .eq('is_active', true);
 
-        if (error) throw error;
-
         if (details?.length) {
-            const snList = details.map(d => d.serial).join('\n');
-            alert(`📦 Box: ${boxCode}\n📋 Danh sách SN (${details.length} cái):\n\n${snList}`);
+            alert(`📦 Box: ${boxCode}\n📋 Danh sách SN (${details.length} cái):\n\n${details.map(d => d.serial).join('\n')}`);
         } else {
             alert(`📦 Box: ${boxCode}\n📋 Không có SN nào!`);
         }
     } catch (error) {
-        console.error('❌ Lỗi xem detail:', error);
         window.notify('❌ Lỗi tải chi tiết!', true);
     }
 };
@@ -274,15 +238,10 @@ window.resetPutawayFilter = function() {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
 
-    const fromDate = document.getElementById('putaway-from-date');
-    const toDate = document.getElementById('putaway-to-date');
-    const po = document.getElementById('putaway-po');
-    const status = document.getElementById('putaway-status');
-    
-    if (fromDate) fromDate.value = lastWeek.toISOString().split('T')[0];
-    if (toDate) toDate.value = today.toISOString().split('T')[0];
-    if (po) po.value = '';
-    if (status) status.value = 'pending';
+    document.getElementById('putaway-from-date').value = lastWeek.toISOString().split('T')[0];
+    document.getElementById('putaway-to-date').value = today.toISOString().split('T')[0];
+    document.getElementById('putaway-po').value = '';
+    document.getElementById('putaway-status').value = 'pending';
 
     loadPutawayBoxes();
 };
@@ -299,7 +258,7 @@ window.exportPutawayList = function() {
             'Mã Box': box.box_code,
             'Mã PO': box.po,
             'SKU': box.sku,
-            'Số lượng': box.total,
+            'SL': box.total,
             'Ngày tạo': box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : '',
             'Người tạo': box.created_by || '',
             'Trạng thái': box.putaway_status === 'completed' ? 'Đã xử lý' : 'Chờ xử lý',
@@ -310,14 +269,10 @@ window.exportPutawayList = function() {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Putaway');
-        
-        const fileName = `Putaway_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `Putaway_${new Date().toISOString().split('T')[0]}.xlsx`);
 
-        window.notify(`✅ Đã xuất file ${fileName}`);
-
+        window.notify('✅ Đã xuất file Excel!');
     } catch (error) {
-        console.error('❌ Lỗi export:', error);
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
