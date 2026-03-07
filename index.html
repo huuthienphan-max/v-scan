@@ -501,8 +501,8 @@
         </div>
     </div>
         <script>
-        // ==================== CẤU HÌNH SUPABASE ====================
-                // ==================== CẤU HÌNH SUPABASE ====================
+       
+                    // ==================== CẤU HÌNH SUPABASE ====================
         const SUPABASE_CONFIG = {
             url: 'https://gmcphnfhvldgwgpghyqa.supabase.co',
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtY3BobmZodmxkZ3dncGdoeXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTQ5MjgsImV4cCI6MjA4ODM3MDkyOH0.js_iAomljFrQXSC8gxFwbyC1hdqB2SVqgAapww_Hylo'
@@ -1058,6 +1058,8 @@
             t.style.display = 'block'; 
             setTimeout(() => t.style.display = 'none', 3000); 
         };
+
+        // ==================== LOGIN ====================
         document.getElementById('btn-do-login').onclick = async () => {
             const u = document.getElementById('login-user').value;
             const p = document.getElementById('login-pass').value;
@@ -1163,8 +1165,8 @@
                 loadSidebarState();
                 
                 if (typeof window.cleanupPutaway === 'function') {
-    window.cleanupPutaway();
-}
+                    window.cleanupPutaway();
+                }
                 
                 setTimeout(() => {
                     if (currentUserRole === 'putaway' || currentUserRole === 'admin' || currentUserRole === 'manager') {
@@ -1178,8 +1180,8 @@
         };
 
         window.logout = () => {
-            if (typeof cleanupPutaway === 'function') {
-                cleanupPutaway();
+            if (typeof window.cleanupPutaway === 'function') {
+                window.cleanupPutaway();
             }
             localStorage.removeItem('currentUser');
             localStorage.removeItem('currentUserRole');
@@ -1215,14 +1217,13 @@
                         <div class="space-x-2">
                             <button onclick="openEditUserModal('${user.id}', '${user.username}', '${roleName}', '${user.full_name || ''}', ${user.is_active})" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
                             ${!isAdmin ? 
-    `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
-    : ''}
+                                `<button onclick="softDeleteUser('${user.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">VÔ HIỆU HÓA</button>` 
+                                : ''}
                         </div>
                     </div>
                 `;
-                      });
+            });
         }
-    }
 
         window.openEditUserModal = (id, username, role, fullName, isActive) => {
             document.getElementById('edit-user-id').value = id;
@@ -1261,7 +1262,7 @@
             const r = document.getElementById('new-role').value;
             const f = document.getElementById('new-fullname').value.trim();
             
-            if(u && p) { 
+            if (u && p) { 
                 await addUser(u, p, r, f);
                 document.getElementById('new-user').value = ''; 
                 document.getElementById('new-pass').value = ''; 
@@ -1282,7 +1283,7 @@
                 const po = document.getElementById('sel-po').value;
                 const sku = document.getElementById('sel-sku').value;
                 
-                if(!po || !sku) {
+                if (!po || !sku) {
                     window.notify("Chưa chọn PO/Model!", true);
                     audio.err.play();
                     return;
@@ -1296,7 +1297,7 @@
                 const isScannedInDB = await checkSerialScanned(sn);
                 const isScannedInSession = sessionScans.some(x => x.sn === sn);
                 
-                if(!isValid) {
+                if (!isValid) {
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
@@ -1304,7 +1305,7 @@
                     return;
                 }
                 
-                if(isScannedInDB) {
+                if (isScannedInDB) {
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
@@ -1312,7 +1313,7 @@
                     return;
                 }
                 
-                if(isScannedInSession) {
+                if (isScannedInSession) {
                     audio.err.play();
                     document.getElementById('barcode-scanner').parentElement.classList.add('scan-error');
                     setTimeout(() => document.getElementById('barcode-scanner').parentElement.classList.remove('scan-error'), 500);
@@ -1366,17 +1367,17 @@
             const po = document.getElementById('sel-po').value;
             const sku = document.getElementById('sel-sku').value;
             
-            if(!sessionScans.length) {
+            if (!sessionScans.length) {
                 window.notify("Chưa có SN nào được quét!", true);
                 return;
             }
             
-            if(!box) {
+            if (!box) {
                 window.notify("Thiếu mã Box!", true);
                 return;
             }
             
-            if(!po || !sku) {
+            if (!po || !sku) {
                 window.notify("Thiếu PO hoặc Model!", true);
                 return;
             }
@@ -1416,8 +1417,8 @@
         }
         
         document.getElementById('btn-manual-reset').onclick = () => { 
-            if(sessionScans.length > 0) {
-                if(confirm("Xóa tất cả SN?")) forceReset();
+            if (sessionScans.length > 0) {
+                if (confirm("Xóa tất cả SN?")) forceReset();
             } else {
                 forceReset();
             }
@@ -1429,6 +1430,7 @@
             XLSX.utils.book_append_sheet(wb, ws, "Master");
             XLSX.writeFile(wb, "VScan_Form_Mau.xlsx");
         };
+
         document.getElementById('master-file').onchange = async (e) => {
             if (!['admin', 'manager'].includes(currentUserRole)) {
                 window.notify("Không có quyền!", true);
@@ -1442,7 +1444,7 @@
                     const wb = XLSX.read(evt.target.result, { type: 'binary' });
                     const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                     
-                    if(json.length === 0) {
+                    if (json.length === 0) {
                         window.notify("File không có dữ liệu!", true);
                         return;
                     }
@@ -1480,7 +1482,7 @@
             const select = document.getElementById('sel-sku');
             select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
             
-            if(sessionScans.length > 0 && !editingBoxId && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
+            if (sessionScans.length > 0 && !editingBoxId && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
                 forceReset();
             }
         };
@@ -1511,8 +1513,8 @@
             const g = {}; 
             data.forEach(i => { 
                 const p = i.po; 
-                if(!p) return;
-                if(!g[p]) g[p] = {skus: new Set(), sns: []}; 
+                if (!p) return;
+                if (!g[p]) g[p] = {skus: new Set(), sns: []}; 
                 g[p].skus.add(i.sku); 
                 g[p].sns.push(i.serial); 
             });
@@ -1639,9 +1641,9 @@
             }
             
             const b = boxData.find(x => x.id === id); 
-            if(!b) return;
+            if (!b) return;
             
-            if(confirm(`Chỉnh sửa box: ${b.box}?`)) {
+            if (confirm(`Chỉnh sửa box: ${b.box}?`)) {
                 editingBoxId = id; 
                 editingBoxCode = b.box;
                 
@@ -1668,6 +1670,7 @@
                 }, 300);
             }
         };
+
         document.getElementById('btn-export-excel').onclick = () => {
             const data = []; 
             boxData.forEach(b => {
@@ -1791,7 +1794,7 @@
                 document.getElementById(`page-${p}`).classList.remove('hidden');
             }
             
-            if(sub) { 
+            if (sub) { 
                 document.getElementById('sub-page-box').classList.add('hidden'); 
                 document.getElementById('sub-page-po').classList.add('hidden');
                 document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
@@ -1826,12 +1829,12 @@
                 const html = await response.text();
                 container.innerHTML = html;
                 
-                if (typeof initPutawayModule === 'function') {
-                    initPutawayModule();
+                if (typeof window.initPutawayModule === 'function') {
+                    window.initPutawayModule();
                 }
                 
-                if (typeof startAutoRefresh === 'function') {
-                    startAutoRefresh(30000);
+                if (typeof window.startAutoRefresh === 'function') {
+                    window.startAutoRefresh(30000);
                 }
                 
             } catch (error) {
@@ -1854,6 +1857,7 @@
 
 </body>
 </html>
+
 
 
 
