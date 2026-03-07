@@ -255,6 +255,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         console.error('❌ Lỗi prepare Mass Put:', error);
         window.notify('❌ Lỗi khi chuẩn bị Mass Put!', true);
     }
+    console.log('🔍 Cache sau khi lưu:', sessionStorage.getItem('massPutCache'));
 };
 
 // ==================== LẤY CACHE CHO MASS PUT ====================
@@ -341,4 +342,5 @@ window.clearMassPutCache = function() {
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
 };
+
 
