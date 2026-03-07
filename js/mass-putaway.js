@@ -20,110 +20,97 @@ window.initMassPutawayModule = function() {
     // Start auto refresh
     startAutoRefresh();
     
-    // KIỂM TRA CACHE NGAY LẬP TỨC - QUAN TRỌNG NHẤT!
-    setTimeout(() => {
-        console.log('🔍 Đang kiểm tra cache...');
-        checkMassPutCache();
-    }, 500);
+    // THỬ NHIỀU CÁCH ĐỂ ĐIỀN BOX
+    fillBoxFromCache();
 };
 
-// ==================== AUTO REFRESH ====================
-function startAutoRefresh() {
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(() => {
-        if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
-            loadMassSNList();
-        }
-    }, 30000);
-}
-
-window.cleanupMassPutaway = function() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-};
-
-// ==================== KIỂM TRA CACHE - HÀM NÀY ĐANG THIẾU ====================
-function checkMassPutCache() {
-    console.log('🔍 Bắt đầu kiểm tra cache...');
+// ==================== HÀM ĐIỀN BOX TỪ CACHE ====================
+function fillBoxFromCache() {
+    console.log('🔍 Đang tìm cache để điền box...');
     
     // Đọc từ sessionStorage
     const saved = sessionStorage.getItem('massPutCache');
-    console.log('📦 Dữ liệu cache thô:', saved);
+    console.log('📦 Dữ liệu cache:', saved);
     
-    if (saved) {
-        try {
-            const cache = JSON.parse(saved);
-            console.log('📦 Cache đã parse:', cache);
-            
-            if (cache && cache.box) {
-                console.log('✅ Tìm thấy box trong cache:', cache.box);
-                
-                // Tìm ô input
-                const boxInput = document.getElementById('mass-box');
-                console.log('🔍 Ô input mass-box:', boxInput);
-                
-                if (boxInput) {
-                    // ĐIỀN GIÁ TRỊ
-                    boxInput.value = cache.box;
-                    console.log('✅ ĐÃ ĐIỀN GIÁ TRỊ:', cache.box);
-                    
-                    // Highlight để thấy rõ
-                    boxInput.style.border = '2px solid #4f46e5';
-                    boxInput.style.backgroundColor = '#eef2ff';
-                    
-                    // Hiển thị thông báo
-                    const snCount = cache.snList?.length || 0;
-                    showMassResult(`📦 Đã nạp box ${cache.box} (${snCount} SN)`, 'info');
-                    
-                    // Focus vào location
-                    setTimeout(() => {
-                        const locationInput = document.getElementById('mass-location');
-                        if (locationInput) {
-                            locationInput.focus();
-                            locationInput.style.border = '2px solid #4f46e5';
-                        }
-                    }, 500);
-                    
-                    return true;
-                } else {
-                    console.error('❌ KHÔNG TÌM THẤY ô input mass-box!');
-                }
-            } else {
-                console.log('📭 Cache không có thông tin box');
-            }
-        } catch (e) {
-            console.error('❌ Lỗi parse cache:', e);
-        }
-    } else {
-        console.log('📭 Không có cache trong sessionStorage');
+    if (!saved) {
+        console.log('📭 Không có cache');
+        return false;
     }
     
-    return false;
+    try {
+        const cache = JSON.parse(saved);
+        console.log('📦 Cache đã parse:', cache);
+        
+        if (!cache.box) {
+            console.log('📭 Cache không có box');
+            return false;
+        }
+        
+        // Tìm ô input
+        const boxInput = document.getElementById('mass-box');
+        console.log('🔍 Ô input mass-box:', boxInput);
+        
+        if (boxInput) {
+            // ĐIỀN GIÁ TRỊ
+            boxInput.value = cache.box;
+            console.log('✅ ĐÃ ĐIỀN GIÁ TRỊ:', cache.box);
+            
+            // Highlight để thấy rõ
+            boxInput.style.border = '2px solid #4f46e5';
+            boxInput.style.backgroundColor = '#eef2ff';
+            
+            // Hiển thị thông báo
+            const resultDiv = document.getElementById('mass-result');
+            if (resultDiv) {
+                resultDiv.classList.remove('hidden', 'bg-red-100', 'bg-blue-100');
+                resultDiv.classList.add('bg-green-100', 'text-green-700', 'p-4', 'rounded');
+                resultDiv.innerHTML = `📦 Đã nạp box ${cache.box} (${cache.snList?.length || 0} SN)`;
+                
+                setTimeout(() => {
+                    resultDiv.classList.add('hidden');
+                }, 5000);
+            }
+            
+            // Focus vào location
+            setTimeout(() => {
+                const locationInput = document.getElementById('mass-location');
+                if (locationInput) {
+                    locationInput.focus();
+                    locationInput.style.border = '2px solid #4f46e5';
+                }
+            }, 500);
+            
+            return true;
+        } else {
+            console.error('❌ KHÔNG TÌM THẤY ô input mass-box!');
+            return false;
+        }
+    } catch (e) {
+        console.error('❌ Lỗi parse cache:', e);
+        return false;
+    }
 }
+
+// Gọi hàm nhiều lần để đảm bảo
+setTimeout(fillBoxFromCache, 100);
+setTimeout(fillBoxFromCache, 300);
+setTimeout(fillBoxFromCache, 500);
+setTimeout(fillBoxFromCache, 1000);
 
 // ==================== HÀM TEST CHO CONSOLE ====================
 window.testCache = function() {
     console.log('🧪 Test cache:');
     const saved = sessionStorage.getItem('massPutCache');
-    console.log('📦 Cache trong sessionStorage:', saved);
+    console.log('📦 Cache:', saved);
     
-    if (saved) {
-        try {
-            const cache = JSON.parse(saved);
-            console.log('📦 Cache đã parse:', cache);
-            
-            const boxInput = document.getElementById('mass-box');
-            console.log('🔍 Box input element:', boxInput);
-            
-            if (boxInput) {
-                console.log('📝 Giá trị hiện tại:', boxInput.value);
-            }
-        } catch (e) {
-            console.error('❌ Lỗi:', e);
-        }
+    const boxInput = document.getElementById('mass-box');
+    console.log('🔍 Box input:', boxInput);
+    
+    if (boxInput) {
+        console.log('📝 Giá trị hiện tại:', boxInput.value);
     }
+    
+    return { cache: saved, input: boxInput };
 };
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
@@ -134,6 +121,8 @@ window.processMassPutaway = async function() {
     const wh = document.getElementById('mass-wh')?.value || 'VNS';
     const box = document.getElementById('mass-box')?.value.trim().toUpperCase() || '';
     const location = document.getElementById('mass-location')?.value.trim() || '';
+    
+    console.log('📝 Dữ liệu form:', { account, password, wh, box, location });
     
     // Kiểm tra đầu vào
     if (!account || !password) {
@@ -235,7 +224,6 @@ window.processMassPutaway = async function() {
         // Bước 6: Xóa cache sau khi xử lý
         sessionStorage.removeItem('massPutCache');
         
-        // Hiển thị kết quả
         showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN)`, 'success');
         
         // Clear ô nhập
@@ -398,3 +386,23 @@ window.massPutawayAPI = async function(data) {
         return { success: false, error: error.message };
     }
 };
+
+// ==================== AUTO REFRESH ====================
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(() => {
+        if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
+            loadMassSNList();
+        }
+    }, 30000);
+}
+
+window.cleanupMassPutaway = function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+};
+
+// Gọi hàm ngay khi load
+fillBoxFromCache();
