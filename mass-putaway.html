@@ -135,111 +135,96 @@
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - ĐƠN GIẢN NHẤT -->
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - ĐÃ SỬA -->
 <script>
+// CỰC KỲ ĐƠN GIẢN - CHỈ ĐỌC SESSIONSTORAGE
 (function() {
-    // Hàm hiển thị thông tin box
-    function displayBoxInfo() {
+    console.log('🔄 Đang kiểm tra sessionStorage...');
+    
+    // Đọc dữ liệu
+    const savedInfo = sessionStorage.getItem('massPutFullInfo');
+    console.log('📦 Dữ liệu từ session:', savedInfo);
+    
+    if (!savedInfo) {
+        console.log('📭 Không có dữ liệu');
+        return;
+    }
+    
+    try {
+        const boxData = JSON.parse(savedInfo);
+        console.log('✅ Dữ liệu box:', boxData);
+        
+        // TÌM container
         const infoContainer = document.getElementById('massput-box-info');
         const boxInput = document.getElementById('mass-box');
         
+        console.log('🔍 Container:', infoContainer);
+        console.log('🔍 Input box:', boxInput);
+        
         if (!infoContainer) {
-            console.log('Không tìm thấy container');
+            console.error('❌ Không tìm thấy massput-box-info');
             return;
         }
         
-        // Lấy dữ liệu từ sessionStorage
-        const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 Dữ liệu từ session:', savedInfo);
+        // HIỂN THỊ THÔNG TIN
+        infoContainer.innerHTML = '';
+        infoContainer.style.padding = '15px';
+        infoContainer.style.backgroundColor = '#eef2ff';
+        infoContainer.style.borderRadius = '8px';
+        infoContainer.style.borderLeft = '4px solid #4f46e5';
         
-        if (!savedInfo) {
-            infoContainer.innerHTML = '<div class="text-center text-gray-400 py-4">Chưa có box nào được chọn</div>';
-            return;
+        // Tạo HTML hiển thị
+        let snHtml = '';
+        if (boxData.snList && boxData.snList.length > 0) {
+            snHtml = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #c7d2fe;">';
+            snHtml += '<div style="font-weight: bold; margin-bottom: 5px;">📋 Danh sách SN:</div>';
+            snHtml += '<div style="max-height: 100px; overflow-y: auto; background: white; padding: 5px; border-radius: 4px;">';
+            boxData.snList.forEach(sn => {
+                snHtml += `<div style="font-family: monospace; font-size: 11px;">• ${sn}</div>`;
+            });
+            snHtml += '</div></div>';
         }
         
-        try {
-            const boxData = JSON.parse(savedInfo);
-            console.log('📦 Box data:', boxData);
-            
-            // Tạo danh sách SN nếu có
-            let snListHtml = '';
-            if (boxData.snList && boxData.snList.length > 0) {
-                const snItems = boxData.snList.map(sn => 
-                    `<div style="border-bottom: 1px solid #e0e7ff; padding: 4px 0; font-family: monospace;">• ${sn}</div>`
-                ).join('');
-                
-                snListHtml = `
-                    <div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #c7d2fe;">
-                        <div style="font-weight: bold; color: #4f46e5; margin-bottom: 8px; font-size: 13px;">
-                            📋 DANH SÁCH SN (${boxData.snList.length})
-                        </div>
-                        <div style="max-height: 150px; overflow-y: auto; background: white; padding: 10px; border-radius: 6px; font-size: 12px;">
-                            ${snItems}
-                        </div>
+        infoContainer.innerHTML = `
+            <div style="font-weight: bold; font-size: 18px; color: #4f46e5; margin-bottom: 10px;">📦 BOX: ${boxData.box}</div>
+            <div style="margin-top: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <div style="color: #6b7280; font-size: 11px;">MÃ PO</div>
+                        <div style="font-weight: 500;">${boxData.po || ''}</div>
                     </div>
-                `;
-            }
-            
-            // HIỂN THỊ THÔNG TIN BOX
-            infoContainer.innerHTML = `
-                <div style="background: #eef2ff; padding: 20px; border-radius: 12px; border-left: 5px solid #4f46e5;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <span style="font-size: 20px; font-weight: bold; color: #4f46e5;">📦 ${boxData.box || ''}</span>
-                        <span style="background: #c7d2fe; color: #4f46e5; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                            ${boxData.total || 0} SN
-                        </span>
+                    <div>
+                        <div style="color: #6b7280; font-size: 11px;">SKU</div>
+                        <div style="font-weight: 500;">${boxData.sku || ''}</div>
                     </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
-                        <div>
-                            <div style="color: #6b7280; font-size: 11px; text-transform: uppercase;">MÃ PO</div>
-                            <div style="font-weight: 500;">${boxData.po || ''}</div>
-                        </div>
-                        <div>
-                            <div style="color: #6b7280; font-size: 11px; text-transform: uppercase;">SKU</div>
-                            <div style="font-weight: 500;">${boxData.sku || ''}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 8px;">
-                        <div style="color: #6b7280; font-size: 11px; text-transform: uppercase;">NGÀY TẠO</div>
-                        <div style="font-size: 13px;">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 8px;">
-                        <div style="color: #6b7280; font-size: 11px; text-transform: uppercase;">NGƯỜI TẠO</div>
-                        <div style="font-size: 13px;">${boxData.created_by || ''}</div>
-                    </div>
-                    
-                    ${snListHtml}
                 </div>
-            `;
-            
-            // ĐIỀN VÀO Ô BOX
-            if (boxInput) {
-                boxInput.value = boxData.box || '';
-                console.log('✅ Đã điền box vào form:', boxData.box);
-            }
-            
-        } catch (e) {
-            console.error('❌ Lỗi:', e);
-            infoContainer.innerHTML = '<div class="text-center text-red-400 py-4">Lỗi hiển thị dữ liệu</div>';
+                <div style="margin-top: 8px;">
+                    <div style="color: #6b7280; font-size: 11px;">SỐ LƯỢNG SN</div>
+                    <div style="font-weight: bold; color: #f97316;">${boxData.total || 0}</div>
+                </div>
+                <div style="margin-top: 8px;">
+                    <div style="color: #6b7280; font-size: 11px;">NGÀY TẠO</div>
+                    <div style="font-size: 12px;">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
+                </div>
+                <div style="margin-top: 8px;">
+                    <div style="color: #6b7280; font-size: 11px;">NGƯỜI TẠO</div>
+                    <div style="font-size: 12px;">${boxData.created_by || ''}</div>
+                </div>
+                ${snHtml}
+            </div>
+        `;
+        
+        // ĐIỀN VÀO Ô BOX
+        if (boxInput) {
+            boxInput.value = boxData.box;
+            boxInput.style.border = '2px solid #4f46e5';
+            boxInput.style.backgroundColor = '#eef2ff';
+            console.log('✅ Đã điền box vào form:', boxData.box);
         }
+        
+    } catch (e) {
+        console.error('❌ Lỗi:', e);
     }
-    
-    // Chạy khi trang load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(displayBoxInfo, 300);
-        });
-    } else {
-        setTimeout(displayBoxInfo, 300);
-    }
-    
-    // Chạy lại khi tab được hiển thị
-    window.addEventListener('load', function() {
-        setTimeout(displayBoxInfo, 300);
-    });
 })();
 
 // Hàm xử lý Mass Put
