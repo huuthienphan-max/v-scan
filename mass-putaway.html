@@ -227,3 +227,30 @@ window.refreshMassSNList = function() {
     // Code refresh sau
 };
 </script>
+<script>
+// TEST CỰC KỲ ĐƠN GIẢN - ĐIỀN CHỮ "TEST"
+setTimeout(function() {
+    console.log('🔧 ĐANG TEST...');
+    
+    // Tìm element PO
+    const poElement = document.getElementById('box-po-display');
+    console.log('🔍 poElement:', poElement);
+    
+    if (poElement) {
+        poElement.innerText = '🔴 TEST 123';
+        poElement.style.color = 'red';
+        poElement.style.fontWeight = 'bold';
+        poElement.style.fontSize = '20px';
+        console.log('✅ Đã điền TEST thành công!');
+    } else {
+        console.log('❌ Không tìm thấy element box-po-display');
+        
+        // Thử tìm element khác
+        const infoDiv = document.getElementById('massput-box-info');
+        if (infoDiv) {
+            infoDiv.innerHTML = '<div style="color:red; font-size:30px; padding:20px;">🔴 TEST HIỂN THỊ</div>';
+            console.log('✅ Đã điền TEST vào infoDiv');
+        }
+    }
+}, 2000);
+</script>
