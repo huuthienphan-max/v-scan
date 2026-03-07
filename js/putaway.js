@@ -194,7 +194,6 @@ window.viewBoxHVDetail = async function(boxCode) {
 };
 
 // ==================== CHUẨN BỊ MASS PUT ====================
-// ==================== CHUẨN BỊ MASS PUT ====================
 window.prepareMassPut = async function(boxCode, po, sku) {
     if (!boxCode) return;
     
@@ -240,10 +239,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         };
         
         // LƯU CẢ HAI:
-        // 1. Lưu đầy đủ thông tin (dùng cho mục đích khác sau này)
         sessionStorage.setItem('massPutFullInfo', JSON.stringify(fullBoxInfo));
-        
-        // 2. Lưu riêng box để điền form (đơn giản, dễ đọc)
         sessionStorage.setItem('massPutBox', boxCode);
         
         console.log('📦 Đã lưu đầy đủ thông tin:', fullBoxInfo);
@@ -353,6 +349,7 @@ window.clearMassPutCache = function() {
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
 };
+
 
 
 
