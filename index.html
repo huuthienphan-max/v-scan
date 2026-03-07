@@ -444,7 +444,7 @@
                 
                 <!-- Page Mass Putaway (mới) -->
                 <section id="page-mass-putaway" class="hidden">
-                    <div id="mass-putaway-container"></div>
+                    <div id="mass-box-hv-container"></div>
                 </section>
             </div>
     </main>
@@ -564,7 +564,7 @@
                     // Ẩn tất cả menu trước
                     document.getElementById('admin-only-menu').classList.add('hidden');
                     document.getElementById('menu-inbound').classList.add('hidden');
-                    document.getElementById('menu-putaway').classList.add('hidden');
+                    document.getElementById('menu-box-hv').classList.add('hidden');
                     
                     // Hiển thị menu theo role
                         if (currentUserRole === 'admin') {
@@ -1190,7 +1190,7 @@
                 
                 document.getElementById('admin-only-menu').classList.remove('hidden');
                 document.getElementById('menu-inbound').classList.remove('hidden');
-                document.getElementById('menu-putaway').classList.remove('hidden');
+                document.getElementById('menu-box-hv').classList.remove('hidden');
                 
                 document.getElementById('user-display').innerText = `NV: admin`;
                 document.getElementById('role-display').innerText = 'ADMIN';
@@ -1954,7 +1954,7 @@ async function loadBoxHVModule() {
 
 // ==================== LOAD MODULE MASS PUTAWAY ====================
 async function loadMassPutawayModule() {
-    const container = document.getElementById('mass-putaway-container');
+    const container = document.getElementById('mass-box-hv-container');
     
     try {
         const response = await fetch('mass-putaway.html?' + new Date().getTime());
@@ -1985,6 +1985,7 @@ async function loadMassPutawayModule() {
 
 </body>
 </html>
+
 
 
 
