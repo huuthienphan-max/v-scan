@@ -252,24 +252,19 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         window.notify(`✅ Đã chọn box ${boxCode} (${fullBoxInfo.snList.length} SN) cho Mass Put`);
         
         // Chuyển sang trang Mass Putaway
-if (typeof window.switchPage === 'function') {
-    window.switchPage('mass-putaway');
-    
-    // 👉 THÊM DÒNG NÀY - Set timeout để đợi trang load xong
-    setTimeout(() => {
-        // Tìm ô input box và điền
-        const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
-        if (boxInput) {
-            boxInput.value = boxCode;
-            boxInput.dispatchEvent(new Event('input'));
-            console.log('✅ TỰ ĐỘNG ĐIỀN BOX:', boxCode);
-        }
-    }, 1000); // Đợi 1 giây cho trang load
-    
-} else {
-    window.location.href = '#mass-putaway';
-    location.reload();
-}
+        if (typeof window.switchPage === 'function') {
+            window.switchPage('mass-putaway');
+            
+            // 👉 THÊM ĐOẠN NÀY ĐỂ TỰ ĐỘNG ĐIỀN BOX
+            setTimeout(() => {
+                const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
+                if (boxInput) {
+                    boxInput.value = boxCode;
+                    boxInput.dispatchEvent(new Event('input'));
+                    console.log('✅ Đã tự động điền box:', boxCode);
+                }
+            }, 1000);
+            
         } else {
             window.location.href = '#mass-putaway';
             location.reload();
@@ -280,7 +275,6 @@ if (typeof window.switchPage === 'function') {
         window.notify('❌ Lỗi khi chuẩn bị Mass Put!', true);
     }
 };
-
 // ==================== LẤY CACHE CHO MASS PUT ====================
 window.getMassPutCache = function() {
     // Đọc từ sessionStorage nếu chưa có
@@ -365,6 +359,7 @@ window.clearMassPutCache = function() {
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
 };
+
 
 
 
