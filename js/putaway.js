@@ -255,7 +255,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         if (typeof window.switchPage === 'function') {
             window.switchPage('mass-putaway');
             
-            // 👉 THÊM ĐOẠN NÀY ĐỂ TỰ ĐỘNG ĐIỀN BOX
+            // TỰ ĐỘNG ĐIỀN BOX
             setTimeout(() => {
                 const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
                 if (boxInput) {
@@ -275,26 +275,20 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         window.notify('❌ Lỗi khi chuẩn bị Mass Put!', true);
     }
 };
+
 // ==================== LẤY CACHE CHO MASS PUT ====================
 window.getMassPutCache = function() {
-    // Đọc từ sessionStorage nếu chưa có
-    if (!massPutCache) {
-        const saved = sessionStorage.getItem('massPutCache');
-        if (saved) {
-            massPutCache = JSON.parse(saved);
-        }
+    const saved = sessionStorage.getItem('massPutCache');
+    if (saved) {
+        return JSON.parse(saved);
     }
-    return massPutCache;
+    return null;
 };
 
 // ==================== XÓA CACHE MASS PUT ====================
 window.clearMassPutCache = function() {
-    massPutCache = null;
     sessionStorage.removeItem('massPutCache');
     console.log('🗑️ Đã xóa cache Mass Put');
-    
-    // Reload lại danh sách để bỏ highlight
-    renderBoxHVData();
 };
 
 // ==================== FILTER ====================
@@ -345,24 +339,3 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
-// ==================== LẤY CACHE CHO MASS PUT ====================
-window.getMassPutCache = function() {
-    const saved = sessionStorage.getItem('massPutCache');
-    if (saved) {
-        return JSON.parse(saved);
-    }
-    return null;
-};
-
-// ==================== XÓA CACHE MASS PUT ====================
-window.clearMassPutCache = function() {
-    sessionStorage.removeItem('massPutCache');
-    console.log('🗑️ Đã xóa cache Mass Put');
-};
-
-
-
-
-
-
-
