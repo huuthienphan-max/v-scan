@@ -198,28 +198,35 @@ window.prepareMassPut = async function(boxCode, po, sku) {
     if (!boxCode) return;
     
     try {
+        console.log('🔵 prepareMassPut được gọi với box:', boxCode);
+        
         // Lấy thông tin chi tiết box
-        const { data: box } = await supabaseClient
+        const { data: box, error: boxError } = await supabaseClient
             .from('boxes')
             .select('*')
             .eq('box_code', boxCode)
             .eq('is_active', true)
             .single();
         
-        if (!box) {
+        if (boxError || !box) {
+            console.error('❌ Không tìm thấy box:', boxError);
             window.notify('❌ Không tìm thấy box!', true);
             return;
         }
         
         // Lấy danh sách SN
-        const { data: details } = await supabaseClient
+        const { data: details, error: detailError } = await supabaseClient
             .from('box_details')
             .select('serial')
             .eq('box_code', boxCode)
             .eq('is_active', true);
         
+        if (detailError) {
+            console.error('❌ Lỗi lấy SN:', detailError);
+        }
+        
         // Tạo cache object
-        massPutCache = {
+        const massPutCache = {
             box: boxCode,
             po: po,
             sku: sku,
@@ -238,10 +245,11 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         window.notify(`✅ Đã chọn box ${boxCode} (${massPutCache.snList.length} SN) cho Mass Put`);
         
         // Chuyển sang trang Mass Putaway
-        switchPage('mass-putaway');
-        
-        // Load lại dữ liệu để highlight box đã chọn
-        renderBoxHVData();
+        if (typeof window.switchPage === 'function') {
+            window.switchPage('mass-putaway');
+        } else {
+            console.error('❌ Không tìm thấy hàm switchPage');
+        }
         
     } catch (error) {
         console.error('❌ Lỗi prepare Mass Put:', error);
@@ -319,3 +327,18 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
+// ==================== LẤY CACHE CHO MASS PUT ====================
+window.getMassPutCache = function() {
+    const saved = sessionStorage.getItem('massPutCache');
+    if (saved) {
+        return JSON.parse(saved);
+    }
+    return null;
+};
+
+// ==================== XÓA CACHE MASS PUT ====================
+window.clearMassPutCache = function() {
+    sessionStorage.removeItem('massPutCache');
+    console.log('🗑️ Đã xóa cache Mass Put');
+};
+
