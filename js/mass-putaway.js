@@ -1,29 +1,82 @@
 // js/mass-putaway.js - Module Mass Putaway
+// Chức năng: Xử lý nhập liệu hàng loạt, kết nối Python
 
 let massSNList = [];
+let autoRefreshInterval = null;
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initMassPutawayModule = function() {
     console.log('🚀 Khởi tạo Mass Putaway module...');
     
     // Set WH mặc định
-    document.getElementById('mass-wh').value = 'VNS';
+    const whInput = document.getElementById('mass-wh');
+    if (whInput) whInput.value = 'VNS';
+    
+    // Kiểm tra cache từ Box HV
+    checkMassPutCache();
     
     // Load danh sách SN
     loadMassSNList();
     
     // Log thông tin API cho Python
     console.log('📡 API Endpoint cho Python: POST /api/mass-putaway');
+    
+    // Start auto refresh (30 giây)
+    startAutoRefresh();
 };
+
+// ==================== AUTO REFRESH ====================
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(() => {
+        if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
+            loadMassSNList();
+        }
+    }, 30000);
+}
+
+window.cleanupMassPutaway = function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+};
+
+// ==================== KIỂM TRA CACHE TỪ BOX HV ====================
+function checkMassPutCache() {
+    // Gọi hàm từ box-hv.js (nếu có)
+    if (typeof window.getMassPutCache === 'function') {
+        const cache = window.getMassPutCache();
+        
+        if (cache && cache.box) {
+            console.log('📦 Tìm thấy cache Mass Put:', cache);
+            
+            // Tự động điền thông tin box
+            const boxInput = document.getElementById('mass-box');
+            if (boxInput) {
+                boxInput.value = cache.box;
+            }
+            
+            // Hiển thị thông báo
+            showMassResult(`📦 Đã nạp box ${cache.box} (${cache.snList?.length || 0} SN) từ bộ nhớ đệm`, 'info');
+            
+            // Tự động focus vào location
+            setTimeout(() => {
+                const locationInput = document.getElementById('mass-location');
+                if (locationInput) locationInput.focus();
+            }, 500);
+        }
+    }
+}
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
     // Lấy dữ liệu từ form
-    const account = document.getElementById('mass-account').value.trim();
-    const password = document.getElementById('mass-password').value.trim();
-    const wh = document.getElementById('mass-wh').value; // VNS mặc định
-    const box = document.getElementById('mass-box').value.trim().toUpperCase();
-    const location = document.getElementById('mass-location').value.trim();
+    const account = document.getElementById('mass-account')?.value.trim() || '';
+    const password = document.getElementById('mass-password')?.value.trim() || '';
+    const wh = document.getElementById('mass-wh')?.value || 'VNS';
+    const box = document.getElementById('mass-box')?.value.trim().toUpperCase() || '';
+    const location = document.getElementById('mass-location')?.value.trim() || '';
     
     // Kiểm tra đầu vào
     if (!account || !password) {
@@ -91,11 +144,19 @@ window.processMassPutaway = async function() {
             return;
         }
         
-        // Bước 4: Lưu vào lịch sử MASS PUTAWAY (thêm bảng mới nếu cần)
-        // Tạm thời lưu vào activity_log
+        // Bước 4: Cập nhật trạng thái box thành completed (đã xử lý)
+        await supabaseClient
+            .from('boxes')
+            .update({
+                putaway_status: 'completed',
+                putaway_date: new Date().toISOString(),
+                putaway_by: account
+            })
+            .eq('id', boxData.id);
+        
+        // Bước 5: Lưu từng SN vào lịch sử
         const snList = details.map(d => d.serial);
         
-        // Lưu từng SN vào lịch sử
         for (const sn of snList) {
             await supabaseClient
                 .from('activity_log')
@@ -114,15 +175,20 @@ window.processMassPutaway = async function() {
                 }]);
         }
         
-        // Hiển thị kết quả
-        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN)`, 'success');
+        // Bước 6: Xóa cache nếu có
+        if (typeof window.clearMassPutCache === 'function') {
+            window.clearMassPutCache();
+        }
         
-        // Clear ô nhập
+        // Hiển thị kết quả
+        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN) đã được chuyển đến ${location}`, 'success');
+        
+        // Clear ô nhập (giữ lại account/password)
         document.getElementById('mass-box').value = '';
         document.getElementById('mass-location').value = '';
         
         // Load lại danh sách SN
-        loadMassSNList();
+        await loadMassSNList();
         
     } catch (error) {
         console.error('❌ Lỗi Mass Putaway:', error);
@@ -133,6 +199,8 @@ window.processMassPutaway = async function() {
 // ==================== HIỂN THỊ KẾT QUẢ ====================
 function showMassResult(message, type) {
     const resultDiv = document.getElementById('mass-result');
+    if (!resultDiv) return;
+    
     resultDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'bg-blue-100', 'text-green-700', 'text-red-700', 'text-blue-700');
     
     if (type === 'success') {
@@ -182,7 +250,7 @@ function renderMassSNList() {
     const tbody = document.getElementById('mass-sn-tbody');
     if (!tbody) return;
     
-    if (!massSNList.length) {
+    if (!massSNList || massSNList.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Chưa có SN nào được xử lý</td></tr>';
         return;
     }
@@ -192,7 +260,7 @@ function renderMassSNList() {
         const time = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '';
         
         return `
-            <tr>
+            <tr class="hover:bg-gray-50">
                 <td class="text-xs">${time}</td>
                 <td class="font-bold text-indigo-600">${details.box || ''}</td>
                 <td class="font-mono">${details.sn || ''}</td>
@@ -209,37 +277,76 @@ window.refreshMassSNList = function() {
     loadMassSNList();
 };
 
-// ==================== API SIMULATION CHO PYTHON ====================
+// ==================== API CHO PYTHON ====================
+// Hàm này sẽ được gọi từ Python sau này
 window.massPutawayAPI = async function(data) {
     // data = { account, password, wh, box, location }
     console.log('📡 API called with:', data);
     
     try {
-        // Xác thực
-        const { data: user } = await supabaseClient
+        // Kiểm tra dữ liệu đầu vào
+        if (!data.account || !data.password || !data.box || !data.location) {
+            return {
+                success: false,
+                error: 'Missing required fields: account, password, box, location'
+            };
+        }
+        
+        // Xác thực user
+        const { data: user, error: authError } = await supabaseClient
             .from('users')
-            .select('*')
+            .select('*, roles(*)')
             .eq('username', data.account)
             .eq('password', data.password)
             .eq('is_active', true)
             .maybeSingle();
         
-        if (!user) {
+        if (authError || !user) {
             return { success: false, error: 'Invalid credentials' };
         }
         
+        // Kiểm tra quyền
+        const userRole = user.roles?.name || 'viewer';
+        if (!['admin', 'manager', 'mass-putaway'].includes(userRole)) {
+            return { success: false, error: 'Insufficient permissions' };
+        }
+        
+        // Tìm box
+        const { data: boxData, error: boxError } = await supabaseClient
+            .from('boxes')
+            .select('*')
+            .eq('box_code', data.box)
+            .eq('is_active', true)
+            .maybeSingle();
+        
+        if (boxError || !boxData) {
+            return { success: false, error: `Box ${data.box} not found` };
+        }
+        
         // Lấy SN từ box
-        const { data: details } = await supabaseClient
+        const { data: details, error: detailError } = await supabaseClient
             .from('box_details')
             .select('serial')
             .eq('box_code', data.box)
             .eq('is_active', true);
         
+        if (detailError) throw detailError;
+        
         if (!details || details.length === 0) {
             return { success: false, error: 'Box has no SN' };
         }
         
-        // Lưu log
+        // Cập nhật trạng thái box
+        await supabaseClient
+            .from('boxes')
+            .update({
+                putaway_status: 'completed',
+                putaway_date: new Date().toISOString(),
+                putaway_by: data.account
+            })
+            .eq('id', boxData.id);
+        
+        // Lưu từng SN vào log
         for (const sn of details) {
             await supabaseClient
                 .from('activity_log')
@@ -270,6 +377,41 @@ window.massPutawayAPI = async function(data) {
         };
         
     } catch (error) {
-        return { success: false, error: error.message };
+        console.error('❌ API Error:', error);
+        return { 
+            success: false, 
+            error: error.message || 'Internal server error'
+        };
     }
 };
+
+// ==================== XỬ LÝ PHÍM TẮT ====================
+document.addEventListener('keydown', (e) => {
+    // Chỉ xử lý khi đang ở trang Mass Putaway
+    if (document.getElementById('page-mass-putaway')?.classList.contains('hidden')) return;
+    
+    // Ctrl + Enter để xử lý
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        window.processMassPutaway();
+    }
+    
+    // Ctrl + L để focus vào location
+    if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        document.getElementById('mass-location')?.focus();
+    }
+    
+    // Ctrl + B để focus vào box
+    if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        document.getElementById('mass-box')?.focus();
+    }
+});
+
+// ==================== CLEANUP ====================
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
