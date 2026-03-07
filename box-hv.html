@@ -1,0 +1,92 @@
+<!-- box-hv.html - Module Box HV (chỉ xem, không xử lý) -->
+<div id="box-hv-module" class="space-y-6">
+    <!-- Header thống kê -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div class="card p-6" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <p class="text-white text-xs uppercase opacity-80">Tổng số Box</p>
+            <p class="text-white text-4xl font-bold mt-2" id="boxhv-total">0</p>
+        </div>
+        <div class="card p-6" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <p class="text-white text-xs uppercase opacity-80">Chờ xử lý</p>
+            <p class="text-white text-4xl font-bold mt-2" id="boxhv-pending">0</p>
+        </div>
+        <div class="card p-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <p class="text-white text-xs uppercase opacity-80">Đã xử lý</p>
+            <p class="text-white text-4xl font-bold mt-2" id="boxhv-completed">0</p>
+        </div>
+        <div class="card p-6" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <p class="text-white text-xs uppercase opacity-80">Hôm nay</p>
+            <p class="text-white text-4xl font-bold mt-2" id="boxhv-today">0</p>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="card p-6">
+        <h3 class="font-bold text-sm mb-4">🔍 Bộ lọc tìm kiếm</h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Từ ngày</label>
+                <input type="date" id="boxhv-from-date" class="w-full input-wms">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Đến ngày</label>
+                <input type="date" id="boxhv-to-date" class="w-full input-wms">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Mã PO</label>
+                <input type="text" id="boxhv-po" placeholder="Nhập PO..." class="w-full input-wms">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Trạng thái</label>
+                <select id="boxhv-status" class="w-full input-wms">
+                    <option value="all">Tất cả</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="completed">Đã xử lý</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="filterBoxHV()" class="btn-shopee px-4 py-2 rounded text-xs font-bold">LỌC</button>
+                <button onclick="resetBoxHVFilter()" class="bg-gray-200 px-4 py-2 rounded text-xs font-bold">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách Box -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-sm">📦 Danh sách Box</h3>
+            <button onclick="exportBoxHVList()" class="bg-emerald-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-emerald-700">
+                Xuất Excel
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full table-vscan">
+                <thead>
+                    <tr>
+                        <th>Mã Box</th>
+                        <th>Mã PO</th>
+                        <th>SKU</th>
+                        <th class="text-center">SL</th>
+                        <th>Ngày tạo</th>
+                        <th>Người tạo</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody id="boxhv-tbody">
+                    <tr><td colspan="8" class="text-center py-8">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Chú thích -->
+    <div class="text-xs text-gray-400 flex gap-4 justify-end">
+        <span class="flex items-center gap-1">
+            <span class="w-3 h-3 rounded-full bg-yellow-400"></span> Chờ xử lý
+        </span>
+        <span class="flex items-center gap-1">
+            <span class="w-3 h-3 rounded-full bg-green-400"></span> Đã xử lý
+        </span>
+    </div>
+</div>
