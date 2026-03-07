@@ -1,8 +1,4 @@
 <!-- mass-putaway.html - Module Mass Putaway -->
-<script>
-console.log('🔥🔥🔥 MASS-PUTAWAY.HTML ĐÃ ĐƯỢC LOAD 🔥🔥🔥');
-console.log('⏰ Thời gian:', new Date().toLocaleTimeString());
-</script>
 <div id="mass-putaway-module" class="space-y-6">
     <!-- CHIA 2 CỘT: BOX INFO + FORM -->
     <div class="grid grid-cols-12 gap-6">
@@ -10,7 +6,7 @@ console.log('⏰ Thời gian:', new Date().toLocaleTimeString());
         <div class="col-span-4">
             <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500 h-full">
                 <h4 class="font-bold text-sm mb-4 text-indigo-600">📦 THÔNG TIN BOX</h4>
-                <div id="massput-box-info" class="text-gray-700">
+                <div id="massput-box-info" class="text-gray-700 min-h-[200px]">
                     <div class="text-gray-400 text-center py-4">Đang tải...</div>
                 </div>
             </div>
@@ -18,7 +14,6 @@ console.log('⏰ Thời gian:', new Date().toLocaleTimeString());
 
         <!-- CỘT PHẢI: FORM MASS PUTAWAY (8 phần) -->
         <div class="col-span-8">
-            <!-- Form nhập liệu -->
             <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500">
                 <h3 class="font-bold text-lg mb-4 text-indigo-600">⚡ Mass Putaway - Nhập hàng loạt</h3>
                 
@@ -102,75 +97,58 @@ console.log('⏰ Thời gian:', new Date().toLocaleTimeString());
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - GIỐNG HỆT F12 -->
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - BẢN ĐƠN GIẢN NHẤT -->
 <script>
-// CÁCH ĐƠN GIẢN NHẤT - GIỐNG Y HỆT LÚC TEST F12
-(function() {
-    console.log('🚀 Bắt đầu hiển thị box info...');
+// ĐỢI DOM LOAD XONG
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📌 DOM đã load, bắt đầu hiển thị box...');
     
-    function hienThiBox() {
-        // Tìm div
-        const div = document.getElementById('massput-box-info');
-        if (!div) {
-            console.log('❌ Chưa có div');
-            return false;
-        }
-        
-        // Lấy dữ liệu
-        const data = sessionStorage.getItem('massPutFullInfo');
-        if (!data) {
-            console.log('❌ Chưa có dữ liệu');
-            div.innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
-            return false;
-        }
-        
-        try {
-            // Parse dữ liệu
-            const box = JSON.parse(data);
-            console.log('✅ Dữ liệu box:', box.box);
-            
-            // Điền vào ô input
-            const input = document.getElementById('mass-box');
-            if (input) input.value = box.box;
-            
-            // HIỂN THỊ - Y HỆT LÚC TEST F12
-            div.innerHTML = `
-                <div style="background:#eef2ff; padding:20px; border-radius:10px; border-left:5px solid #4f46e5;">
-                    <div style="font-size:22px; font-weight:bold; color:#4f46e5; margin-bottom:15px;">📦 ${box.box}</div>
-                    <div style="margin-top:10px;">
-                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">PO:</span> ${box.po}</div>
-                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">SKU:</span> ${box.sku}</div>
-                        <div style="margin-bottom:8px;"><span style="color:#6b7280; width:80px; display:inline-block;">Số lượng:</span> ${box.total}</div>
-                    </div>
-                </div>
-            `;
-            
-            console.log('✅ Đã hiển thị thành công!');
-            return true;
-            
-        } catch (e) {
-            console.error('❌ Lỗi:', e);
-            return false;
-        }
+    // Lấy dữ liệu
+    const savedInfo = sessionStorage.getItem('massPutFullInfo');
+    console.log('📦 Dữ liệu:', savedInfo);
+    
+    if (!savedInfo) {
+        document.getElementById('massput-box-info').innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
+        return;
     }
     
-    // Chạy ngay lập tức
-    hienThiBox();
-    
-    // Chạy lại nhiều lần để đảm bảo
-    setTimeout(hienThiBox, 500);
-    setTimeout(hienThiBox, 1000);
-    setTimeout(hienThiBox, 2000);
-    setTimeout(hienThiBox, 3000);
-    
-    // Chạy lại khi có sự kiện
-    window.addEventListener('load', hienThiBox);
-    document.addEventListener('DOMContentLoaded', hienThiBox);
-})();
+    try {
+        const box = JSON.parse(savedInfo);
+        console.log('✅ Box:', box.box);
+        
+        // HIỂN THỊ
+        document.getElementById('massput-box-info').innerHTML = `
+            <div style="background: #eef2ff; padding: 20px; border-radius: 10px; border-left: 5px solid #4f46e5;">
+                <div style="font-size: 22px; font-weight: bold; color: #4f46e5; margin-bottom: 15px;">
+                    📦 ${box.box}
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="margin-bottom: 8px;">
+                        <span style="color: #6b7280; width: 80px; display: inline-block;">PO:</span> 
+                        <span style="font-weight: 500;">${box.po}</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <span style="color: #6b7280; width: 80px; display: inline-block;">SKU:</span> 
+                        <span style="font-weight: 500;">${box.sku}</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <span style="color: #6b7280; width: 80px; display: inline-block;">Số lượng:</span> 
+                        <span style="font-weight: bold; color: #f97316;">${box.total}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Điền vào ô input
+        document.getElementById('mass-box').value = box.box;
+        
+    } catch (e) {
+        console.error('Lỗi:', e);
+    }
+});
 
 // Hàm xử lý Mass Put
 window.processMassPutaway = function() {
-    const account = document.getElementById('mass-account').value;
     const box = document.getElementById('mass-box').value;
     const location = document.getElementById('mass-location').value;
     
@@ -179,20 +157,10 @@ window.processMassPutaway = function() {
         return;
     }
     
-    const resultDiv = document.getElementById('mass-result');
-    resultDiv.classList.remove('hidden');
-    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
-    resultDiv.innerHTML = '🔄 Đang xử lý...';
-    
-    setTimeout(() => {
-        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
-        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
-    }, 1500);
+    alert(`✅ Xử lý box: ${box} tại: ${location}`);
 };
 
-// Hàm làm mới danh sách SN
 window.refreshMassSNList = function() {
-    console.log('🔄 Làm mới danh sách SN...');
+    console.log('🔄 Làm mới...');
 };
 </script>
-
