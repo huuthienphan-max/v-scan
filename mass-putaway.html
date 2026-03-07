@@ -18,7 +18,7 @@
                     </div>
                 </div>
 
-                <!-- Thêm nút xử lý nhanh -->
+                <!-- Nút sử dụng box -->
                 <div id="massput-actions" class="mt-6 pt-4 border-t hidden">
                     <button onclick="useSelectedBox()" class="w-full bg-indigo-100 text-indigo-700 py-2 rounded text-xs font-bold hover:bg-indigo-200 transition">
                         📦 SỬ DỤNG BOX NÀY
@@ -38,7 +38,7 @@
                     Mass Putaway - Nhập hàng loạt
                 </h3>
                 
-                <!-- FORM CŨ - GIỮ NGUYÊN 100% -->
+                <!-- FORM NHẬP LIỆU -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Tài khoản -->
                     <div>
@@ -89,7 +89,7 @@
         </div>
     </div>
 
-    <!-- API Endpoint cho Python - GIỮ NGUYÊN -->
+    <!-- API Endpoint cho Python -->
     <div class="card p-6 bg-gray-50 border border-dashed border-indigo-200">
         <h4 class="font-bold text-sm mb-2 flex items-center gap-2 text-indigo-600">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@
         </div>
     </div>
 
-    <!-- Danh sách SN đã xử lý - GIỮ NGUYÊN -->
+    <!-- Danh sách SN đã xử lý -->
     <div class="card p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-sm">📋 Danh sách SN đã xử lý</h3>
@@ -142,93 +142,138 @@
     </div>
 </div>
 
+<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX -->
 <script>
 // Hàm hiển thị thông tin box
-function displayBoxInfo(boxData) {
+function displayMassBoxInfo() {
     const container = document.getElementById('massput-box-info');
     const actions = document.getElementById('massput-actions');
     
-    if (!boxData) {
+    if (!container) return;
+    
+    // Lấy dữ liệu từ sessionStorage
+    const savedInfo = sessionStorage.getItem('massPutFullInfo');
+    
+    if (!savedInfo) {
         container.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">Chưa có box nào được chọn</div>';
-        actions.classList.add('hidden');
+        if (actions) actions.classList.add('hidden');
         return;
     }
     
-    container.innerHTML = `
-        <div class="bg-indigo-50 p-4 rounded-lg space-y-3">
-            <div class="flex justify-between items-center pb-2 border-b border-indigo-100">
-                <span class="text-indigo-600 font-bold">BOX: ${boxData.box}</span>
-                <span class="bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full text-xs">${boxData.total || 0} SN</span>
+    try {
+        const boxData = JSON.parse(savedInfo);
+        
+        // Hiển thị thông tin box
+        container.innerHTML = `
+            <div class="bg-indigo-50 p-4 rounded-lg space-y-3">
+                <div class="flex justify-between items-center pb-2 border-b border-indigo-100">
+                    <span class="text-indigo-600 font-bold text-lg">📦 ${boxData.box}</span>
+                    <span class="bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full text-xs font-bold">${boxData.total || 0} SN</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                        <span class="text-gray-500 text-xs">Mã PO:</span>
+                        <div class="font-medium">${boxData.po || ''}</div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs">SKU:</span>
+                        <div class="font-medium">${boxData.sku || ''}</div>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="text-gray-500 text-xs">Ngày tạo:</span>
+                        <div class="text-sm">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="text-gray-500 text-xs">Người tạo:</span>
+                        <div class="text-sm">${boxData.created_by || ''}</div>
+                    </div>
+                </div>
+                <div class="text-xs bg-white p-2 rounded mt-2">
+                    <span class="text-gray-500 font-bold">DANH SÁCH SN (${boxData.snList ? boxData.snList.length : 0}):</span>
+                    <div class="max-h-32 overflow-y-auto mt-1 font-mono text-xs space-y-1">
+                        ${boxData.snList && boxData.snList.length > 0 
+                            ? boxData.snList.map(sn => `<div class="border-b border-gray-100 pb-1">• ${sn}</div>`).join('')
+                            : '<div class="text-gray-400">Không có SN</div>'}
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                    <span class="text-gray-500 text-xs">Mã PO:</span>
-                    <div class="font-medium">${boxData.po || ''}</div>
-                </div>
-                <div>
-                    <span class="text-gray-500 text-xs">SKU:</span>
-                    <div class="font-medium">${boxData.sku || ''}</div>
-                </div>
-                <div class="col-span-2">
-                    <span class="text-gray-500 text-xs">Ngày tạo:</span>
-                    <div class="text-sm">${boxData.created_at ? new Date(boxData.created_at).toLocaleString('vi-VN') : ''}</div>
-                </div>
-                <div class="col-span-2">
-                    <span class="text-gray-500 text-xs">Người tạo:</span>
-                    <div class="text-sm">${boxData.created_by || ''}</div>
-                </div>
-            </div>
-            <div class="text-xs bg-white p-2 rounded mt-2">
-                <span class="text-gray-500">Danh sách SN:</span>
-                <div class="max-h-32 overflow-y-auto mt-1 font-mono text-xs">
-                    ${boxData.snList ? boxData.snList.map(sn => `<div>• ${sn}</div>`).join('') : 'Không có SN'}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    actions.classList.remove('hidden');
+        `;
+        
+        // Tự động điền vào ô Box trong form
+        const boxInput = document.getElementById('mass-box');
+        if (boxInput) {
+            boxInput.value = boxData.box;
+            boxInput.dispatchEvent(new Event('input'));
+        }
+        
+        // Hiện nút actions
+        if (actions) actions.classList.remove('hidden');
+        
+        console.log('✅ Đã hiển thị thông tin box:', boxData.box);
+        
+    } catch (e) {
+        console.error('❌ Lỗi parse dữ liệu:', e);
+        container.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">Lỗi hiển thị dữ liệu</div>';
+    }
 }
 
 // Hàm sử dụng box đã chọn
-function useSelectedBox() {
+window.useSelectedBox = function() {
     const savedInfo = sessionStorage.getItem('massPutFullInfo');
     if (savedInfo) {
         const boxData = JSON.parse(savedInfo);
         document.getElementById('mass-box').value = boxData.box;
         document.getElementById('mass-box').dispatchEvent(new Event('input'));
+        alert(`✅ Đã điền box: ${boxData.box}`);
     }
-}
+};
 
-// Load dữ liệu khi vào trang
-document.addEventListener('DOMContentLoaded', function() {
-    const savedInfo = sessionStorage.getItem('massPutFullInfo');
-    if (savedInfo) {
-        try {
-            const boxData = JSON.parse(savedInfo);
-            displayBoxInfo(boxData);
-        } catch (e) {
-            console.error('Lỗi:', e);
-        }
-    }
-});
-
-// Các hàm xử lý khác giữ nguyên
+// Hàm xử lý Mass Put
 window.processMassPutaway = function() {
     const account = document.getElementById('mass-account').value;
+    const password = document.getElementById('mass-password').value;
+    const wh = document.getElementById('mass-wh').value;
     const box = document.getElementById('mass-box').value;
     const location = document.getElementById('mass-location').value;
     
     if (!box || !location) {
-        alert('Vui lòng nhập Box và Location!');
+        alert('❌ Vui lòng nhập Box và Location!');
         return;
     }
     
-    alert(`Xử lý Mass Put cho box: ${box} tại vị trí: ${location}`);
+    const resultDiv = document.getElementById('mass-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.className = 'mt-4 p-4 rounded bg-yellow-50 text-yellow-700';
+    resultDiv.innerHTML = '🔄 Đang xử lý...';
+    
+    // Mô phỏng xử lý
+    setTimeout(() => {
+        resultDiv.className = 'mt-4 p-4 rounded bg-green-50 text-green-700';
+        resultDiv.innerHTML = `✅ Xử lý thành công!<br>Box: ${box} - Location: ${location}`;
+        
+        // Thêm vào danh sách SN (demo)
+        const tbody = document.getElementById('mass-sn-tbody');
+        if (tbody) {
+            const now = new Date().toLocaleString('vi-VN');
+            tbody.innerHTML = `
+                <tr><td>${now}</td><td>${box}</td><td>SN001</td><td>${location}</td><td>${wh}</td><td>${account}</td></tr>
+                <tr><td>${now}</td><td>${box}</td><td>SN002</td><td>${location}</td><td>${wh}</td><td>${account}</td></tr>
+            `;
+        }
+    }, 1500);
 };
 
+// Hàm làm mới danh sách SN
 window.refreshMassSNList = function() {
-    console.log('Làm mới danh sách SN...');
+    console.log('🔄 Làm mới danh sách SN...');
     // Code refresh sau
 };
+
+// Gọi hàm khi trang load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(displayMassBoxInfo, 200);
+});
+
+// Gọi lại khi tab được chọn
+window.addEventListener('load', displayMassBoxInfo);
 </script>
