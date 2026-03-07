@@ -1,19 +1,27 @@
 <!-- mass-putaway.html -->
 <script>
-console.log('🔥🔥🔥 SCRIPT ĐANG CHẠY 🔥🔥🔥');
-alert('THÔNG BÁO: Mass Putaway đã load!');
-</script>
+console.log('🔥 SCRIPT THẬT ĐANG CHẠY');
 
-<div style="padding:20px; background:red; color:white; font-size:24px;">
-🔴 ĐÂY LÀ TRANG MASS PUTAWAY
-</div>
+// Lấy dữ liệu từ sessionStorage
+const savedInfo = sessionStorage.getItem('massPutFullInfo');
+console.log('📦 Dữ liệu:', savedInfo);
 
-<div id="massput-box-info" style="margin:20px; padding:20px; background:blue; color:white;">
-NỘI DUNG SẼ ĐƯỢC THAY THẾ
-</div>
-
-<script>
-// TEST ĐƠN GIẢN
-document.getElementById('massput-box-info').innerHTML = '✅ ĐÃ THAY ĐỔI BẰNG JAVASCRIPT';
-console.log('✅ Đã thay đổi nội dung');
+if (savedInfo) {
+    try {
+        const box = JSON.parse(savedInfo);
+        console.log('✅ Box:', box.box);
+        
+        // Hiển thị thông tin
+        document.getElementById('massput-box-info').innerHTML = `
+            <div style="background:#eef2ff; padding:20px; border-radius:10px;">
+                <div style="font-size:22px; font-weight:bold; color:#4f46e5;">📦 ${box.box}</div>
+                <div>PO: ${box.po}</div>
+                <div>SKU: ${box.sku}</div>
+                <div>SL: ${box.total}</div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Lỗi:', e);
+    }
+}
 </script>
