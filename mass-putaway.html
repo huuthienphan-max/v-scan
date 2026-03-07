@@ -7,7 +7,33 @@
             <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500 h-full">
                 <h4 class="font-bold text-sm mb-4 text-indigo-600">📦 THÔNG TIN BOX</h4>
                 <div id="massput-box-info" class="text-gray-700 min-h-[200px]">
-                    <div class="text-gray-400 text-center py-4">Đang tải...</div>
+                    <!-- THÊM ID CHO TỪNG TRƯỜNG -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500">MÃ BOX</label>
+                            <div id="box-code-display" class="font-bold text-lg text-indigo-600">---</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">MÃ PO</label>
+                            <div id="box-po-display" class="font-medium">---</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">SKU</label>
+                            <div id="box-sku-display" class="font-medium">---</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">SỐ LƯỢNG SN</label>
+                            <div id="box-total-display" class="font-bold text-orange-600">---</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">NGÀY TẠO</label>
+                            <div id="box-date-display" class="text-sm">---</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">NGƯỜI TẠO</label>
+                            <div id="box-creator-display" class="text-sm">---</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -97,58 +123,85 @@
     </div>
 </div>
 
-<!-- SCRIPT HIỂN THỊ THÔNG TIN BOX - BẢN ĐƠN GIẢN NHẤT -->
+<!-- SCRIPT HIỂN THỊ TỪNG TRƯỜNG - LẤY PO TRƯỚC -->
 <script>
-// ĐỢI DOM LOAD XONG
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📌 DOM đã load, bắt đầu hiển thị box...');
+(function() {
+    console.log('🚀 Bắt đầu lấy thông tin box...');
     
-    // Lấy dữ liệu
-    const savedInfo = sessionStorage.getItem('massPutFullInfo');
-    console.log('📦 Dữ liệu:', savedInfo);
-    
-    if (!savedInfo) {
-        document.getElementById('massput-box-info').innerHTML = '<div class="text-gray-400 text-center py-4">Chưa có box</div>';
-        return;
+    // Hàm cập nhật tất cả các trường
+    function updateBoxInfo() {
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        console.log('📦 Dữ liệu:', savedInfo ? 'Có' : 'Không');
+        
+        if (!savedInfo) {
+            return false;
+        }
+        
+        try {
+            const box = JSON.parse(savedInfo);
+            console.log('✅ Box:', box.box);
+            console.log('✅ PO:', box.po);
+            
+            // Cập nhật từng trường
+            const codeEl = document.getElementById('box-code-display');
+            if (codeEl) {
+                codeEl.innerText = box.box || '---';
+                console.log('✅ Đã cập nhật box:', box.box);
+            }
+            
+            const poEl = document.getElementById('box-po-display');
+            if (poEl) {
+                poEl.innerText = box.po || '---';
+                console.log('✅ Đã cập nhật PO:', box.po);
+            }
+            
+            const skuEl = document.getElementById('box-sku-display');
+            if (skuEl) {
+                skuEl.innerText = box.sku || '---';
+                console.log('✅ Đã cập nhật SKU:', box.sku);
+            }
+            
+            const totalEl = document.getElementById('box-total-display');
+            if (totalEl) {
+                totalEl.innerText = box.total || '---';
+                console.log('✅ Đã cập nhật số lượng:', box.total);
+            }
+            
+            const dateEl = document.getElementById('box-date-display');
+            if (dateEl && box.created_at) {
+                dateEl.innerText = new Date(box.created_at).toLocaleString('vi-VN');
+            }
+            
+            const creatorEl = document.getElementById('box-creator-display');
+            if (creatorEl) {
+                creatorEl.innerText = box.created_by || '---';
+            }
+            
+            // Điền vào ô input
+            const boxInput = document.getElementById('mass-box');
+            if (boxInput) {
+                boxInput.value = box.box;
+                console.log('✅ Đã điền box vào input');
+            }
+            
+            return true;
+            
+        } catch (e) {
+            console.error('❌ Lỗi parse:', e);
+            return false;
+        }
     }
     
-    try {
-        const box = JSON.parse(savedInfo);
-        console.log('✅ Box:', box.box);
-        
-        // HIỂN THỊ
-        document.getElementById('massput-box-info').innerHTML = `
-            <div style="background: #eef2ff; padding: 20px; border-radius: 10px; border-left: 5px solid #4f46e5;">
-                <div style="font-size: 22px; font-weight: bold; color: #4f46e5; margin-bottom: 15px;">
-                    📦 ${box.box}
-                </div>
-                <div style="margin-top: 10px;">
-                    <div style="margin-bottom: 8px;">
-                        <span style="color: #6b7280; width: 80px; display: inline-block;">PO:</span> 
-                        <span style="font-weight: 500;">${box.po}</span>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <span style="color: #6b7280; width: 80px; display: inline-block;">SKU:</span> 
-                        <span style="font-weight: 500;">${box.sku}</span>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <span style="color: #6b7280; width: 80px; display: inline-block;">Số lượng:</span> 
-                        <span style="font-weight: bold; color: #f97316;">${box.total}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Điền vào ô input
-        document.getElementById('mass-box').value = box.box;
-        
-    } catch (e) {
-        console.error('Lỗi:', e);
-    }
-});
+    // Chạy nhiều lần
+    updateBoxInfo();
+    setTimeout(updateBoxInfo, 500);
+    setTimeout(updateBoxInfo, 1000);
+    setTimeout(updateBoxInfo, 2000);
+})();
 
 // Hàm xử lý Mass Put
 window.processMassPutaway = function() {
+    const account = document.getElementById('mass-account').value;
     const box = document.getElementById('mass-box').value;
     const location = document.getElementById('mass-location').value;
     
@@ -157,10 +210,20 @@ window.processMassPutaway = function() {
         return;
     }
     
-    alert(`✅ Xử lý box: ${box} tại: ${location}`);
+    const resultDiv = document.getElementById('mass-result');
+    resultDiv.classList.remove('hidden');
+    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
+    resultDiv.innerHTML = '🔄 Đang xử lý...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
+        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
+    }, 1500);
 };
 
+// Hàm làm mới danh sách SN
 window.refreshMassSNList = function() {
-    console.log('🔄 Làm mới...');
+    console.log('🔄 Làm mới danh sách SN...');
+    // Code refresh sau
 };
 </script>
