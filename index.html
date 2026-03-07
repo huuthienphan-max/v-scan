@@ -1267,7 +1267,36 @@
                 alert("Sai tài khoản hoặc mật khẩu!");
             }
         };
-       
+               // ==================== XỬ LÝ NÚT LƯU BOX ====================
+        document.getElementById('btn-complete-box').onclick = async () => {
+            const box = document.getElementById('inp-box').value.trim().toUpperCase();
+            const po = document.getElementById('sel-po').value;
+            const sku = document.getElementById('sel-sku').value;
+            
+            if (!sessionScans.length) {
+                window.notify("❌ Chưa có SN nào được quét!", true);
+                return;
+            }
+            
+            if (!box) {
+                window.notify("❌ Thiếu mã Box!", true);
+                return;
+            }
+            
+            if (!po || !sku) {
+                window.notify("❌ Thiếu PO hoặc Model!", true);
+                return;
+            }
+            
+            window.notify("🔄 Đang xử lý...");
+            
+            const serials = sessionScans.map(x => x.sn);
+            const result = await saveBox(box, po, sku, serials, currentUser);
+            
+            if (result && result.success) {
+                forceReset();
+            }
+        };
 
         async function renderStaffList() {
             if (!['admin', 'manager'].includes(currentUserRole)) return;
@@ -1890,7 +1919,7 @@
                 document.getElementById('auth-screen').classList.remove('hidden');
             }
         };
-    </script>
+    </script>  // ← Dòng này đúng
 
     <!-- Load script Putaway HV -->
     <script src="js/putaway.js"></script>
