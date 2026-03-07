@@ -39,6 +39,8 @@ function readMassPutCache() {
             // Highlight để thấy rõ
             boxInput.style.border = '2px solid #4f46e5';
             boxInput.style.backgroundColor = '#eef2ff';
+        } else {
+            console.error('❌ Không tìm thấy ô input mass-box');
         }
     }
     
@@ -70,8 +72,11 @@ function readMassPutCache() {
     }
 }
 
-// Gọi lại sau 100ms để đảm bảo DOM đã load
+// Gọi nhiều lần để đảm bảo DOM đã load
 setTimeout(readMassPutCache, 100);
+setTimeout(readMassPutCache, 300);
+setTimeout(readMassPutCache, 500);
+setTimeout(readMassPutCache, 1000);
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
@@ -287,7 +292,12 @@ window.testMass = function() {
     console.log('🧪 TEST MASS PUTAWAY');
     console.log('📦 Box riêng:', sessionStorage.getItem('massPutBox'));
     console.log('📦 Full info:', sessionStorage.getItem('massPutFullInfo'));
-    console.log('🔍 Input box:', document.getElementById('mass-box')?.value);
+    
+    const boxInput = document.getElementById('mass-box');
+    console.log('🔍 Input box:', boxInput);
+    if (boxInput) {
+        console.log('📝 Giá trị hiện tại:', boxInput.value);
+    }
     
     const savedFull = sessionStorage.getItem('massPutFullInfo');
     if (savedFull) {
@@ -384,3 +394,32 @@ window.massPutawayAPI = async function(data) {
         return { success: false, error: error.message };
     }
 };
+
+// ==================== AUTO REFRESH ====================
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(() => {
+        if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
+            loadMassSNList();
+        }
+    }, 30000);
+}
+
+window.cleanupMassPutaway = function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+};
+
+// Khởi tạo auto refresh
+startAutoRefresh();
+
+// Cleanup khi unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
