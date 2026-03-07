@@ -1,4 +1,4 @@
-// js/putaway.js - Module Putaway HV
+// js/putaway.js - Module Putaway HV - CHỈ CẬP NHẬT TRẠNG THÁI
 
 let autoRefreshInterval = null;
 let putawayBoxes = [];
@@ -15,8 +15,12 @@ window.initPutawayModule = function() {
     const fromDate = document.getElementById('putaway-from-date');
     const toDate = document.getElementById('putaway-to-date');
     
-    if (fromDate) fromDate.value = lastWeek.toISOString().split('T')[0];
-    if (toDate) toDate.value = today.toISOString().split('T')[0];
+    if (fromDate) {
+        fromDate.value = lastWeek.toISOString().split('T')[0];
+    }
+    if (toDate) {
+        toDate.value = today.toISOString().split('T')[0];
+    }
     
     // Load dữ liệu
     loadPutawayStats();
@@ -110,7 +114,7 @@ async function loadPutawayBoxes() {
         let query = supabaseClient
             .from('boxes')
             .select('*')
-            .eq('is_active', true)
+            .eq('is_active', true)  // CHỈ LẤY BOX ACTIVE
             .order('created_at', { ascending: false });
 
         // Thêm bộ lọc ngày
@@ -200,7 +204,7 @@ window.processPutawayBox = async function(id) {
     if (!confirm('Xác nhận đã xử lý box này?')) return;
 
     try {
-        // CHỈ UPDATE putaway_status, không ảnh hưởng đến box
+        // CHỈ UPDATE putaway_status, KHÔNG XÓA, KHÔNG ẨN
         const { error } = await supabaseClient
             .from('boxes')
             .update({
@@ -213,10 +217,12 @@ window.processPutawayBox = async function(id) {
         if (error) throw error;
 
         // Log hoạt động
-        await logActivity('PUTAWAY_PROCESS', { 
-            box_id: id,
-            action: 'completed'
-        });
+        if (typeof logActivity === 'function') {
+            await logActivity('PUTAWAY_PROCESS', { 
+                box_id: id,
+                action: 'completed'
+            });
+        }
 
         window.notify('✅ Đã xác nhận xử lý box!');
         
