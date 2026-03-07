@@ -1958,19 +1958,29 @@ async function loadMassPutawayModule() {
     const container = document.getElementById('mass-putaway-container');
     
     try {
-        const response = await fetch('mass-putaway.html?' + new Date().getTime());
+        console.log('🔄 Đang tải mass-putaway.html...');
+        
+        // THỬ VỚI ĐƯỜNG DẪN CHÍNH XÁC
+        const response = await fetch('./mass-putaway.html?' + new Date().getTime());
+        console.log('📦 Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const html = await response.text();
+        console.log('📄 HTML dài:', html.length, 'ký tự');
+        
         container.innerHTML = html;
+        console.log('✅ Đã load thành công');
         
         if (typeof window.initMassPutawayModule === 'function') {
             window.initMassPutawayModule();
         }
         
-        
-        
     } catch (error) {
-        console.error('Lỗi load mass putaway module:', error);
-        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
+        console.error('❌ Lỗi load mass putaway module:', error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway (File không tồn tại hoặc sai đường dẫn)</div>';
     }
 }
         // ==================== KHỞI TẠO ====================
@@ -2007,6 +2017,7 @@ async function loadMassPutawayModule() {
     
 </body>
 </html>
+
 
 
 
