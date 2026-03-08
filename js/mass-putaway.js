@@ -80,6 +80,8 @@ setTimeout(readMassPutCache, 1000);
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
+    console.log('🔵 processMassPutaway được gọi');
+    
     // Lấy location từ form (thông tin mới nhập)
     const location = document.getElementById('mass-location')?.value.trim() || '';
     
@@ -106,6 +108,10 @@ window.processMassPutaway = async function() {
             return;
         }
         
+        console.log('📦 Xử lý box:', box);
+        console.log('📍 Location:', location);
+        console.log('📋 Số SN:', snList.length);
+        
         // Tạo chuỗi SN để hiển thị
         const snDisplay = snList.map((sn, index) => 
             `echo ${index+1}. ${sn}`
@@ -120,6 +126,7 @@ window.processMassPutaway = async function() {
             if (configResponse.ok) {
                 const config = await configResponse.json();
                 botPath = config.bot_path || botPath;
+                console.log('✅ Đọc config thành công:', botPath);
             }
         } catch (e) {
             console.log('Không tìm thấy config.json, dùng đường dẫn mặc định');
@@ -228,15 +235,19 @@ exit`;
                 })
                 .eq('box_code', box)
                 .execute();
+            console.log('✅ Đã cập nhật trạng thái box trong Supabase');
         } catch (e) {
             console.log('Không thể cập nhật Supabase:', e);
         }
         
     } catch (error) {
-        console.error('Lỗi:', error);
+        console.error('❌ Lỗi:', error);
         showMassResult(`❌ Lỗi: ${error.message}`, 'error');
     }
 };
+
+// Export hàm ra global để HTML có thể gọi
+window.processMassPutaway = processMassPutaway;
 
 // ==================== HIỂN THỊ KẾT QUẢ ====================
 function showMassResult(message, type) {
@@ -454,3 +465,5 @@ window.addEventListener('beforeunload', function() {
         clearInterval(autoRefreshInterval);
     }
 });
+
+console.log('✅ mass-putaway.js đã load thành công');
