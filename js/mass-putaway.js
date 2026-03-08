@@ -1,7 +1,5 @@
 // js/mass-putaway.js - Module Mass Putaway
-// Chức năng: Xử lý nhập liệu hàng loạt, kết nối Python
-
-console.log('🟢🟢🟢 BẮT ĐẦU LOAD MASS-PUTAWAY.JS 🟢🟢🟢');
+// Chức năng: Xử lý nhập liệu hàng loạt, tạo file .bat cùng thư mục
 
 let massSNList = [];
 let fullBoxInfo = null;
@@ -81,7 +79,6 @@ setTimeout(readMassPutCache, 500);
 setTimeout(readMassPutCache, 1000);
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
-// ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
     console.log('🔵🔵🔵 processMassPutaway ĐƯỢC GỌI 🔵🔵🔵');
     
@@ -124,7 +121,7 @@ window.processMassPutaway = async function() {
         
         const snClipboard = snList.join(' ');
         
-        // Tạo nội dung file .bat có khả năng đọc config.json
+        // Tạo nội dung file .bat - DÙNG %~dp0 ĐỂ TỰ ĐỘNG TÌM EXE CÙNG THƯ MỤC
         const batContent = `@echo off
 title MASS PUT - SHOPEE WMS - BOX ${box}
 color 0B
@@ -137,6 +134,7 @@ echo.
 echo 📦 BOX: ${box}
 echo 📍 SKU: ${sku}
 echo 📌 LOCATION: ${location}
+echo 🔗 URL: https://wms.ssc.shopee.vn/v2/inbound/standardputaway
 echo.
 echo 📋 DANH SÁCH SN (${snList.length} cái):
 echo --------------------------------------------
@@ -149,46 +147,6 @@ echo.
 :: Copy danh sách SN vào clipboard
 echo ${snClipboard} | clip
 echo ✅ Đã copy ${snList.length} SN vào clipboard!
-
-:: Đọc đường dẫn bot từ config.json
-set BOT_PATH=
-if exist config.json (
-    echo 📖 Đọc file config.json...
-    for /f "tokens=2 delims=:," %%a in ('findstr "bot_path" config.json') do (
-        set BOT_PATH=%%~a
-    )
-) else (
-    echo.
-    echo ❌ KHÔNG TÌM THẤY FILE CONFIG.JSON
-    echo.
-    echo Yêu cầu: Tạo file config.json cùng thư mục với nội dung:
-    echo {
-    echo   "bot_path": "C:\\Users\\TenMay\\Desktop\\file\\dist\\save as bot_remote_debug_full.exe"
-    echo }
-    echo.
-    pause
-    exit
-)
-
-:: Xóa dấu ngoặc kép và khoảng trắng
-set BOT_PATH=%BOT_PATH:"=%
-set BOT_PATH=%BOT_PATH: =%
-
-echo 🤖 Đường dẫn bot: %BOT_PATH%
-
-:: Kiểm tra file exe có tồn tại không
-if not exist "%BOT_PATH%" (
-    echo.
-    echo ❌ KHÔNG TÌM THẤY FILE EXE:
-    echo %BOT_PATH%
-    echo.
-    echo Vui lòng kiểm tra lại đường dẫn trong config.json
-    echo.
-    pause
-    exit
-)
-
-echo ✅ Tìm thấy bot tại: %BOT_PATH%
 echo.
 echo =====================================================
 echo.
@@ -217,7 +175,11 @@ echo 📦 Box: ${box}
 echo 📍 Location: ${location}
 echo 🔢 Số SN: ${snList.length}
 echo.
-start /B "" "%BOT_PATH%" --box ${box} --sku ${sku} --location "${location}"
+
+:: CHẠY EXE CÙNG THƯ MỤC VỚI FILE .BAT
+:: %~dp0 là đường dẫn thư mục chứa file .bat đang chạy
+"%~dp0dist\\save as bot_remote_debug_full.exe" --box ${box} --sku ${sku} --location "${location}"
+
 echo.
 echo ✅ Bot đã được khởi động!
 echo 🤖 Bot đang tự động nhập liệu...
@@ -258,9 +220,6 @@ exit`;
         showMassResult(`❌ Lỗi: ${error.message}`, 'error');
     }
 };
-
-// Log để kiểm tra
-console.log('📌 window.processMassPutaway đã được định nghĩa:', window.processMassPutaway);
 
 // ==================== HIỂN THỊ KẾT QUẢ ====================
 function showMassResult(message, type) {
@@ -370,6 +329,3 @@ window.addEventListener('beforeunload', function() {
         clearInterval(autoRefreshInterval);
     }
 });
-
-console.log('✅✅✅ mass-putaway.js load hoàn tất ✅✅✅');
-
