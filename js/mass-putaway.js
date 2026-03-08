@@ -134,7 +134,7 @@ echo.
 echo 📦 BOX: ${box}
 echo 📍 SKU: ${sku}
 echo 📌 LOCATION: ${location}
-echo 🔗 URL: https://wms.ssc.shopee.vn/v2/inbound/standardputaway
+echo 🔗 URL: https://wms.ssc.uat.shopee.vn/v2/inbound/standardputaway
 echo.
 echo 📋 DANH SÁCH SN (${snList.length} cái):
 echo --------------------------------------------
@@ -329,4 +329,5 @@ window.addEventListener('beforeunload', function() {
         clearInterval(autoRefreshInterval);
     }
 });
+
 
