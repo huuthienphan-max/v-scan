@@ -1,6 +1,8 @@
 // js/mass-putaway.js - Module Mass Putaway
 // Chức năng: Xử lý nhập liệu hàng loạt, kết nối Python
 
+console.log('🟢🟢🟢 BẮT ĐẦU LOAD MASS-PUTAWAY.JS 🟢🟢🟢');
+
 let massSNList = [];
 let fullBoxInfo = null;
 
@@ -79,10 +81,11 @@ setTimeout(readMassPutCache, 500);
 setTimeout(readMassPutCache, 1000);
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
+// Khai báo hàm trực tiếp trên window để chắc chắn
 window.processMassPutaway = async function() {
-    console.log('🔵 processMassPutaway được gọi');
+    console.log('🔵🔵🔵 processMassPutaway ĐƯỢC GỌI 🔵🔵🔵');
     
-    // Lấy location từ form (thông tin mới nhập)
+    // Lấy location từ form
     const location = document.getElementById('mass-location')?.value.trim() || '';
     
     if (!location) {
@@ -91,10 +94,12 @@ window.processMassPutaway = async function() {
     }
     
     try {
-        // 📌 LẤY THÔNG TIN TỪ SESSIONSTORAGE (đã được lưu từ Box HV)
+        // Lấy thông tin từ SESSIONSTORAGE
         const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        console.log('📦 savedInfo:', savedInfo);
+        
         if (!savedInfo) {
-            showMassResult('❌ Không tìm thấy thông tin box! Vui lòng chọn box từ màn hình Box HV.', 'error');
+            showMassResult('❌ Không tìm thấy thông tin box!', 'error');
             return;
         }
         
@@ -103,14 +108,14 @@ window.processMassPutaway = async function() {
         const sku = boxData.sku || '';
         const snList = boxData.snList || [];
         
+        console.log('📦 Box:', box);
+        console.log('📍 SKU:', sku);
+        console.log('📋 SN List:', snList);
+        
         if (!box) {
             showMassResult('❌ Thông tin box không hợp lệ!', 'error');
             return;
         }
-        
-        console.log('📦 Xử lý box:', box);
-        console.log('📍 Location:', location);
-        console.log('📋 Số SN:', snList.length);
         
         // Tạo chuỗi SN để hiển thị
         const snDisplay = snList.map((sn, index) => 
@@ -119,20 +124,20 @@ window.processMassPutaway = async function() {
         
         const snClipboard = snList.join(' ');
         
-        // Đọc config.json để lấy đường dẫn exe
+        // Đọc config.json
         let botPath = 'dist\\save as bot_remote_debug_full.exe';
         try {
             const configResponse = await fetch('config.json');
             if (configResponse.ok) {
                 const config = await configResponse.json();
                 botPath = config.bot_path || botPath;
-                console.log('✅ Đọc config thành công:', botPath);
+                console.log('✅ Config:', config);
             }
         } catch (e) {
-            console.log('Không tìm thấy config.json, dùng đường dẫn mặc định');
+            console.log('⚠️ Không tìm thấy config.json');
         }
         
-        // Tạo nội dung file .bat với thông tin từ V-Scan + location
+        // Tạo nội dung file .bat
         const batContent = `@echo off
 title MASS PUT - SHOPEE WMS - BOX ${box}
 color 0B
@@ -208,6 +213,7 @@ timeout /t 3
 exit`;
         
         // Tải file .bat
+        console.log('📝 Đang tạo file .bat...');
         const blob = new Blob([batContent], { type: 'application/bat' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -220,25 +226,8 @@ exit`;
         
         showMassResult(`✅ Đã tạo file MASS_PUT_${box}.bat! Double-click để chạy bot.`, 'success');
         
-        // Clear ô location (giữ lại box để dễ nhìn)
+        // Clear ô location
         document.getElementById('mass-location').value = '';
-        
-        // Cập nhật trạng thái box trong Supabase (nếu cần)
-        try {
-            const account = document.getElementById('mass-account')?.value.trim() || 'admin';
-            await supabaseClient
-                .from('boxes')
-                .update({
-                    putaway_status: 'processing',
-                    putaway_date: new Date().toISOString(),
-                    putaway_by: account
-                })
-                .eq('box_code', box)
-                .execute();
-            console.log('✅ Đã cập nhật trạng thái box trong Supabase');
-        } catch (e) {
-            console.log('Không thể cập nhật Supabase:', e);
-        }
         
     } catch (error) {
         console.error('❌ Lỗi:', error);
@@ -246,8 +235,8 @@ exit`;
     }
 };
 
-// Export hàm ra global để HTML có thể gọi
-window.processMassPutaway = processMassPutaway;
+// Log để kiểm tra
+console.log('📌 window.processMassPutaway đã được định nghĩa:', window.processMassPutaway);
 
 // ==================== HIỂN THỊ KẾT QUẢ ====================
 function showMassResult(message, type) {
@@ -329,114 +318,6 @@ window.refreshMassSNList = function() {
     loadMassSNList();
 };
 
-// ==================== HÀM TEST ====================
-window.testMass = function() {
-    console.log('🧪 TEST MASS PUTAWAY');
-    console.log('📦 Box riêng:', sessionStorage.getItem('massPutBox'));
-    console.log('📦 Full info:', sessionStorage.getItem('massPutFullInfo'));
-    
-    const boxInput = document.getElementById('mass-box');
-    console.log('🔍 Input box:', boxInput);
-    if (boxInput) {
-        console.log('📝 Giá trị hiện tại:', boxInput.value);
-    }
-    
-    const savedFull = sessionStorage.getItem('massPutFullInfo');
-    if (savedFull) {
-        try {
-            console.log('📊 Full info parsed:', JSON.parse(savedFull));
-        } catch (e) {
-            console.log('❌ Lỗi parse:', e);
-        }
-    }
-};
-
-// ==================== API CHO PYTHON ====================
-window.massPutawayAPI = async function(data) {
-    console.log('📡 API called with:', data);
-    
-    try {
-        if (!data.account || !data.password || !data.box || !data.location) {
-            return { success: false, error: 'Missing required fields' };
-        }
-        
-        const { data: user } = await supabaseClient
-            .from('users')
-            .select('*, roles(*)')
-            .eq('username', data.account)
-            .eq('password', data.password)
-            .eq('is_active', true)
-            .maybeSingle();
-        
-        if (!user) return { success: false, error: 'Invalid credentials' };
-        
-        const userRole = user.roles?.name || 'viewer';
-        if (!['admin', 'manager', 'mass-putaway'].includes(userRole)) {
-            return { success: false, error: 'Insufficient permissions' };
-        }
-        
-        const { data: boxData } = await supabaseClient
-            .from('boxes')
-            .select('*')
-            .eq('box_code', data.box)
-            .eq('is_active', true)
-            .maybeSingle();
-        
-        if (!boxData) return { success: false, error: `Box ${data.box} not found` };
-        
-        const { data: details } = await supabaseClient
-            .from('box_details')
-            .select('serial')
-            .eq('box_code', data.box)
-            .eq('is_active', true);
-        
-        if (!details || details.length === 0) {
-            return { success: false, error: 'Box has no SN' };
-        }
-        
-        await supabaseClient
-            .from('boxes')
-            .update({
-                putaway_status: 'completed',
-                putaway_date: new Date().toISOString(),
-                putaway_by: data.account
-            })
-            .eq('id', boxData.id);
-        
-        for (const sn of details) {
-            await supabaseClient
-                .from('activity_log')
-                .insert([{
-                    user_id: user.id,
-                    username: data.account,
-                    action: 'MASS_PUTAWAY_SN',
-                    details: {
-                        box: data.box,
-                        sn: sn.serial,
-                        wh: data.wh || 'VNS',
-                        location: data.location
-                    },
-                    is_active: true
-                }]);
-        }
-        
-        return {
-            success: true,
-            message: `Processed ${details.length} SN from box ${data.box}`,
-            data: {
-                box: data.box,
-                location: data.location,
-                wh: data.wh || 'VNS',
-                sn_count: details.length,
-                timestamp: new Date().toISOString()
-            }
-        };
-        
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-};
-
 // ==================== AUTO REFRESH ====================
 let autoRefreshInterval = null;
 
@@ -466,4 +347,4 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
-console.log('✅ mass-putaway.js đã load thành công');
+console.log('✅✅✅ mass-putaway.js load hoàn tất ✅✅✅');
