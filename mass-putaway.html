@@ -1,229 +1,469 @@
-<!-- mass-putaway.html - Module Mass Putaway -->
-<div id="mass-putaway-module" class="space-y-6">
-    <!-- CHIA 2 CỘT: BOX INFO + FORM -->
-    <div class="grid grid-cols-12 gap-6">
-        <!-- CỘT TRÁI: THÔNG TIN BOX (4 phần) -->
-        <div class="col-span-4">
-            <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500 h-full">
-                <h4 class="font-bold text-sm mb-4 text-indigo-600">📦 THÔNG TIN BOX</h4>
-                <div id="massput-box-info" class="text-gray-700 min-h-[200px]">
-                    <!-- THÊM ID CHO TỪNG TRƯỜNG -->
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-xs text-gray-500">MÃ BOX</label>
-                            <div id="box-code-display" class="font-bold text-lg text-indigo-600">---</div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">MÃ PO</label>
-                            <div id="box-po-display" class="font-medium">---</div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">SKU</label>
-                            <div id="box-sku-display" class="font-medium">---</div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">SỐ LƯỢNG SN</label>
-                            <div id="box-total-display" class="font-bold text-orange-600">---</div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">NGÀY TẠO</label>
-                            <div id="box-date-display" class="text-sm">---</div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">NGƯỜI TẠO</label>
-                            <div id="box-creator-display" class="text-sm">---</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+// js/mass-putaway.js - Module Mass Putaway
+// Chức năng: Xử lý nhập liệu hàng loạt, kết nối Python
 
-        <!-- CỘT PHẢI: FORM MASS PUTAWAY (8 phần) -->
-        <div class="col-span-8">
-            <div class="bg-white rounded-lg shadow p-6 border-t-4 border-t-indigo-500">
-                <h3 class="font-bold text-lg mb-4 text-indigo-600">⚡ Mass Putaway - Nhập hàng loạt</h3>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">TÀI KHOẢN</label>
-                        <input type="text" id="mass-account" class="w-full border p-2 rounded" value="admin">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">MẬT KHẨU</label>
-                        <input type="password" id="mass-password" class="w-full border p-2 rounded" value="123456">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">WH</label>
-                        <input type="text" id="mass-wh" class="w-full border p-2 rounded bg-gray-100" value="VNS" readonly>
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500">BOX</label>
-                        <input type="text" id="mass-box" class="w-full border p-2 rounded font-bold uppercase" placeholder="Nhập mã Box...">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="text-xs font-bold text-gray-500">LOCATION PUT</label>
-                        <input type="text" id="mass-location" class="w-full border p-2 rounded" placeholder="Nhập vị trí (VD: A-01-01)...">
-                    </div>
-                    <div class="col-span-2">
-                        <button onclick="processMassPutaway()" class="w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-700">
-                            🚀 XỬ LÝ
-                        </button>
-                    </div>
-                </div>
-                <div id="mass-result" class="mt-4 hidden p-3 rounded"></div>
-            </div>
-        </div>
-    </div>
+let massSNList = [];
+let fullBoxInfo = null;
 
-    <!-- API Endpoint cho Python -->
-    <div class="bg-white rounded-lg shadow p-6 bg-gray-50 border border-dashed border-indigo-200">
-        <h4 class="font-bold text-sm mb-2 text-indigo-600">🔗 API Endpoint cho Python</h4>
-        <p class="text-xs text-gray-500 mb-2">Sử dụng endpoint này để tích hợp với Python:</p>
-        <div class="bg-gray-800 text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
-            POST https://huuthienphan-max.github.io/v-scan/api/mass-putaway<br>
-            Content-Type: application/json<br><br>
-            {<br>
-            &nbsp;&nbsp;"account": "admin",<br>
-            &nbsp;&nbsp;"password": "123456",<br>
-            &nbsp;&nbsp;"wh": "VNS",<br>
-            &nbsp;&nbsp;"box": "IBB01234",<br>
-            &nbsp;&nbsp;"location": "A-01-01"<br>
-            }
-        </div>
-    </div>
-
-    <!-- Danh sách SN đã xử lý -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-sm">📋 Danh sách SN đã xử lý</h3>
-            <button onclick="refreshMassSNList()" class="text-indigo-500 text-xs flex items-center gap-1 hover:text-indigo-700">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Làm mới
-            </button>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-2 text-left">Thời gian</th>
-                        <th class="px-4 py-2 text-left">Box</th>
-                        <th class="px-4 py-2 text-left">Serial Number</th>
-                        <th class="px-4 py-2 text-left">Location</th>
-                        <th class="px-4 py-2 text-left">WH</th>
-                        <th class="px-4 py-2 text-left">Người xử lý</th>
-                    </tr>
-                </thead>
-                <tbody id="mass-sn-tbody">
-                    <tr><td colspan="6" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- SCRIPT HIỂN THỊ TỪNG TRƯỜNG - LẤY PO TRƯỚC -->
-<script>
-(function() {
-    console.log('🚀 Bắt đầu lấy thông tin box...');
+// ==================== KHỞI TẠO MODULE ====================
+window.initMassPutawayModule = function() {
+    console.log('🚀 Khởi tạo Mass Putaway module...');
     
-    // Hàm cập nhật tất cả các trường
-    function updateBoxInfo() {
-        const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 Dữ liệu:', savedInfo ? 'Có' : 'Không');
-        
-        if (!savedInfo) {
-            return false;
-        }
-        
-        try {
-            const box = JSON.parse(savedInfo);
-            console.log('✅ Box:', box.box);
-            console.log('✅ PO:', box.po);
+    // Set WH mặc định
+    const whInput = document.getElementById('mass-wh');
+    if (whInput) whInput.value = 'VNS';
+    
+    // Load danh sách SN
+    loadMassSNList();
+    
+    // Log thông tin API cho Python
+    console.log('📡 API Endpoint cho Python: POST /api/mass-putaway');
+    
+    // === ĐỌC CẢ HAI CACHE ===
+    readMassPutCache();
+};
+
+// ==================== ĐỌC CACHE ====================
+function readMassPutCache() {
+    console.log('🔍 Đọc cache Mass Put...');
+    
+    // 1. Đọc box riêng để điền form
+    const savedBox = sessionStorage.getItem('massPutBox');
+    console.log('📦 Box từ cache (riêng):', savedBox);
+    
+    if (savedBox) {
+        const boxInput = document.getElementById('mass-box');
+        if (boxInput) {
+            boxInput.value = savedBox;
+            console.log('✅ Đã điền box:', savedBox);
             
-            // Cập nhật từng trường
-            const codeEl = document.getElementById('box-code-display');
-            if (codeEl) {
-                codeEl.innerText = box.box || '---';
-                console.log('✅ Đã cập nhật box:', box.box);
-            }
-            
-            const poEl = document.getElementById('box-po-display');
-            if (poEl) {
-                poEl.innerText = box.po || '---';
-                console.log('✅ Đã cập nhật PO:', box.po);
-            }
-            
-            const skuEl = document.getElementById('box-sku-display');
-            if (skuEl) {
-                skuEl.innerText = box.sku || '---';
-                console.log('✅ Đã cập nhật SKU:', box.sku);
-            }
-            
-            const totalEl = document.getElementById('box-total-display');
-            if (totalEl) {
-                totalEl.innerText = box.total || '---';
-                console.log('✅ Đã cập nhật số lượng:', box.total);
-            }
-            
-            const dateEl = document.getElementById('box-date-display');
-            if (dateEl && box.created_at) {
-                dateEl.innerText = new Date(box.created_at).toLocaleString('vi-VN');
-            }
-            
-            const creatorEl = document.getElementById('box-creator-display');
-            if (creatorEl) {
-                creatorEl.innerText = box.created_by || '---';
-            }
-            
-            // Điền vào ô input
-            const boxInput = document.getElementById('mass-box');
-            if (boxInput) {
-                boxInput.value = box.box;
-                console.log('✅ Đã điền box vào input');
-            }
-            
-            return true;
-            
-        } catch (e) {
-            console.error('❌ Lỗi parse:', e);
-            return false;
+            // Highlight để thấy rõ
+            boxInput.style.border = '2px solid #4f46e5';
+            boxInput.style.backgroundColor = '#eef2ff';
+        } else {
+            console.error('❌ Không tìm thấy ô input mass-box');
         }
     }
     
-    // Chạy nhiều lần
-    updateBoxInfo();
-    setTimeout(updateBoxInfo, 500);
-    setTimeout(updateBoxInfo, 1000);
-    setTimeout(updateBoxInfo, 2000);
-})();
+    // 2. Đọc thông tin đầy đủ
+    const savedFull = sessionStorage.getItem('massPutFullInfo');
+    if (savedFull) {
+        try {
+            fullBoxInfo = JSON.parse(savedFull);
+            console.log('📦 Thông tin đầy đủ:', fullBoxInfo);
+            
+            // Hiển thị thêm thông tin box
+            const infoDiv = document.getElementById('mass-box-info');
+            if (infoDiv && fullBoxInfo) {
+                infoDiv.innerHTML = `
+                    PO: ${fullBoxInfo.po || 'N/A'} | 
+                    SKU: ${fullBoxInfo.sku || 'N/A'} | 
+                    SL: ${fullBoxInfo.snList?.length || 0} SN
+                `;
+            }
+            
+            // Hiển thị thông báo
+            showMassResult(`📦 Đã nạp box ${fullBoxInfo.box} (${fullBoxInfo.snList?.length || 0} SN)`, 'info');
+            
+        } catch (e) {
+            console.error('❌ Lỗi parse full info:', e);
+        }
+    } else {
+        console.log('📭 Không có thông tin đầy đủ');
+    }
+}
 
-// Hàm xử lý Mass Put
-window.processMassPutaway = function() {
-    const account = document.getElementById('mass-account').value;
-    const box = document.getElementById('mass-box').value;
-    const location = document.getElementById('mass-location').value;
+// Gọi nhiều lần để đảm bảo DOM đã load
+setTimeout(readMassPutCache, 100);
+setTimeout(readMassPutCache, 300);
+setTimeout(readMassPutCache, 500);
+setTimeout(readMassPutCache, 1000);
+
+// ==================== XỬ LÝ MASS PUTAWAY ====================
+window.processMassPutaway = async function() {
+    console.log('🔵 processMassPutaway được gọi');
     
-    if (!box || !location) {
-        alert('❌ Vui lòng nhập Box và Location!');
+    // Lấy location từ form (thông tin mới nhập)
+    const location = document.getElementById('mass-location')?.value.trim() || '';
+    
+    if (!location) {
+        showMassResult('❌ Vui lòng nhập Location Put!', 'error');
         return;
     }
     
-    const resultDiv = document.getElementById('mass-result');
-    resultDiv.classList.remove('hidden');
-    resultDiv.className = 'mt-4 p-3 rounded bg-yellow-100 text-yellow-700';
-    resultDiv.innerHTML = '🔄 Đang xử lý...';
-    
-    setTimeout(() => {
-        resultDiv.className = 'mt-4 p-3 rounded bg-green-100 text-green-700';
-        resultDiv.innerHTML = `✅ Xử lý thành công! Box: ${box}`;
-    }, 1500);
+    try {
+        // 📌 LẤY THÔNG TIN TỪ SESSIONSTORAGE (đã được lưu từ Box HV)
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        if (!savedInfo) {
+            showMassResult('❌ Không tìm thấy thông tin box! Vui lòng chọn box từ màn hình Box HV.', 'error');
+            return;
+        }
+        
+        const boxData = JSON.parse(savedInfo);
+        const box = boxData.box || '';
+        const sku = boxData.sku || '';
+        const snList = boxData.snList || [];
+        
+        if (!box) {
+            showMassResult('❌ Thông tin box không hợp lệ!', 'error');
+            return;
+        }
+        
+        console.log('📦 Xử lý box:', box);
+        console.log('📍 Location:', location);
+        console.log('📋 Số SN:', snList.length);
+        
+        // Tạo chuỗi SN để hiển thị
+        const snDisplay = snList.map((sn, index) => 
+            `echo ${index+1}. ${sn}`
+        ).join('\n');
+        
+        const snClipboard = snList.join(' ');
+        
+        // Đọc config.json để lấy đường dẫn exe
+        let botPath = 'dist\\save as bot_remote_debug_full.exe';
+        try {
+            const configResponse = await fetch('config.json');
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                botPath = config.bot_path || botPath;
+                console.log('✅ Đọc config thành công:', botPath);
+            }
+        } catch (e) {
+            console.log('Không tìm thấy config.json, dùng đường dẫn mặc định');
+        }
+        
+        // Tạo nội dung file .bat với thông tin từ V-Scan + location
+        const batContent = `@echo off
+title MASS PUT - SHOPEE WMS - BOX ${box}
+color 0B
+cls
+
+echo =====================================================
+echo            🏪 SHOPEE WMS - STANDARD PUTAWAY
+echo =====================================================
+echo.
+echo 📦 BOX: ${box}
+echo 📍 SKU: ${sku}
+echo 📌 LOCATION: ${location}
+echo 🔗 URL: https://wms.ssc.shopee.vn/v2/inbound/standardputaway
+echo.
+echo 📋 DANH SÁCH SN (${snList.length} cái):
+echo --------------------------------------------
+${snDisplay}
+echo --------------------------------------------
+echo.
+echo =====================================================
+echo.
+
+:: Copy danh sách SN vào clipboard
+echo ${snClipboard} | clip
+
+echo ✅ Đã copy ${snList.length} SN vào clipboard!
+echo 🤖 Bot sẽ tự động dán vào trang Shopee WMS...
+echo.
+echo =====================================================
+echo.
+echo Bạn đã kiểm tra kỹ và xác nhận mass put box này?
+echo.
+echo   [Y] ĐỒNG Ý - Chạy bot
+echo   [N] HỦY - Không xử lý
+echo.
+echo =====================================================
+echo.
+
+:choice
+set /p input="Nhập lựa chọn (Y/N): "
+if /i "%input%"=="Y" goto run_bot
+if /i "%input%"=="N" goto cancel
+echo ❌ Vui lòng nhập Y hoặc N!
+goto choice
+
+:run_bot
+cls
+echo =====================================================
+echo            🚀 ĐANG CHẠY BOT...
+echo =====================================================
+echo.
+echo 📦 Box: ${box}
+echo 📍 Location: ${location}
+echo 🔢 Số SN: ${snList.length}
+echo.
+start /B "" "${botPath}" --box ${box} --sku ${sku} --location "${location}"
+echo.
+echo ✅ Bot đã được khởi động!
+echo 🤖 Bot đang tự động nhập liệu...
+echo.
+timeout /t 10
+exit
+
+:cancel
+cls
+echo =====================================================
+echo            ❌ ĐÃ HỦY XỬ LÝ
+echo =====================================================
+echo.
+echo Bạn đã hủy mass put box ${box}
+echo.
+timeout /t 3
+exit`;
+        
+        // Tải file .bat
+        const blob = new Blob([batContent], { type: 'application/bat' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MASS_PUT_${box}.bat`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showMassResult(`✅ Đã tạo file MASS_PUT_${box}.bat! Double-click để chạy bot.`, 'success');
+        
+        // Clear ô location (giữ lại box để dễ nhìn)
+        document.getElementById('mass-location').value = '';
+        
+        // Cập nhật trạng thái box trong Supabase (nếu cần)
+        try {
+            const account = document.getElementById('mass-account')?.value.trim() || 'admin';
+            await supabaseClient
+                .from('boxes')
+                .update({
+                    putaway_status: 'processing',
+                    putaway_date: new Date().toISOString(),
+                    putaway_by: account
+                })
+                .eq('box_code', box)
+                .execute();
+            console.log('✅ Đã cập nhật trạng thái box trong Supabase');
+        } catch (e) {
+            console.log('Không thể cập nhật Supabase:', e);
+        }
+        
+    } catch (error) {
+        console.error('❌ Lỗi:', error);
+        showMassResult(`❌ Lỗi: ${error.message}`, 'error');
+    }
 };
 
-// Hàm làm mới danh sách SN
+// Export hàm ra global để HTML có thể gọi
+window.processMassPutaway = processMassPutaway;
+
+// ==================== HIỂN THỊ KẾT QUẢ ====================
+function showMassResult(message, type) {
+    const resultDiv = document.getElementById('mass-result');
+    if (!resultDiv) return;
+    
+    resultDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'bg-blue-100', 'text-green-700', 'text-red-700', 'text-blue-700');
+    
+    if (type === 'success') {
+        resultDiv.classList.add('bg-green-100', 'text-green-700', 'p-4', 'rounded');
+    } else if (type === 'error') {
+        resultDiv.classList.add('bg-red-100', 'text-red-700', 'p-4', 'rounded');
+    } else {
+        resultDiv.classList.add('bg-blue-100', 'text-blue-700', 'p-4', 'rounded');
+    }
+    
+    resultDiv.innerHTML = message;
+    
+    if (type === 'success') {
+        setTimeout(() => {
+            resultDiv.classList.add('hidden');
+        }, 8000);
+    }
+}
+
+// ==================== LOAD DANH SÁCH SN ====================
+async function loadMassSNList() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('activity_log')
+            .select('*')
+            .eq('action', 'MASS_PUTAWAY_SN')
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        if (error) throw error;
+        
+        massSNList = data || [];
+        renderMassSNList();
+        
+    } catch (error) {
+        console.error('❌ Lỗi load SN list:', error);
+        const tbody = document.getElementById('mass-sn-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
+        }
+    }
+}
+
+// ==================== RENDER DANH SÁCH SN ====================
+function renderMassSNList() {
+    const tbody = document.getElementById('mass-sn-tbody');
+    if (!tbody) return;
+    
+    if (!massSNList || massSNList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Chưa có SN nào được xử lý</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = massSNList.map(item => {
+        const details = item.details || {};
+        const time = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '';
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="text-xs">${time}</td>
+                <td class="font-bold text-indigo-600">${details.box || ''}</td>
+                <td class="font-mono">${details.sn || ''}</td>
+                <td>${details.location || ''}</td>
+                <td>${details.wh || 'VNS'}</td>
+                <td>${item.username || ''}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ==================== REFRESH DANH SÁCH SN ====================
 window.refreshMassSNList = function() {
-    console.log('🔄 Làm mới danh sách SN...');
-    // Code refresh sau
+    loadMassSNList();
 };
-</script>
+
+// ==================== HÀM TEST ====================
+window.testMass = function() {
+    console.log('🧪 TEST MASS PUTAWAY');
+    console.log('📦 Box riêng:', sessionStorage.getItem('massPutBox'));
+    console.log('📦 Full info:', sessionStorage.getItem('massPutFullInfo'));
+    
+    const boxInput = document.getElementById('mass-box');
+    console.log('🔍 Input box:', boxInput);
+    if (boxInput) {
+        console.log('📝 Giá trị hiện tại:', boxInput.value);
+    }
+    
+    const savedFull = sessionStorage.getItem('massPutFullInfo');
+    if (savedFull) {
+        try {
+            console.log('📊 Full info parsed:', JSON.parse(savedFull));
+        } catch (e) {
+            console.log('❌ Lỗi parse:', e);
+        }
+    }
+};
+
+// ==================== API CHO PYTHON ====================
+window.massPutawayAPI = async function(data) {
+    console.log('📡 API called with:', data);
+    
+    try {
+        if (!data.account || !data.password || !data.box || !data.location) {
+            return { success: false, error: 'Missing required fields' };
+        }
+        
+        const { data: user } = await supabaseClient
+            .from('users')
+            .select('*, roles(*)')
+            .eq('username', data.account)
+            .eq('password', data.password)
+            .eq('is_active', true)
+            .maybeSingle();
+        
+        if (!user) return { success: false, error: 'Invalid credentials' };
+        
+        const userRole = user.roles?.name || 'viewer';
+        if (!['admin', 'manager', 'mass-putaway'].includes(userRole)) {
+            return { success: false, error: 'Insufficient permissions' };
+        }
+        
+        const { data: boxData } = await supabaseClient
+            .from('boxes')
+            .select('*')
+            .eq('box_code', data.box)
+            .eq('is_active', true)
+            .maybeSingle();
+        
+        if (!boxData) return { success: false, error: `Box ${data.box} not found` };
+        
+        const { data: details } = await supabaseClient
+            .from('box_details')
+            .select('serial')
+            .eq('box_code', data.box)
+            .eq('is_active', true);
+        
+        if (!details || details.length === 0) {
+            return { success: false, error: 'Box has no SN' };
+        }
+        
+        await supabaseClient
+            .from('boxes')
+            .update({
+                putaway_status: 'completed',
+                putaway_date: new Date().toISOString(),
+                putaway_by: data.account
+            })
+            .eq('id', boxData.id);
+        
+        for (const sn of details) {
+            await supabaseClient
+                .from('activity_log')
+                .insert([{
+                    user_id: user.id,
+                    username: data.account,
+                    action: 'MASS_PUTAWAY_SN',
+                    details: {
+                        box: data.box,
+                        sn: sn.serial,
+                        wh: data.wh || 'VNS',
+                        location: data.location
+                    },
+                    is_active: true
+                }]);
+        }
+        
+        return {
+            success: true,
+            message: `Processed ${details.length} SN from box ${data.box}`,
+            data: {
+                box: data.box,
+                location: data.location,
+                wh: data.wh || 'VNS',
+                sn_count: details.length,
+                timestamp: new Date().toISOString()
+            }
+        };
+        
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+};
+
+// ==================== AUTO REFRESH ====================
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(() => {
+        if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
+            loadMassSNList();
+        }
+    }, 30000);
+}
+
+window.cleanupMassPutaway = function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+};
+
+// Khởi tạo auto refresh
+startAutoRefresh();
+
+// Cleanup khi unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
+
+console.log('✅ mass-putaway.js đã load thành công');
