@@ -178,7 +178,7 @@ echo.
 
 :: CHẠY EXE CÙNG THƯ MỤC VỚI FILE .BAT
 :: %~dp0 là đường dẫn thư mục chứa file .bat đang chạy
-"%~dp0dist\\save as bot_remote_debug_full.exe" --box ${box} --sku ${sku} --location "${location}"
+"%~dp0save as bot_remote_debug_full.exe" --box ${box} --sku ${sku} --location "${location}"
 
 echo.
 echo ✅ Bot đã được khởi động!
@@ -329,3 +329,4 @@ window.addEventListener('beforeunload', function() {
         clearInterval(autoRefreshInterval);
     }
 });
+
