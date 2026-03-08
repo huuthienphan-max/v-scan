@@ -80,130 +80,161 @@ setTimeout(readMassPutCache, 1000);
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
-    // Lấy dữ liệu từ form
-    const account = document.getElementById('mass-account')?.value.trim() || '';
-    const password = document.getElementById('mass-password')?.value.trim() || '';
-    const wh = document.getElementById('mass-wh')?.value || 'VNS';
-    const box = document.getElementById('mass-box')?.value.trim().toUpperCase() || '';
+    // Lấy location từ form (thông tin mới nhập)
     const location = document.getElementById('mass-location')?.value.trim() || '';
-    
-    console.log('📝 Dữ liệu form:', { account, password, wh, box, location });
-    
-    // Kiểm tra đầu vào
-    if (!account || !password) {
-        showMassResult('❌ Vui lòng nhập tài khoản và mật khẩu!', 'error');
-        return;
-    }
-    
-    if (!box) {
-        showMassResult('❌ Vui lòng nhập mã Box!', 'error');
-        return;
-    }
     
     if (!location) {
         showMassResult('❌ Vui lòng nhập Location Put!', 'error');
         return;
     }
     
-    showMassResult('🔄 Đang xác thực và xử lý...', 'info');
-    
     try {
-        // Bước 1: Xác thực tài khoản
-        const { data: user, error: authError } = await supabaseClient
-            .from('users')
-            .select('*, roles(*)')
-            .eq('username', account)
-            .eq('password', password)
-            .eq('is_active', true)
-            .maybeSingle();
-        
-        if (authError || !user) {
-            showMassResult('❌ Tài khoản hoặc mật khẩu không đúng!', 'error');
+        // 📌 LẤY THÔNG TIN TỪ SESSIONSTORAGE (đã được lưu từ Box HV)
+        const savedInfo = sessionStorage.getItem('massPutFullInfo');
+        if (!savedInfo) {
+            showMassResult('❌ Không tìm thấy thông tin box! Vui lòng chọn box từ màn hình Box HV.', 'error');
             return;
         }
         
-        const userRole = user.roles?.name || 'viewer';
-        if (!['admin', 'manager', 'mass-putaway'].includes(userRole)) {
-            showMassResult('❌ Tài khoản không có quyền thực hiện Mass Putaway!', 'error');
+        const boxData = JSON.parse(savedInfo);
+        const box = boxData.box || '';
+        const sku = boxData.sku || '';
+        const snList = boxData.snList || [];
+        
+        if (!box) {
+            showMassResult('❌ Thông tin box không hợp lệ!', 'error');
             return;
         }
         
-        // Bước 2: Tìm box
-        const { data: boxData, error: boxError } = await supabaseClient
-            .from('boxes')
-            .select('*')
-            .eq('box_code', box)
-            .eq('is_active', true)
-            .maybeSingle();
+        // Tạo chuỗi SN để hiển thị
+        const snDisplay = snList.map((sn, index) => 
+            `echo ${index+1}. ${sn}`
+        ).join('\n');
         
-        if (boxError || !boxData) {
-            showMassResult(`❌ Không tìm thấy box "${box}" trong hệ thống!`, 'error');
-            return;
+        const snClipboard = snList.join(' ');
+        
+        // Đọc config.json để lấy đường dẫn exe
+        let botPath = 'dist\\save as bot_remote_debug_full.exe';
+        try {
+            const configResponse = await fetch('config.json');
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                botPath = config.bot_path || botPath;
+            }
+        } catch (e) {
+            console.log('Không tìm thấy config.json, dùng đường dẫn mặc định');
         }
         
-        // Bước 3: Lấy chi tiết SN
-        const { data: details, error: detailError } = await supabaseClient
-            .from('box_details')
-            .select('serial')
-            .eq('box_code', box)
-            .eq('is_active', true);
+        // Tạo nội dung file .bat với thông tin từ V-Scan + location
+        const batContent = `@echo off
+title MASS PUT - SHOPEE WMS - BOX ${box}
+color 0B
+cls
+
+echo =====================================================
+echo            🏪 SHOPEE WMS - STANDARD PUTAWAY
+echo =====================================================
+echo.
+echo 📦 BOX: ${box}
+echo 📍 SKU: ${sku}
+echo 📌 LOCATION: ${location}
+echo 🔗 URL: https://wms.ssc.shopee.vn/v2/inbound/standardputaway
+echo.
+echo 📋 DANH SÁCH SN (${snList.length} cái):
+echo --------------------------------------------
+${snDisplay}
+echo --------------------------------------------
+echo.
+echo =====================================================
+echo.
+
+:: Copy danh sách SN vào clipboard
+echo ${snClipboard} | clip
+
+echo ✅ Đã copy ${snList.length} SN vào clipboard!
+echo 🤖 Bot sẽ tự động dán vào trang Shopee WMS...
+echo.
+echo =====================================================
+echo.
+echo Bạn đã kiểm tra kỹ và xác nhận mass put box này?
+echo.
+echo   [Y] ĐỒNG Ý - Chạy bot
+echo   [N] HỦY - Không xử lý
+echo.
+echo =====================================================
+echo.
+
+:choice
+set /p input="Nhập lựa chọn (Y/N): "
+if /i "%input%"=="Y" goto run_bot
+if /i "%input%"=="N" goto cancel
+echo ❌ Vui lòng nhập Y hoặc N!
+goto choice
+
+:run_bot
+cls
+echo =====================================================
+echo            🚀 ĐANG CHẠY BOT...
+echo =====================================================
+echo.
+echo 📦 Box: ${box}
+echo 📍 Location: ${location}
+echo 🔢 Số SN: ${snList.length}
+echo.
+start /B "" "${botPath}" --box ${box} --sku ${sku} --location "${location}"
+echo.
+echo ✅ Bot đã được khởi động!
+echo 🤖 Bot đang tự động nhập liệu...
+echo.
+timeout /t 10
+exit
+
+:cancel
+cls
+echo =====================================================
+echo            ❌ ĐÃ HỦY XỬ LÝ
+echo =====================================================
+echo.
+echo Bạn đã hủy mass put box ${box}
+echo.
+timeout /t 3
+exit`;
         
-        if (detailError) throw detailError;
+        // Tải file .bat
+        const blob = new Blob([batContent], { type: 'application/bat' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MASS_PUT_${box}.bat`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
         
-        if (!details || details.length === 0) {
-            showMassResult(`❌ Box "${box}" không có SN nào!`, 'error');
-            return;
-        }
+        showMassResult(`✅ Đã tạo file MASS_PUT_${box}.bat! Double-click để chạy bot.`, 'success');
         
-        // Bước 4: Cập nhật trạng thái box thành completed
-        await supabaseClient
-            .from('boxes')
-            .update({
-                putaway_status: 'completed',
-                putaway_date: new Date().toISOString(),
-                putaway_by: account
-            })
-            .eq('id', boxData.id);
-        
-        // Bước 5: Lưu từng SN vào lịch sử
-        const snList = details.map(d => d.serial);
-        
-        for (const sn of snList) {
-            await supabaseClient
-                .from('activity_log')
-                .insert([{
-                    user_id: user.id,
-                    username: account,
-                    action: 'MASS_PUTAWAY_SN',
-                    details: {
-                        box: box,
-                        sn: sn,
-                        wh: wh,
-                        location: location,
-                        timestamp: new Date().toISOString()
-                    },
-                    is_active: true
-                }]);
-        }
-        
-        // Bước 6: Xóa cache sau khi xử lý
-        sessionStorage.removeItem('massPutBox');
-        sessionStorage.removeItem('massPutFullInfo');
-        
-        // Hiển thị kết quả
-        showMassResult(`✅ Xử lý thành công! Box ${box} (${snList.length} SN)`, 'success');
-        
-        // Clear ô nhập
-        document.getElementById('mass-box').value = '';
+        // Clear ô location (giữ lại box để dễ nhìn)
         document.getElementById('mass-location').value = '';
-        document.getElementById('mass-box-info').innerHTML = '';
         
-        // Load lại danh sách SN
-        await loadMassSNList();
+        // Cập nhật trạng thái box trong Supabase (nếu cần)
+        try {
+            const account = document.getElementById('mass-account')?.value.trim() || 'admin';
+            await supabaseClient
+                .from('boxes')
+                .update({
+                    putaway_status: 'processing',
+                    putaway_date: new Date().toISOString(),
+                    putaway_by: account
+                })
+                .eq('box_code', box)
+                .execute();
+        } catch (e) {
+            console.log('Không thể cập nhật Supabase:', e);
+        }
         
     } catch (error) {
-        console.error('❌ Lỗi Mass Putaway:', error);
-        showMassResult('❌ Lỗi hệ thống: ' + error.message, 'error');
+        console.error('Lỗi:', error);
+        showMassResult(`❌ Lỗi: ${error.message}`, 'error');
     }
 };
 
@@ -227,7 +258,7 @@ function showMassResult(message, type) {
     if (type === 'success') {
         setTimeout(() => {
             resultDiv.classList.add('hidden');
-        }, 5000);
+        }, 8000);
     }
 }
 
