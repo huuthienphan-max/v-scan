@@ -455,7 +455,26 @@
             </div>
         </div>
     </div>
-
+<!-- Danh mục SN Gốc - Bảng PO tổng hợp (cũ) -->
+<div class="mt-8">
+    <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter mb-4">
+        📊 Tổng hợp theo PO
+    </h3>
+    <div class="card overflow-hidden">
+        <table class="w-full table-vscan">
+            <thead>
+                <tr>
+                    <th>Mã PO</th>
+                    <th class="text-center">Số Model (SKU)</th>
+                    <th class="text-center">Tổng SN</th>
+                    <th class="text-center font-bold text-green-600">Đã quét</th>
+                    <th class="text-right">Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="master-po-tbody"></tbody>
+        </table>
+    </div>
+</div>
     <!-- Modal tạo lô mới -->
     <div id="create-batch-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg w-96 p-6">
@@ -2663,6 +2682,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
