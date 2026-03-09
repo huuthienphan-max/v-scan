@@ -1687,94 +1687,105 @@
         };
 
         function renderBoxHistory(filterKeyword = '') {
-            const tbody = document.getElementById('box-history-tbody');
-            const emptyMsg = document.getElementById('empty-box-msg');
-            
-            if (!tbody) return;
-            
-            if (boxData.length === 0) {
-                if (emptyMsg) emptyMsg.classList.remove('hidden');
-                tbody.innerHTML = '';
-                return;
-            }
+    const tbody = document.getElementById('box-history-tbody');
+    const emptyMsg = document.getElementById('empty-box-msg');
+    
+    if (!tbody) return;
+    
+    if (!boxData || boxData.length === 0) {
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+        tbody.innerHTML = '';
+        return;
+    }
 
-            let filteredData = boxData;
-            if (filterKeyword) {
-                filteredData = boxData.filter(b => 
-                    b.box.toLowerCase().includes(filterKeyword) ||
-                    b.po.toLowerCase().includes(filterKeyword) ||
-                    b.sku.toLowerCase().includes(filterKeyword) ||
-                    (b.user && b.user.toLowerCase().includes(filterKeyword))
-                );
-            }
+    let filteredData = boxData;
+    if (filterKeyword) {
+        filteredData = boxData.filter(b => 
+            b.box.toLowerCase().includes(filterKeyword) ||
+            b.po.toLowerCase().includes(filterKeyword) ||
+            b.sku.toLowerCase().includes(filterKeyword) ||
+            (b.user && b.user.toLowerCase().includes(filterKeyword))
+        );
+    }
 
-            if (filteredData.length === 0) {
-                if (emptyMsg) emptyMsg.classList.remove('hidden');
-                tbody.innerHTML = '';
-                return;
-            }
+    if (filteredData.length === 0) {
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+        tbody.innerHTML = '';
+        return;
+    }
 
-            if (emptyMsg) emptyMsg.classList.add('hidden');
-            
-            const canEdit = ['admin', 'manager'].includes(currentUserRole);
-            
-            tbody.innerHTML = filteredData.map(d => {
-                const date = d.createdAt ? new Date(d.createdAt).toLocaleString('vi-VN') : '';
-                return `<tr>
-                    <td class="font-bold text-orange-600">${d.box}</td>
-                    <td>${d.po}</td>
-                    <td>${d.sku}</td>
-                    <td class="text-center">${d.total || d.serials?.length || 0}</td>
-                    <td>${d.user || 'N/A'}</td>
-                    <td class="text-xs text-gray-500">${date}</td>
-                    <td class="text-right space-x-2">
-                        ${canEdit ? `
-                            <button onclick="editBox('${d.id}', '${d.box}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
-                            <button onclick="softDeleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
-                        ` : `
-                            <span class="text-gray-400 text-xs">(không có quyền)</span>
-                        `}
-                    </td>
-                </tr>`;
-            }).join('');
-        }
+    if (emptyMsg) emptyMsg.classList.add('hidden');
+    
+    // 👉 QUAN TRỌNG: Kiểm tra quyền và hiển thị nút SỬA
+    const canEdit = currentUserRole === 'admin' || currentUserRole === 'manager';
+    console.log('Quyền sửa:', canEdit, 'Role:', currentUserRole);
+    
+    tbody.innerHTML = filteredData.map(d => {
+        const date = d.createdAt ? new Date(d.createdAt).toLocaleString('vi-VN') : '';
+        return `<tr>
+            <td class="font-bold text-orange-600">${d.box || ''}</td>
+            <td>${d.po || ''}</td>
+            <td>${d.sku || ''}</td>
+            <td class="text-center">${d.total || d.serials?.length || 0}</td>
+            <td>${d.user || 'N/A'}</td>
+            <td class="text-xs text-gray-500">${date}</td>
+            <td class="text-right space-x-2">
+                ${canEdit ? `
+                    <button onclick="editBox('${d.id}', '${d.box}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs px-2 py-1 rounded border border-blue-200">SỬA</button>
+                    <button onclick="softDeleteBox('${d.id}')" class="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded border border-red-200">XÓA</button>
+                ` : `
+                    <span class="text-gray-400 text-xs">(không có quyền)</span>
+                `}
+            </td>
+        </tr>`;
+    }).join('');
+}
 
         window.editBox = (id, boxCode) => {
-            if (!['admin', 'manager'].includes(currentUserRole)) {
-                window.notify("Không có quyền sửa!", true);
-                return;
-            }
+    console.log('🔵 editBox được gọi với id:', id, 'boxCode:', boxCode);
+    console.log('currentUserRole:', currentUserRole);
+    
+    if (!['admin', 'manager'].includes(currentUserRole)) {
+        window.notify("Không có quyền sửa!", true);
+        return;
+    }
+    
+    console.log('boxData hiện tại:', boxData);
+    const b = boxData.find(x => x.id == id); // 👈 Dùng == thay vì === để tránh lỗi kiểu dữ liệu
+    console.log('Tìm thấy box:', b);
+    
+    if (!b) {
+        window.notify("Không tìm thấy box!", true);
+        return;
+    }
+    
+    if (confirm(`Chỉnh sửa box: ${b.box}?`)) {
+        editingBoxId = id; 
+        editingBoxCode = b.box;
+        
+        document.getElementById('edit-mode-label').classList.remove('hidden');
+        document.getElementById('editing-box-id').innerText = b.box;
+        
+        switchPage('inbound'); 
+        
+        document.getElementById('sel-po').value = b.po; 
+        document.getElementById('sel-po').dispatchEvent(new Event('change'));
+        
+        setTimeout(() => { 
+            document.getElementById('sel-sku').value = b.sku; 
+            document.getElementById('inp-box').value = b.box; 
             
-            const b = boxData.find(x => x.id === id); 
-            if (!b) return;
+            sessionScans = (b.serials || []).map(s => ({ 
+                sn: s, 
+                time: 'Đã lưu' 
+            })); 
             
-            if (confirm(`Chỉnh sửa box: ${b.box}?`)) {
-                editingBoxId = id; 
-                editingBoxCode = b.box;
-                
-                document.getElementById('edit-mode-label').classList.remove('hidden');
-                document.getElementById('editing-box-id').innerText = b.box;
-                
-                switchPage('inbound'); 
-                
-                document.getElementById('sel-po').value = b.po; 
-                document.getElementById('sel-po').dispatchEvent(new Event('change'));
-                
-                setTimeout(() => { 
-                    document.getElementById('sel-sku').value = b.sku; 
-                    document.getElementById('inp-box').value = b.box; 
-                    
-                    sessionScans = (b.serials || []).map(s => ({ 
-                        sn: s, 
-                        time: 'Đã lưu' 
-                    })); 
-                    
-                    renderScanList(); 
-                    document.getElementById('barcode-scanner').focus();
-                    window.notify(`Đang sửa box: ${b.box} (có ${sessionScans.length} SN)`);
-                }, 300);
-            }
-        };
+            renderScanList(); 
+            document.getElementById('barcode-scanner').focus();
+            window.notify(`Đang sửa box: ${b.box} (có ${sessionScans.length} SN)`);
+        }, 300);
+    }
+};
 
         document.getElementById('btn-export-excel').onclick = () => {
             const data = []; 
@@ -2018,6 +2029,7 @@ async function loadMassPutawayModule() {
 <script src="js/mass-putaway.js"></script> 
 </body>
 </html>
+
 
 
 
