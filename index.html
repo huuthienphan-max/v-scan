@@ -455,26 +455,24 @@
             </div>
         </div>
     </div>
-<!-- Danh mục SN Gốc - Bảng PO tổng hợp (quản lý nhiều PO cùng lúc) -->
+<!-- Danh mục SN Gốc - Bảng PO tổng hợp -->
 <div class="mt-8">
     <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter mb-4">
-        📊 DANH SÁCH PO ĐANG SCAN
+        📊 DANH SÁCH PO CẦN SCAN
     </h3>
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mã PO</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Số Model (SKU)</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Số Model (SKU)</th>
                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tiến độ</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Người scan</th>
                     <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Hành động</th>
                 </tr>
             </thead>
             <tbody id="master-po-tbody" class="divide-y divide-gray-100">
-                <!-- Dữ liệu sẽ được load từ masterData và hiển thị nhiều dòng -->
+                <!-- Dữ liệu sẽ được load từ masterData -->
             </tbody>
         </table>
     </div>
@@ -1775,20 +1773,28 @@ async function saveBox(boxCode, po, sku, serials, user) {
         };
 
         function renderPOSelect() {
-            const pos = [...new Set(masterData.map(x => x.po))].filter(p => p);
-            const select = document.getElementById('sel-po');
-            select.innerHTML = '<option value="">Chọn PO</option>' + pos.map(p => `<option value="${p}">${p}</option>`).join('');
+    const select = document.getElementById('sel-po');
+    if (!select) return;
+    
+    // Lấy danh sách PO từ bảng
+    const poRows = document.querySelectorAll('#master-po-tbody tr');
+    const activePOs = [];
+    
+    poRows.forEach(row => {
+        const poCell = row.querySelector('td:first-child');
+        if (poCell) {
+            activePOs.push(poCell.textContent.trim());
         }
-        
-        document.getElementById('sel-po').onchange = (e) => {
-            const skus = [...new Set(masterData.filter(x => x.po === e.target.value).map(x => x.sku))].filter(s => s);
-            const select = document.getElementById('sel-sku');
-            select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
-            
-            if (sessionScans.length > 0 && !editingBoxId && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
-                forceReset();
-            }
-        };
+    });
+    
+    if (activePOs.length === 0) {
+        select.innerHTML = '<option value="">Không có PO</option>';
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Chọn PO</option>' + 
+        activePOs.map(po => `<option value="${po}">${po}</option>`).join('');
+}
 
         window.searchMasterData = () => {
             const keyword = document.getElementById('search-po').value.toLowerCase();
@@ -1828,50 +1834,36 @@ async function saveBox(boxCode, po, sku, serials, user) {
                 po: po,
                 skus: new Set(),
                 sns: [],
-                scannedBy: new Set() // Theo dõi người scan
+                scannedCount: 0
             };
         }
         poGroups[po].skus.add(item.sku);
         poGroups[po].sns.push(item.serial);
         
-        // Kiểm tra SN đã scan chưa để thêm người scan
         if (allScannedSerials.has(item.serial)) {
-            // Thêm thông tin người scan từ activity_log (cần query riêng)
+            poGroups[po].scannedCount++;
         }
     });
     
     if (Object.keys(poGroups).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Chưa có dữ liệu PO</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Chưa có dữ liệu PO</td></tr>';
         return;
     }
     
-    // Hiển thị tất cả PO (nhiều dòng)
     tbody.innerHTML = Object.values(poGroups).map(group => {
-        const scanned = group.sns.filter(s => allScannedSerials.has(s)).length;
-        const percent = group.sns.length ? Math.round((scanned / group.sns.length) * 100) : 0;
-        
-        // Xác định người scan (có thể nhiều người)
-        const scanners = Array.from(group.scannedBy).join(', ') || 'Chưa có';
+        const total = group.sns.length;
+        const scanned = group.scannedCount;
         
         return `<tr class="hover:bg-gray-50">
             <td class="px-4 py-3 font-bold text-indigo-600">${group.po}</td>
-            <td class="px-4 py-3">${group.skus.size}</td>
-            <td class="px-4 py-3 text-center">${group.sns.length}</td>
-            <td class="px-4 py-3 text-center font-medium ${scanned === group.sns.length ? 'text-green-600' : 'text-orange-600'}">
-                ${scanned}/${group.sns.length}
+            <td class="px-4 py-3 text-center">${group.skus.size}</td>
+            <td class="px-4 py-3 text-center">${total}</td>
+            <td class="px-4 py-3 text-center font-medium ${scanned === total ? 'text-green-600' : 'text-orange-600'}">
+                ${scanned}/${total}
             </td>
-            <td class="px-4 py-3">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-green-600 h-2 rounded-full" style="width: ${percent}%"></div>
-                </div>
-            </td>
-            <td class="px-4 py-3 text-xs">${scanners}</td>
-            <td class="px-4 py-3 text-right space-x-2">
-                <button onclick="scanPO('${group.po}')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-indigo-700">
-                    SCAN
-                </button>
-                <button onclick="viewPODetail('${group.po}')" class="text-blue-600 hover:text-blue-800 text-xs font-medium border border-blue-200 px-3 py-1 rounded">
-                    CHI TIẾT
+            <td class="px-4 py-3 text-right">
+                <button onclick="scanPO('${group.po}')" class="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-indigo-700">
+                    SCAN PO
                 </button>
             </td>
         </tr>`;
@@ -2724,6 +2716,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
