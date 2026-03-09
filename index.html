@@ -406,86 +406,101 @@
             </section>
 
             <!-- Page Admin -->
-            <section id="page-admin" class="hidden space-y-6">
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
-                        <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
-                        <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
-                        <div class="mt-4">
-                            <button onclick="showBackupModal()" class="w-full bg-purple-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-purple-700 transition">Backup dữ liệu</button>
-                        </div>
-                    </div>
-                    <div class="card p-6">
-                        <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
-                        <div class="flex gap-2 mb-4">
-                            <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
-                            <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
-                            <input id="new-fullname" type="text" placeholder="Họ tên" class="flex-1 input-wms">
-                            <select id="new-role" class="input-wms w-24">
-                                <option value="admin">Admin</option>
-                                <option value="manager">Manager</option>
-                                <option value="scanner">Scanner</option>
-                                <option value="viewer">Viewer</option>
-                                <option value="putaway">Putaway HV</option>
-                                <option value="mass-putaway">Mass Putaway</option>
-                            </select>
-                            <button id="btn-add-user" class="btn-shopee px-4 rounded font-bold text-xs">THÊM</button>
-                        </div>
-                        <div id="staff-list" class="divide-y text-sm max-h-[400px] overflow-y-auto"></div>
-                    </div>
+<section id="page-admin" class="hidden space-y-6">
+    <!-- Tab navigation -->
+    <div class="flex border-b bg-white rounded-t-lg px-4">
+        <button onclick="switchAdminTab('users')" id="admin-tab-users" class="px-6 py-3 font-bold text-sm border-b-2 border-transparent hover:text-indigo-600 focus:outline-none">
+            👥 Quản lý nhân viên
+        </button>
+        <button onclick="switchAdminTab('permissions')" id="admin-tab-permissions" class="px-6 py-3 font-bold text-sm border-b-2 border-transparent hover:text-indigo-600 focus:outline-none">
+            🔐 Quản lý quyền
+        </button>
+        <button onclick="switchAdminTab('backup')" id="admin-tab-backup" class="px-6 py-3 font-bold text-sm border-b-2 border-transparent hover:text-indigo-600 focus:outline-none">
+            💾 Backup & Restore
+        </button>
+    </div>
+
+    <!-- Tab: Quản lý nhân viên (giữ nguyên code cũ) -->
+    <div id="admin-users-tab" class="block">
+        <div class="grid grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
+                <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
+                <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
+                <div class="flex gap-2 mb-4">
+                    <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
+                    <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
+                    <input id="new-fullname" type="text" placeholder="Họ tên" class="flex-1 input-wms">
+                    <select id="new-role" class="input-wms w-24">
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="scanner">Scanner</option>
+                        <option value="viewer">Viewer</option>
+                        <option value="mass-putaway">Mass Putaway</option>
+                    </select>
+                    <button id="btn-add-user" class="btn-shopee px-4 rounded font-bold text-xs">THÊM</button>
                 </div>
-            </section>
+                <div id="staff-list" class="divide-y text-sm max-h-[400px] overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Quản lý quyền (MỚI) -->
+    <div id="admin-permissions-tab" class="hidden">
+        <div class="card p-6">
+            <h3 class="font-bold text-sm mb-4">🔐 Cấu hình quyền theo vai trò</h3>
             
-                        <!-- Page Box HV (đổi tên từ putaway) -->
-                <section id="page-box-hv" class="hidden">
-                    <div id="box-hv-container"></div>
-                </section>
-                
-                <!-- Page Mass Putaway (mới) -->
-                <!-- Page Mass Putaway (mới) -->
-            <section id="page-mass-putaway" class="hidden">
-                <div id="mass-putaway-container"></div>
-            </section>
-                        </div>
-    </main>
-        <div id="toast"></div>
-
-    <!-- Detail Modal -->
-    <div id="detail-modal" class="p-4">
-        <div class="modal-content shadow-2xl">
-            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 id="modal-title" class="font-bold uppercase text-sm">Chi tiết</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Vai trò</th>
+                            <th class="px-3 py-2 text-center">Menu truy cập</th>
+                            <th class="px-3 py-2 text-center">Quét SN</th>
+                            <th class="px-3 py-2 text-center">Lưu box</th>
+                            <th class="px-3 py-2 text-center">Sửa box</th>
+                            <th class="px-3 py-2 text-center">Xóa box</th>
+                            <th class="px-3 py-2 text-center">Xuất Excel</th>
+                            <th class="px-3 py-2 text-center">QL nhân viên</th>
+                            <th class="px-3 py-2 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="permissions-tbody">
+                        <tr><td colspan="9" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <div id="modal-body" class="p-0 overflow-y-auto flex-1 max-h-[60vh]"></div>
-            <div class="p-4 border-t flex justify-end bg-gray-50">
-                <button onclick="closeModal()" class="px-6 py-2 bg-gray-200 rounded font-bold text-xs uppercase">Đóng</button>
-            </div>
+            <p class="text-xs text-gray-400 mt-2">✓ Click để chọn nhiều menu (giữ Ctrl)</p>
         </div>
     </div>
 
-    <!-- Backup Modal -->
-    <div id="backup-modal" class="p-4">
-        <div class="modal-content shadow-2xl" style="max-width: 400px;">
-            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="font-bold uppercase text-sm">Backup dữ liệu</h3>
-                <button onclick="closeBackupModal()" class="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-            <div class="p-6">
-                <p class="mb-4">Chọn thời gian backup:</p>
-                <select id="backup-period" class="input-wms mb-4">
-                    <option value="day">1 ngày qua</option>
-                    <option value="week">1 tuần qua</option>
-                    <option value="month">1 tháng qua</option>
-                    <option value="all">Tất cả</option>
-                </select>
-                <button onclick="exportBackup()" class="w-full btn-shopee py-2 rounded text-xs font-bold uppercase mb-2">Xuất backup</button>
-                <button onclick="importBackup()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase">Nhập backup</button>
-                <input type="file" id="backup-file" accept=".json" class="hidden">
+    <!-- Tab: Backup & Restore (MỚI) -->
+    <div id="admin-backup-tab" class="hidden">
+        <div class="card p-6">
+            <h3 class="font-bold text-sm mb-4">💾 Backup & Restore dữ liệu</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <p class="text-sm mb-2">Chọn thời gian backup:</p>
+                    <select id="backup-period" class="input-wms mb-4 w-full">
+                        <option value="day">1 ngày qua</option>
+                        <option value="week">1 tuần qua</option>
+                        <option value="month">1 tháng qua</option>
+                        <option value="all">Tất cả</option>
+                    </select>
+                    <button onclick="exportBackup()" class="w-full btn-shopee py-2 rounded text-xs font-bold uppercase mb-2">📤 Xuất backup</button>
+                </div>
+                <div>
+                    <p class="text-sm mb-2">Khôi phục từ file backup:</p>
+                    <button onclick="importBackup()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase">📥 Nhập backup</button>
+                    <input type="file" id="backup-file" accept=".json" class="hidden">
+                </div>
             </div>
         </div>
     </div>
+</section>
 
     <!-- Edit User Modal -->
     <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -1996,8 +2011,145 @@ async function loadMassPutawayModule() {
     </script>
   
 <script src="js/mass-putaway.js"></script> 
+
+<script>
+// ==================== QUẢN LÝ TAB ADMIN ====================
+window.switchAdminTab = function(tab) {
+    // Ẩn tất cả tab
+    document.getElementById('admin-users-tab').classList.add('hidden');
+    document.getElementById('admin-permissions-tab').classList.add('hidden');
+    document.getElementById('admin-backup-tab').classList.add('hidden');
+    
+    // Bỏ active tất cả nút
+    document.getElementById('admin-tab-users').classList.remove('border-indigo-600', 'text-indigo-600');
+    document.getElementById('admin-tab-permissions').classList.remove('border-indigo-600', 'text-indigo-600');
+    document.getElementById('admin-tab-backup').classList.remove('border-indigo-600', 'text-indigo-600');
+    
+    // Hiện tab được chọn
+    if (tab === 'users') {
+        document.getElementById('admin-users-tab').classList.remove('hidden');
+        document.getElementById('admin-tab-users').classList.add('border-indigo-600', 'text-indigo-600');
+        renderStaffList(); // Load lại danh sách nhân viên
+    } else if (tab === 'permissions') {
+        document.getElementById('admin-permissions-tab').classList.remove('hidden');
+        document.getElementById('admin-tab-permissions').classList.add('border-indigo-600', 'text-indigo-600');
+        loadPermissions(); // Load quyền
+    } else if (tab === 'backup') {
+        document.getElementById('admin-backup-tab').classList.remove('hidden');
+        document.getElementById('admin-tab-backup').classList.add('border-indigo-600', 'text-indigo-600');
+    }
+};
+
+// ==================== QUẢN LÝ QUYỀN ====================
+async function loadPermissions() {
+    const tbody = document.getElementById('permissions-tbody');
+    if (!tbody) return;
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('permissions')
+            .select('*')
+            .order('role_name');
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            // Tạo dữ liệu mẫu nếu chưa có
+            await createDefaultPermissions();
+            return loadPermissions();
+        }
+        
+        tbody.innerHTML = data.map(p => `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="px-3 py-3 font-bold">${p.role_name}</td>
+                <td class="px-3 py-3">
+                    <select multiple size="3" class="w-full text-xs border rounded p-1" id="menu-${p.id}">
+                        <option value="inbound" ${p.menu_access?.includes('inbound') ? 'selected' : ''}>Đối soát SN</option>
+                        <option value="box-hv" ${p.menu_access?.includes('box-hv') ? 'selected' : ''}>Box HV</option>
+                        <option value="mass-putaway" ${p.menu_access?.includes('mass-putaway') ? 'selected' : ''}>Mass Putaway</option>
+                        <option value="data" ${p.menu_access?.includes('data') ? 'selected' : ''}>Dữ liệu hệ thống</option>
+                        <option value="admin" ${p.menu_access?.includes('admin') ? 'selected' : ''}>Quản trị</option>
+                    </select>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="scan-${p.id}" ${p.can_scan ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="save-${p.id}" ${p.can_save_box ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="edit-${p.id}" ${p.can_edit_box ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="delete-${p.id}" ${p.can_delete_box ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="export-${p.id}" ${p.can_export ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <input type="checkbox" class="w-4 h-4" id="manage-${p.id}" ${p.can_manage_users ? 'checked' : ''}>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <button onclick="savePermission(${p.id})" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">
+                        Lưu
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+    } catch (error) {
+        console.error('❌ Lỗi load permissions:', error);
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
+    }
+}
+
+async function createDefaultPermissions() {
+    const defaults = [
+        { role_name: 'admin', menu_access: ['inbound', 'box-hv', 'mass-putaway', 'data', 'admin'], can_scan: true, can_save_box: true, can_edit_box: true, can_delete_box: true, can_export: true, can_manage_users: true },
+        { role_name: 'manager', menu_access: ['inbound', 'box-hv', 'mass-putaway', 'data'], can_scan: true, can_save_box: true, can_edit_box: true, can_delete_box: true, can_export: true, can_manage_users: false },
+        { role_name: 'scanner', menu_access: ['inbound'], can_scan: true, can_save_box: true, can_edit_box: false, can_delete_box: false, can_export: false, can_manage_users: false },
+        { role_name: 'viewer', menu_access: ['data'], can_scan: false, can_save_box: false, can_edit_box: false, can_delete_box: false, can_export: true, can_manage_users: false },
+        { role_name: 'mass-putaway', menu_access: ['mass-putaway'], can_scan: false, can_save_box: false, can_edit_box: false, can_delete_box: false, can_export: false, can_manage_users: false }
+    ];
+    
+    for (const perm of defaults) {
+        await supabaseClient.from('permissions').insert([perm]);
+    }
+}
+
+async function savePermission(id) {
+    try {
+        const menuSelect = document.getElementById(`menu-${id}`);
+        const menuAccess = Array.from(menuSelect.selectedOptions).map(opt => opt.value);
+        
+        const updates = {
+            menu_access: menuAccess,
+            can_scan: document.getElementById(`scan-${id}`).checked,
+            can_save_box: document.getElementById(`save-${id}`).checked,
+            can_edit_box: document.getElementById(`edit-${id}`).checked,
+            can_delete_box: document.getElementById(`delete-${id}`).checked,
+            can_export: document.getElementById(`export-${id}`).checked,
+            can_manage_users: document.getElementById(`manage-${id}`).checked
+        };
+        
+        const { error } = await supabaseClient
+            .from('permissions')
+            .update(updates)
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        window.notify('✅ Cập nhật quyền thành công!');
+    } catch (error) {
+        window.notify('❌ Lỗi: ' + error.message, true);
+    }
+}
+
+// Gọi loadPermissions khi vào tab quyền
+</script>            
 </body>
 </html>
+
 
 
 
