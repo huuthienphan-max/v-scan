@@ -380,29 +380,45 @@
                     </div>
                 </div>
 
-                <!-- Danh mục SN Gốc -->
-                <div id="sub-page-po" class="hidden space-y-4">
-                    <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="search-po" placeholder="🔍 Tìm kiếm PO, SKU, SN..." class="input-wms flex-1">
-                        <button onclick="searchMasterData()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
-                        <button onclick="clearSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
-                    </div>
-                    <div class="card overflow-hidden">
-                        <table class="w-full table-vscan">
-                            <thead>
-                                <tr>
-                                    <th>Mã PO</th>
-                                    <th class="text-center">Số Model (SKU)</th>
-                                    <th class="text-center">Tổng SN</th>
-                                    <th class="text-center font-bold text-green-600">Đã quét</th>
-                                    <th class="text-right">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody id="master-po-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+               <!-- Danh mục SN Gốc -->
+<div id="sub-page-po" class="hidden space-y-4">
+    <div class="flex justify-between items-center">
+        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">
+            📊 DANH SÁCH PO CẦN SCAN
+        </h3>
+        <div class="flex gap-2">
+            <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">
+                📥 Tải file mẫu
+            </button>
+            <button onclick="document.getElementById('master-file').click()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-700">
+                📤 Upload Excel
+            </button>
+            <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
+        </div>
+    </div>
+
+    <!-- Bảng PO -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mã PO</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Số Model</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
+                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="master-po-tbody" class="divide-y divide-gray-100">
+                <tr>
+                    <td colspan="5" class="text-center py-8 text-gray-400">
+                        Đang tải dữ liệu...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
             </section>
             <!-- Page Box HV -->
             <section id="page-box-hv" class="hidden">
@@ -2322,8 +2338,182 @@ window.closeBackupModal = function() {
     document.getElementById('backup-modal').style.display = 'none';
 };
 </script>
+            // ==================== HIỂN THỊ DANH MỤC SN GỐC ====================
+function renderMasterPOList() {
+    const tbody = document.getElementById('master-po-tbody');
+    if (!tbody) return;
+    
+    console.log('📊 masterData:', masterData);
+    
+    if (!masterData || masterData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Chưa có dữ liệu. Vui lòng upload file Excel!</td></tr>';
+        return;
+    }
+    
+    // Nhóm theo PO
+    const poGroups = {};
+    masterData.forEach(item => {
+        const po = item.po;
+        if (!po) return;
+        
+        if (!poGroups[po]) {
+            poGroups[po] = {
+                po: po,
+                skus: new Set(),
+                sns: [],
+                scannedCount: 0
+            };
+        }
+        poGroups[po].skus.add(item.sku);
+        poGroups[po].sns.push(item.serial);
+        
+        // Kiểm tra SN đã scan chưa
+        if (allScannedSerials && allScannedSerials.has(item.serial)) {
+            poGroups[po].scannedCount++;
+        }
+    });
+    
+    if (Object.keys(poGroups).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Không có dữ liệu PO</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = Object.values(poGroups).map(group => {
+        const total = group.sns.length;
+        const scanned = group.scannedCount;
+        const percent = total > 0 ? Math.round((scanned / total) * 100) : 0;
+        
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-bold text-indigo-600">${group.po}</td>
+            <td class="px-4 py-3 text-center">${group.skus.size}</td>
+            <td class="px-4 py-3 text-center">${total}</td>
+            <td class="px-4 py-3 text-center">
+                <div class="flex items-center gap-2">
+                    <span class="${scanned === total ? 'text-green-600' : 'text-orange-600'}">${scanned}/${total}</span>
+                    <div class="w-16 bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-green-600 h-1.5 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-right">
+                <button onclick="viewPODetail('${group.po}')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700 mr-1">
+                    📋 Chi tiết
+                </button>
+                <button onclick="scanPO('${group.po}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700">
+                    🔍 Scan
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ==================== XEM CHI TIẾT PO ====================
+window.viewPODetail = function(poCode) {
+    // Tạo modal nếu chưa có
+    let modal = document.getElementById('po-detail-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'po-detail-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg w-3/4 max-w-4xl max-h-[80vh] overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="font-bold text-lg" id="po-modal-title">Chi tiết PO</h3>
+                    <button onclick="closePODetailModal()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+                </div>
+                <div id="po-modal-body" class="p-4 overflow-y-auto max-h-[60vh]"></div>
+                <div class="p-4 border-t flex justify-end">
+                    <button onclick="closePODetailModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Đóng</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const poSerials = masterData.filter(x => x.po === poCode);
+    const modalBody = document.getElementById('po-modal-body');
+    const modalTitle = document.getElementById('po-modal-title');
+    
+    let html = `<div class="mb-4 p-3 bg-blue-50 rounded">
+        <span class="font-bold">PO: ${poCode}</span> | 
+        <span>Tổng: ${poSerials.length}</span> | 
+        <span>Đã scan: ${poSerials.filter(s => allScannedSerials.has(s.serial)).length}</span>
+    </div>
+    <table class="w-full border">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-3 py-2">STT</th>
+                <th class="px-3 py-2">SKU</th>
+                <th class="px-3 py-2">Serial Number</th>
+                <th class="px-3 py-2">Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    
+    poSerials.forEach((item, index) => {
+        const isScanned = allScannedSerials.has(item.serial);
+        html += `<tr class="border-b">
+            <td class="px-3 py-2">${index + 1}</td>
+            <td class="px-3 py-2">${item.sku}</td>
+            <td class="px-3 py-2 font-mono">${item.serial}</td>
+            <td class="px-3 py-2 text-center">
+                <span class="${isScanned ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} px-2 py-1 rounded text-xs">
+                    ${isScanned ? 'ĐÃ QUÉT' : 'CHƯA QUÉT'}
+                </span>
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    modalBody.innerHTML = html;
+    modalTitle.innerText = `Chi tiết PO: ${poCode}`;
+    modal.style.display = 'flex';
+};
+
+window.closePODetailModal = function() {
+    const modal = document.getElementById('po-detail-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+// ==================== XỬ LÝ UPLOAD FILE ====================
+window.handleMasterFileUpload = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            
+            const formattedData = rows.map(row => ({
+                po: row.PO || row.po || '',
+                sku: row.SKU || row.sku || '',
+                serial: row.SN || row.serial || ''
+            })).filter(item => item.po && item.sku && item.serial);
+            
+            // Lưu vào Supabase
+            const { error } = await supabaseClient
+                .from('master_serials')
+                .insert(formattedData.map(item => ({ ...item, is_active: true })));
+            
+            if (error) throw error;
+            
+            await loadMasterData();
+            window.notify('✅ Đã cập nhật Master Data!');
+            
+        } catch (error) {
+            console.error('Lỗi:', error);
+            window.notify('❌ Lỗi upload file!', true);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
 </body>
 </html>
+
 
 
 
