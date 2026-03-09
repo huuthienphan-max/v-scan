@@ -1770,24 +1770,16 @@ async function saveBox(boxCode, po, sku, serials, user) {
     const select = document.getElementById('sel-po');
     if (!select) return;
     
-    // Lấy danh sách PO từ bảng
-    const poRows = document.querySelectorAll('#master-po-tbody tr');
-    const activePOs = [];
+    // Lấy danh sách PO từ masterData (không lấy từ bảng)
+    const pos = [...new Set(masterData.map(x => x.po))].filter(p => p);
     
-    poRows.forEach(row => {
-        const poCell = row.querySelector('td:first-child');
-        if (poCell) {
-            activePOs.push(poCell.textContent.trim());
-        }
-    });
-    
-    if (activePOs.length === 0) {
+    if (pos.length === 0) {
         select.innerHTML = '<option value="">Không có PO</option>';
         return;
     }
     
     select.innerHTML = '<option value="">Chọn PO</option>' + 
-        activePOs.map(po => `<option value="${po}">${po}</option>`).join('');
+        pos.map(po => `<option value="${po}">${po}</option>`).join('');
 }
 
         window.searchMasterData = () => {
@@ -2710,6 +2702,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
