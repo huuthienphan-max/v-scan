@@ -572,72 +572,98 @@
         };
 
         // ==================== GIỮ ĐĂNG NHẬP ====================
-        async function loadSavedSession() {
-            const savedUser = localStorage.getItem('currentUser');
-            const savedRole = localStorage.getItem('currentUserRole');
-            const savedId = localStorage.getItem('currentUserId');
+async function loadSavedSession() {
+    console.log('1. Bắt đầu loadSavedSession');
+    
+    const savedUser = localStorage.getItem('currentUser');
+    const savedRole = localStorage.getItem('currentUserRole');
+    const savedId = localStorage.getItem('currentUserId');
+    
+    console.log('2. savedUser:', savedUser, 'savedRole:', savedRole, 'savedId:', savedId);
+    
+    if (savedUser && savedRole && savedId) {
+        console.log('3. Có session, đang query user...');
+        
+        const { data: user } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', savedId)
+            .eq('is_active', true)
+            .maybeSingle();
+        
+        console.log('4. user từ DB:', user);
+        
+        if (user) {
+            currentUser = savedUser;
+            currentUserRole = savedRole;
+            currentUserId = savedId;
             
-            if (savedUser && savedRole && savedId) {
-                const { data: user } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', savedId)
-                    .eq('is_active', true)
-                    .maybeSingle();
-                
-                if (user) {
-                    currentUser = savedUser;
-                    currentUserRole = savedRole;
-                    currentUserId = savedId;
-                    
-                    document.getElementById('auth-screen').classList.add('hidden');
-                    document.getElementById('sidebar').classList.remove('hidden');
-                    document.getElementById('main-ui').classList.remove('hidden');
-                    
-                    // Ẩn tất cả menu trước
-                    document.getElementById('admin-only-menu').classList.add('hidden');
-                    document.getElementById('menu-inbound').classList.add('hidden');
-                    document.getElementById('menu-box-hv').classList.add('hidden');
-                    
-                    // Hiển thị menu theo role
-                        if (currentUserRole === 'admin') {
-                            document.getElementById('admin-only-menu').classList.remove('hidden');
-                            document.getElementById('menu-inbound').classList.remove('hidden');
-                            document.getElementById('menu-box-hv').classList.remove('hidden');
-                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
-                        } else if (currentUserRole === 'manager') {
-                            document.getElementById('menu-inbound').classList.remove('hidden');
-                            document.getElementById('menu-box-hv').classList.remove('hidden');
-                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
-                        } else if (currentUserRole === 'scanner') {
-                            document.getElementById('menu-inbound').classList.remove('hidden');
-                        } else if (currentUserRole === 'box-hv') {
-                            document.getElementById('menu-box-hv').classList.remove('hidden');
-                        } else if (currentUserRole === 'mass-putaway') {
-                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
-                        }
-                    
-                    document.getElementById('user-display').innerText = `NV: ${currentUser}`;
-                    document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
-                    
-                    if (currentUserRole === 'putaway') {
-                        document.getElementById('role-display').className = 'role-badge bg-green-100 text-green-700';
-                    } else {
-                        document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
-                    }
-                    
-                    await testConnection();
-                    await loadMasterData();
-                    await loadAllBoxes();
-                    await renderStaffList();
-                    loadSidebarState();
-                    
-                    return true;
-                }
+            console.log('5. currentUserRole được set =', currentUserRole);
+            
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            
+            // Ẩn tất cả menu trước
+            const adminMenu = document.getElementById('admin-only-menu');
+            const menuInbound = document.getElementById('menu-inbound');
+            const menuBoxHv = document.getElementById('menu-box-hv');
+            const menuMassPutaway = document.getElementById('menu-mass-putaway');
+            
+            if (adminMenu) adminMenu.classList.add('hidden');
+            if (menuInbound) menuInbound.classList.add('hidden');
+            if (menuBoxHv) menuBoxHv.classList.add('hidden');
+            if (menuMassPutaway) menuMassPutaway.classList.add('hidden');
+            
+            console.log('6. Đã ẩn menu');
+            console.log('7. currentUserRole =', currentUserRole);
+            
+            // Hiển thị menu theo role
+            if (currentUserRole === 'admin') {
+                console.log('8. Đang hiển thị admin menu');
+                if (adminMenu) adminMenu.classList.remove('hidden');
+                if (menuInbound) menuInbound.classList.remove('hidden');
+                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
+                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
+                console.log('9. Đã hiển thị admin menu');
+            } else if (currentUserRole === 'manager') {
+                console.log('8. Đang hiển thị manager menu');
+                if (menuInbound) menuInbound.classList.remove('hidden');
+                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
+                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
+            } else if (currentUserRole === 'scanner') {
+                console.log('8. Đang hiển thị scanner menu');
+                if (menuInbound) menuInbound.classList.remove('hidden');
+            } else if (currentUserRole === 'box-hv') {
+                console.log('8. Đang hiển thị box-hv menu');
+                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
+            } else if (currentUserRole === 'mass-putaway') {
+                console.log('8. Đang hiển thị mass-putaway menu');
+                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
+            } else {
+                console.log('8. Role không xác định:', currentUserRole);
             }
-            return false;
+            
+            document.getElementById('user-display').innerText = `NV: ${currentUser}`;
+            document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
+            
+            if (currentUserRole === 'putaway') {
+                document.getElementById('role-display').className = 'role-badge bg-green-100 text-green-700';
+            } else {
+                document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
+            }
+            
+            await testConnection();
+            await loadMasterData();
+            await loadAllBoxes();
+            await renderStaffList();
+            loadSidebarState();
+            
+            return true;
         }
-
+    }
+    return false;
+}
         // ==================== REFRESH DATA ====================
         window.refreshData = async function() {
             window.notify('🔄 Đang làm mới dữ liệu...');
@@ -2615,6 +2641,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
