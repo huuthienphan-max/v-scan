@@ -455,23 +455,27 @@
             </div>
         </div>
     </div>
-<!-- Danh mục SN Gốc - Bảng PO tổng hợp (cũ) -->
+<!-- Danh mục SN Gốc - Bảng PO tổng hợp (quản lý nhiều PO cùng lúc) -->
 <div class="mt-8">
     <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter mb-4">
-        📊 Tổng hợp theo PO
+        📊 DANH SÁCH PO ĐANG SCAN
     </h3>
-    <div class="card overflow-hidden">
-        <table class="w-full table-vscan">
-            <thead>
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th>Mã PO</th>
-                    <th class="text-center">Số Model (SKU)</th>
-                    <th class="text-center">Tổng SN</th>
-                    <th class="text-center font-bold text-green-600">Đã quét</th>
-                    <th class="text-right">Hành động</th>
+                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mã PO</th>
+                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Số Model (SKU)</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tiến độ</th>
+                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Người scan</th>
+                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Hành động</th>
                 </tr>
             </thead>
-            <tbody id="master-po-tbody"></tbody>
+            <tbody id="master-po-tbody" class="divide-y divide-gray-100">
+                <!-- Dữ liệu sẽ được load từ masterData và hiển thị nhiều dòng -->
+            </tbody>
         </table>
     </div>
 </div>
@@ -1808,33 +1812,71 @@ async function saveBox(boxCode, po, sku, serials, user) {
         };
 
         function renderMasterPOList(filteredData = null) {
-            const data = filteredData || masterData;
-            const g = {}; 
-            data.forEach(i => { 
-                const p = i.po; 
-                if (!p) return;
-                if (!g[p]) g[p] = {skus: new Set(), sns: []}; 
-                g[p].skus.add(i.sku); 
-                g[p].sns.push(i.serial); 
-            });
-            
-            document.getElementById('master-po-tbody').innerHTML = Object.keys(g).map(p => {
-                const scanned = g[p].sns.filter(s => allScannedSerials.has(s)).length;
-                const percent = Math.round((scanned / g[p].sns.length) * 100);
-                return `<tr>
-                    <td class="font-bold">${p}</td>
-                    <td class="text-center">${g[p].skus.size}</td>
-                    <td class="text-center">${g[p].sns.length}</td>
-                    <td class="text-center font-bold ${scanned === g[p].sns.length ? 'text-green-600' : 'text-orange-600'}">
-                        ${scanned}/${g[p].sns.length} (${percent}%)
-                    </td>
-                    <td class="text-right space-x-2">
-                        <button onclick="scanPO('${p}')" class="btn-scan-po text-white font-bold text-xs uppercase px-3 py-1 rounded">SCAN PO</button>
-                        <button onclick="viewPODetail('${p}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs uppercase px-3 py-1 rounded border border-blue-200">CHI TIẾT</button>
-                    </td>
-                </tr>`;
-            }).join('');
+    const tbody = document.getElementById('master-po-tbody');
+    if (!tbody) return;
+    
+    const data = filteredData || masterData;
+    
+    // Nhóm theo PO
+    const poGroups = {};
+    data.forEach(item => {
+        const po = item.po;
+        if (!po) return;
+        
+        if (!poGroups[po]) {
+            poGroups[po] = {
+                po: po,
+                skus: new Set(),
+                sns: [],
+                scannedBy: new Set() // Theo dõi người scan
+            };
         }
+        poGroups[po].skus.add(item.sku);
+        poGroups[po].sns.push(item.serial);
+        
+        // Kiểm tra SN đã scan chưa để thêm người scan
+        if (allScannedSerials.has(item.serial)) {
+            // Thêm thông tin người scan từ activity_log (cần query riêng)
+        }
+    });
+    
+    if (Object.keys(poGroups).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Chưa có dữ liệu PO</td></tr>';
+        return;
+    }
+    
+    // Hiển thị tất cả PO (nhiều dòng)
+    tbody.innerHTML = Object.values(poGroups).map(group => {
+        const scanned = group.sns.filter(s => allScannedSerials.has(s)).length;
+        const percent = group.sns.length ? Math.round((scanned / group.sns.length) * 100) : 0;
+        
+        // Xác định người scan (có thể nhiều người)
+        const scanners = Array.from(group.scannedBy).join(', ') || 'Chưa có';
+        
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-bold text-indigo-600">${group.po}</td>
+            <td class="px-4 py-3">${group.skus.size}</td>
+            <td class="px-4 py-3 text-center">${group.sns.length}</td>
+            <td class="px-4 py-3 text-center font-medium ${scanned === group.sns.length ? 'text-green-600' : 'text-orange-600'}">
+                ${scanned}/${group.sns.length}
+            </td>
+            <td class="px-4 py-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-600 h-2 rounded-full" style="width: ${percent}%"></div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-xs">${scanners}</td>
+            <td class="px-4 py-3 text-right space-x-2">
+                <button onclick="scanPO('${group.po}')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-indigo-700">
+                    SCAN
+                </button>
+                <button onclick="viewPODetail('${group.po}')" class="text-blue-600 hover:text-blue-800 text-xs font-medium border border-blue-200 px-3 py-1 rounded">
+                    CHI TIẾT
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
 
         window.scanPO = (poCode) => {
             switchPage('inbound');
@@ -2682,6 +2724,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
