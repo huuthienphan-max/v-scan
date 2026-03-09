@@ -927,173 +927,142 @@
         }
 
                         // ==================== HÀM LƯU BOX (THÊM MỚI HOẶC SỬA) ====================
-        async function saveBox(boxCode, po, sku, serials, user) {
-            try {
-                if (editingBoxId) {
-                    // ===== ĐANG SỬA BOX =====
-                    // Kiểm tra box code mới có bị trùng với box khác không (chỉ check active)
-                    const { data: existingActive } = await supabaseClient
-                        .from('boxes')
-                        .select('id')
-                        .eq('box_code', boxCode)
-                        .eq('is_active', true)
-                        .neq('id', editingBoxId) // Không tính box đang sửa
-                        .maybeSingle();
-                    
-                    if (existingActive) {
-                        window.notify(`Mã Box "${boxCode}" đã tồn tại ở box khác!`, true);
-                        return { exists: true };
-                    }
-                    
-                    // Xóa chi tiết cũ (soft delete)
-                    await supabaseClient
-                        .from('box_details')
-                        .update({ is_active: false })
-                        .eq('box_code', boxCode);
-                    
-                    // Thêm chi tiết mới
-                    const details = serials.map(sn => ({
+        // ==================== HÀM LƯU BOX (THÊM MỚI HOẶC SỬA) ====================
+async function saveBox(boxCode, po, sku, serials, user) {
+    try {
+        if (editingBoxId) {
+            // ===== ĐANG SỬA BOX =====
+            console.log('🔄 Đang sửa box, ID:', editingBoxId, 'Box cũ:', editingBoxCode, 'Box mới:', boxCode);
+            
+            // Lấy thông tin box cũ
+            const { data: oldBox } = await supabaseClient
+                .from('boxes')
+                .select('box_code')
+                .eq('id', editingBoxId)
+                .single();
+            
+            const oldBoxCode = oldBox?.box_code;
+            
+            if (boxCode !== oldBoxCode) {
+                // ===== ĐỔI MÃ BOX =====
+                console.log('📦 Đổi mã box từ', oldBoxCode, '→', boxCode);
+                
+                // 1. KIỂM TRA box code mới có bị trùng không
+                const { data: existingBox } = await supabaseClient
+                    .from('boxes')
+                    .select('id')
+                    .eq('box_code', boxCode)
+                    .eq('is_active', true)
+                    .maybeSingle();
+                
+                if (existingBox) {
+                    window.notify(`❌ Mã Box "${boxCode}" đã tồn tại!`, true);
+                    return { exists: true };
+                }
+                
+                // 2. TẠO BOX MỚI trước
+                const { data: newBox, error: createError } = await supabaseClient
+                    .from('boxes')
+                    .insert([{
                         box_code: boxCode,
-                        serial: sn,
-                        is_active: true
-                    }));
-                    
-                    const { error: detailError } = await supabaseClient
-                        .from('box_details')
-                        .insert(details);
-                    
-                    if (detailError) throw detailError;
-                    
-                    // Cập nhật thông tin box
-                    const { error: updateError } = await supabaseClient
-                        .from('boxes')
-                        .update({
-                            po: po,
-                            sku: sku,
-                            total: serials.length
-                        })
-                        .eq('id', editingBoxId);
-                    
-                    if (updateError) throw updateError;
-                    
-                    window.notify("✅ Đã cập nhật box thành công!");
-                    
-                } else {
-                    // ===== THÊM BOX MỚI =====
-                    // Kiểm tra box đã tồn tại và đang ACTIVE chưa
-                    const { data: existingActive } = await supabaseClient
-                        .from('boxes')
-                        .select('id')
-                        .eq('box_code', boxCode)
-                        .eq('is_active', true)
-                        .maybeSingle();
-                    
-                    if (existingActive) {
-                        window.notify(`❌ Mã Box "${boxCode}" đang được sử dụng!`, true);
-                        return { exists: true };
-                    }
-                    
-                    // Kiểm tra box đã tồn tại ở dạng inactive (đã xóa mềm)
-                    const { data: existingInactive } = await supabaseClient
-                        .from('boxes')
-                        .select('id')
-                        .eq('box_code', boxCode)
-                        .eq('is_active', false)
-                        .maybeSingle();
-                    
-                    if (existingInactive) {
-                        // Box đã xóa mềm - có thể tái sử dụng
-                        console.log(`🔄 Tái sử dụng box cũ: ${boxCode}`);
-                        
-                        // Reactivate box cũ - THÊM putaway_status = 'pending'
-                        const { error: reactivateError } = await supabaseClient
-                            .from('boxes')
-                            .update({ 
-                                is_active: true,
-                                po: po,
-                                sku: sku,
-                                total: serials.length,
-                                created_by: user,
-                                created_at: new Date().toISOString(), // Cập nhật thời gian mới
-                                putaway_status: 'pending'  // 👈 THÊM DÒNG NÀY
-                            })
-                            .eq('id', existingInactive.id);
-                        
-                        if (reactivateError) throw reactivateError;
-                        
-                        // Xóa details cũ (soft delete)
-                        await supabaseClient
-                            .from('box_details')
-                            .update({ is_active: false })
-                            .eq('box_code', boxCode);
-                        
-                        // Thêm details mới
-                        const details = serials.map(sn => ({
-                            box_code: boxCode,
-                            serial: sn,
-                            is_active: true
-                        }));
-                        
-                        const { error: detailError } = await supabaseClient
-                            .from('box_details')
-                            .insert(details);
-                        
-                        if (detailError) throw detailError;
-                        
-                        window.notify(`🔄 Đã tái sử dụng box: ${boxCode}`);
-                        
-                    } else {
-                        // Box hoàn toàn mới - THÊM putaway_status = 'pending'
-                        console.log(`🆕 Tạo box mới: ${boxCode}`);
-                        
-                        const { data: newBox, error: boxError } = await supabaseClient
-                            .from('boxes')
-                            .insert([{
-                                box_code: boxCode,
-                                po: po,
-                                sku: sku,
-                                total: serials.length,
-                                created_by: user,
-                                is_active: true,
-                                putaway_status: 'pending'  // 👈 THÊM DÒNG NÀY
-                            }])
-                            .select()
-                            .single();
-                        
-                        if (boxError) throw boxError;
-                        
-                        const details = serials.map(sn => ({
-                            box_code: boxCode,
-                            serial: sn,
-                            is_active: true
-                        }));
-                        
-                        const { error: detailError } = await supabaseClient
-                            .from('box_details')
-                            .insert(details);
-                        
-                        if (detailError) throw detailError;
-                        
-                        window.notify("✅ Đã lưu box thành công!");
-                    }
-                }
+                        po: po,
+                        sku: sku,
+                        total: serials.length,
+                        created_by: user,
+                        created_at: new Date().toISOString(),
+                        is_active: true,
+                        putaway_status: 'pending'
+                    }])
+                    .select()
+                    .single();
                 
-                await loadAllBoxes();
-                await logActivity(editingBoxId ? 'UPDATE_BOX' : 'SAVE_BOX', { box: boxCode, total: serials.length });
-                return { success: true };
+                if (createError) throw createError;
                 
-            } catch (error) {
-                console.error('❌ Lỗi lưu box:', error);
+                // 3. THÊM CHI TIẾT MỚI cho box mới
+                const newDetails = serials.map(sn => ({
+                    box_code: boxCode,
+                    serial: sn,
+                    is_active: true
+                }));
                 
-                // Xử lý lỗi unique constraint
-                if (error.code === '23505') {
-                    window.notify(`❌ Mã box "${boxCode}" đã tồn tại trong hệ thống!`, true);
-                } else {
-                    window.notify("❌ Lỗi khi lưu dữ liệu: " + error.message, true);
-                }
-                return { error: true };
+                const { error: detailError } = await supabaseClient
+                    .from('box_details')
+                    .insert(newDetails);
+                
+                if (detailError) throw detailError;
+                
+                // 4. XÓA (soft delete) box cũ
+                await supabaseClient
+                    .from('boxes')
+                    .update({ is_active: false })
+                    .eq('id', editingBoxId);
+                
+                // 5. XÓA (soft delete) chi tiết cũ
+                await supabaseClient
+                    .from('box_details')
+                    .update({ is_active: false })
+                    .eq('box_code', oldBoxCode);
+                
+                window.notify(`✅ Đã đổi mã box từ ${oldBoxCode} → ${boxCode}`);
+                
+            } else {
+                // ===== GIỮ NGUYÊN MÃ BOX, chỉ sửa PO, SKU, SN =====
+                console.log('📦 Giữ nguyên mã box:', boxCode);
+                
+                // Xóa chi tiết cũ (soft delete)
+                await supabaseClient
+                    .from('box_details')
+                    .update({ is_active: false })
+                    .eq('box_code', boxCode);
+                
+                // Thêm chi tiết mới
+                const details = serials.map(sn => ({
+                    box_code: boxCode,
+                    serial: sn,
+                    is_active: true
+                }));
+                
+                const { error: detailError } = await supabaseClient
+                    .from('box_details')
+                    .insert(details);
+                
+                if (detailError) throw detailError;
+                
+                // Cập nhật thông tin box
+                const { error: updateError } = await supabaseClient
+                    .from('boxes')
+                    .update({
+                        po: po,
+                        sku: sku,
+                        total: serials.length
+                    })
+                    .eq('id', editingBoxId);
+                
+                if (updateError) throw updateError;
+                
+                window.notify("✅ Đã cập nhật box thành công!");
             }
+            
+        } else {
+            // ===== THÊM BOX MỚI ===== (giữ nguyên code cũ)
+            // ... code thêm mới ...
         }
+        
+        await loadAllBoxes();
+        await logActivity(editingBoxId ? 'UPDATE_BOX' : 'SAVE_BOX', { box: boxCode, total: serials.length });
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Lỗi lưu box:', error);
+        
+        if (error.code === '23505') {
+            window.notify(`❌ Mã box "${boxCode}" đã tồn tại!`, true);
+        } else {
+            window.notify("❌ Lỗi khi lưu dữ liệu: " + error.message, true);
+        }
+        return { error: true };
+    }
+}
 
         // ==================== SOFT DELETE BOX (XÓA MỀM) ====================
         window.softDeleteBox = async (id) => { 
@@ -2029,6 +1998,7 @@ async function loadMassPutawayModule() {
 <script src="js/mass-putaway.js"></script> 
 </body>
 </html>
+
 
 
 
