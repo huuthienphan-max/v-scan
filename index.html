@@ -881,28 +881,24 @@
             }
         }
 
-        async function saveMasterData(data) {
-            try {
-                await supabaseClient
-                    .from('master_serials')
-                    .update({ is_active: false })
-                    .eq('is_active', true);
-                
-                const { error } = await supabaseClient
-                    .from('master_serials')
-                    .insert(data.map(item => ({ ...item, is_active: true })));
-                
-                if (error) throw error;
-                
-                await loadMasterData();
-                await logActivity('UPDATE_MASTER_DATA', { count: data.length });
-                
-                return true;
-            } catch (error) {
-                console.error('Lỗi lưu master data:', error);
-                return false;
-            }
-        }
+        aasync function saveMasterData(data) {
+    try {
+      
+        const { error } = await supabaseClient
+            .from('master_serials')
+            .insert(data.map(item => ({ ...item, is_active: true })));
+        
+        if (error) throw error;
+        
+        await loadMasterData();
+        await logActivity('UPDATE_MASTER_DATA', { count: data.length });
+        
+        return true;
+    } catch (error) {
+        console.error('Lỗi lưu master data:', error);
+        return false;
+    }
+}
 
         // ==================== BOX FUNCTIONS ====================
         async function loadAllBoxes() {
@@ -1250,12 +1246,16 @@ async function saveBox(boxCode, po, sku, serials, user) {
         }
 
         window.notify = (msg, isError = false) => { 
-            const t = document.getElementById('toast'); 
-            t.innerText = msg; 
-            t.style.backgroundColor = isError ? '#dc2626' : '#333';
-            t.style.display = 'block'; 
-            setTimeout(() => t.style.display = 'none', 3000); 
-        };
+    const t = document.getElementById('toast'); 
+    if (!t) {
+        console.log('Toast message:', msg); // Log ra console nếu không có toast
+        return;
+    }
+    t.innerText = msg; 
+    t.style.backgroundColor = isError ? '#dc2626' : '#333';
+    t.style.display = 'block'; 
+    setTimeout(() => t.style.display = 'none', 3000); 
+};
                 // ==================== LOGIN ====================
         document.getElementById('btn-do-login').onclick = async () => {
             const u = document.getElementById('login-user').value;
@@ -2324,6 +2324,7 @@ window.closeBackupModal = function() {
 </script>
 </body>
 </html>
+
 
 
 
