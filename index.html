@@ -384,7 +384,26 @@
                             <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
                         </div>
                     </div>
+                <div id="sub-page-po" class="hidden space-y-4">
+    <div class="flex justify-between items-center">
+        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">📊 DANH SÁCH PO CẦN SCAN</h3>
+        <div class="flex gap-2">
+            <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">📥 Tải file mẫu</button>
+            <button onclick="document.getElementById('master-file').click()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-700">📤 Upload Excel</button>
+            <button onclick="confirmDeleteAllData()" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700">🗑️ Xóa tất cả</button>
+            <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
+        </div>
+    </div>
 
+    <!-- Thêm progress bar -->
+    <div id="upload-progress" class="hidden mt-2">
+        <div class="flex items-center gap-2">
+            <div class="flex-1 bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+            </div>
+            <span id="progress-text" class="text-xs text-gray-600">0%</span>
+        </div>
+    </div>
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <table class="w-full">
                             <thead class="bg-gray-50">
@@ -1106,35 +1125,104 @@
             setTimeout(() => document.getElementById('barcode-scanner').focus(), 100);
         };
 
-        window.handleMasterFileUpload = async function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+       window.handleMasterFileUpload = async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Hiện progress bar
+    const progressDiv = document.getElementById('upload-progress');
+    if (progressDiv) progressDiv.classList.remove('hidden');
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
             
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet);
-                    
-                    const formattedData = rows.map(row => ({
-                        po: row.PO || row.po || '',
-                        sku: row.SKU || row.sku || '',
-                        serial: row.SN || row.serial || ''
-                    })).filter(item => item.po && item.sku && item.serial);
-                    
-                    const { error } = await supabaseClient.from('master_serials').insert(formattedData.map(item => ({ ...item, is_active: true })));
-                    if (error) throw error;
-                    
-                    await loadMasterData();
-                    window.notify('✅ Đã cập nhật Master Data!');
-                } catch (error) {
-                    window.notify('❌ Lỗi upload file!', true);
+            const formattedData = rows.map(row => ({
+                po: row.PO || row.po || '',
+                sku: row.SKU || row.sku || '',
+                serial: row.SN || row.serial || ''
+            })).filter(item => item.po && item.sku && item.serial);
+            
+            if (formattedData.length === 0) {
+                window.notify('❌ Không có dữ liệu hợp lệ!', true);
+                if (progressDiv) progressDiv.classList.add('hidden');
+                return;
+            }
+            
+            // Kiểm tra nếu có dữ liệu cũ
+            if (masterData.length > 0) {
+                if (!confirm(`⚠️ Dữ liệu cũ (${masterData.length} SN) sẽ bị XÓA. Thay thế bằng dữ liệu mới (${formattedData.length} SN)?`)) {
+                    if (progressDiv) progressDiv.classList.add('hidden');
+                    event.target.value = '';
+                    return;
                 }
-            };
-            reader.readAsArrayBuffer(file);
-        };
+            }
+            
+            window.notify(`🔄 Đang xóa dữ liệu cũ...`);
+            
+            // XÓA dữ liệu cũ
+            await supabaseClient
+                .from('master_serials')
+                .delete()
+                .neq('id', 0);
+            
+            // THÊM dữ liệu mới (theo batch)
+            window.notify(`🔄 Đang thêm ${formattedData.length} SN mới...`);
+            
+            const BATCH_SIZE = 500;
+            let successCount = 0;
+            
+            for (let i = 0; i < formattedData.length; i += BATCH_SIZE) {
+                const batch = formattedData.slice(i, i + BATCH_SIZE).map(item => ({
+                    po: item.po,
+                    sku: item.sku,
+                    serial: item.serial,
+                    is_active: true
+                }));
+                
+                const { error } = await supabaseClient
+                    .from('master_serials')
+                    .insert(batch);
+                
+                if (error) throw error;
+                
+                successCount += batch.length;
+                const percent = Math.round((successCount / formattedData.length) * 100);
+                
+                // Cập nhật progress bar
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.innerText = percent + '%';
+            }
+            
+            // Load lại dữ liệu
+            await loadMasterData();
+            window.notify(`✅ Đã cập nhật ${formattedData.length} SN mới!`);
+            
+            // Reset input file
+            event.target.value = '';
+            
+        } catch (error) {
+            console.error('Lỗi:', error);
+            window.notify('❌ Lỗi: ' + error.message, true);
+        } finally {
+            // Ẩn progress bar sau 2 giây
+            setTimeout(() => {
+                if (progressDiv) progressDiv.classList.add('hidden');
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                if (progressBar) progressBar.style.width = '0%';
+                if (progressText) progressText.innerText = '0%';
+            }, 2000);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
 
         window.downloadSampleFile = () => {
             const ws = XLSX.utils.aoa_to_sheet([["PO", "SKU", "SN"], ["PO_001", "MODEL_X", "SN_001"]]);
@@ -1665,7 +1753,84 @@
                 container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
             }
         }
+            // ==================== XÓA TẤT CẢ DỮ LIỆU MASTER ====================
+window.confirmDeleteAllData = function() {
+    if (!['admin', 'manager'].includes(currentUserRole)) {
+        window.notify('❌ Bạn không có quyền xóa dữ liệu!', true);
+        return;
+    }
+    
+    const count = masterData.length;
+    if (count === 0) {
+        window.notify('📭 Không có dữ liệu để xóa');
+        return;
+    }
+    
+    if (confirm(`⚠️ Bạn có chắc chắn muốn xóa TOÀN BỘ ${count} SN không?\nHành động này không thể hoàn tác!`)) {
+        deleteAllMasterData();
+    }
+};
 
+async function deleteAllMasterData() {
+    try {
+        window.notify('🔄 Đang xóa dữ liệu...');
+        
+        // Xóa cứng (xóa vĩnh viễn)
+        const { error } = await supabaseClient
+            .from('master_serials')
+            .delete()
+            .neq('id', 0);
+        
+        if (error) throw error;
+        
+        // Cập nhật lại dữ liệu
+        masterData = [];
+        localStorage.removeItem('masterData');
+        
+        // Render lại giao diện
+        renderPOSelect();
+        renderMasterPOList();
+        
+        window.notify('✅ Đã xóa toàn bộ dữ liệu thành công!');
+        
+    } catch (error) {
+        console.error('Lỗi xóa dữ liệu:', error);
+        window.notify('❌ Lỗi khi xóa dữ liệu: ' + error.message, true);
+    }
+}
+
+// ==================== XÓA THEO PO (Tùy chọn) ====================
+window.confirmDeletePO = function(poCode) {
+    if (!['admin', 'manager'].includes(currentUserRole)) {
+        window.notify('❌ Bạn không có quyền xóa!', true);
+        return;
+    }
+    
+    const count = masterData.filter(item => item.po === poCode).length;
+    
+    if (confirm(`⚠️ Xóa PO ${poCode} (${count} SN)?`)) {
+        deletePO(poCode);
+    }
+};
+
+async function deletePO(poCode) {
+    try {
+        window.notify(`🔄 Đang xóa PO ${poCode}...`);
+        
+        const { error } = await supabaseClient
+            .from('master_serials')
+            .delete()
+            .eq('po', poCode);
+        
+        if (error) throw error;
+        
+        await loadMasterData();
+        window.notify(`✅ Đã xóa PO ${poCode} thành công!`);
+        
+    } catch (error) {
+        window.notify('❌ Lỗi: ' + error.message, true);
+    }
+}
         // ==================== INIT ====================
         window.onload = async function() {
             const hasSession = await loadSavedSession();
@@ -1676,3 +1841,4 @@
     </script>
 </body>
 </html>
+
