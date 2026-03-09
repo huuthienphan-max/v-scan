@@ -380,48 +380,32 @@
                     </div>
                 </div>
 
-        <!-- Danh mục SN Gốc - CHỈ GIỮ BẢNG PO -->
-<div id="sub-page-po" class="hidden space-y-4">
-    <div class="flex justify-between items-center">
-        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">
-            📊 DANH SÁCH PO CẦN SCAN
-        </h3>
-        <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">
-            📥 Tải file mẫu
-        </button>
-        <input type="file" id="master-file" accept=".xlsx" class="hidden">
-    </div>
-
-    <!-- Bảng PO -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mã PO</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Số Model (SKU)</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
-                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Hành động</th>
-                </tr>
-            </thead>
-            <tbody id="master-po-tbody" class="divide-y divide-gray-100">
-                <!-- Hiển thị nhiều PO từ masterData -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-    
-    <!-- Page Box HV -->
-            <section id="page-box-hv" class="hidden">
-                <div id="box-hv-container"></div>
+                <!-- Danh mục SN Gốc -->
+                <div id="sub-page-po" class="hidden space-y-4">
+                    <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="search-po" placeholder="🔍 Tìm kiếm PO, SKU, SN..." class="input-wms flex-1">
+                        <button onclick="searchMasterData()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
+                        <button onclick="clearSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
+                    </div>
+                    <div class="card overflow-hidden">
+                        <table class="w-full table-vscan">
+                            <thead>
+                                <tr>
+                                    <th>Mã PO</th>
+                                    <th class="text-center">Số Model (SKU)</th>
+                                    <th class="text-center">Tổng SN</th>
+                                    <th class="text-center font-bold text-green-600">Đã quét</th>
+                                    <th class="text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-po-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
-            
-            <!-- Page Mass Putaway -->
-            <section id="page-mass-putaway" class="hidden">
-                <div id="mass-putaway-container"></div>
-            </section>
-   <!-- Page Admin -->
+
+            <!-- Page Admin -->
 <section id="page-admin" class="hidden space-y-6">
     <!-- Tab navigation -->
     <div class="flex border-b bg-white rounded-t-lg px-4">
@@ -434,16 +418,18 @@
         <button onclick="switchAdminTab('backup')" id="admin-tab-backup" class="px-6 py-3 font-bold text-sm border-b-2 border-transparent hover:text-indigo-600 focus:outline-none">
             💾 Backup & Restore
         </button>
-        <button onclick="switchAdminTab('master')" id="admin-tab-master" class="px-6 py-3 font-bold text-sm border-b-2 border-transparent hover:text-indigo-600 focus:outline-none">
-            📥 Master Data
-        </button>
     </div>
 
-    <!-- Tab: Quản lý nhân viên -->
+    <!-- Tab: Quản lý nhân viên (giữ nguyên code cũ) -->
     <div id="admin-users-tab" class="block">
         <div class="grid grid-cols-2 gap-6">
             <div class="card p-6">
-                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">👥 Quản lý nhân viên</h3>
+                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Cập nhật Master Data</h3>
+                <button onclick="downloadSampleFile()" class="mb-4 w-full bg-blue-600 text-white py-2 rounded text-[11px] font-bold uppercase hover:bg-blue-700 transition">Tải Form Mẫu Excel</button>
+                <input type="file" id="master-file" accept=".xlsx" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700">
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">Quản lý nhân viên</h3>
                 <div class="flex gap-2 mb-4">
                     <input id="new-user" type="text" placeholder="Username" class="flex-1 input-wms">
                     <input id="new-pass" type="password" placeholder="Password" class="flex-1 input-wms">
@@ -459,14 +445,10 @@
                 </div>
                 <div id="staff-list" class="divide-y text-sm max-h-[400px] overflow-y-auto"></div>
             </div>
-            <div class="card p-6">
-                <h3 class="font-bold text-xs uppercase mb-4 border-b pb-2 text-gray-600">⚙️ Cài đặt khác</h3>
-                <p class="text-sm text-gray-500">Các cài đặt hệ thống khác</p>
-            </div>
         </div>
     </div>
 
-    <!-- Tab: Quản lý quyền -->
+    <!-- Tab: Quản lý quyền (MỚI) -->
     <div id="admin-permissions-tab" class="hidden">
         <div class="card p-6">
             <h3 class="font-bold text-sm mb-4">🔐 Cấu hình quyền theo vai trò</h3>
@@ -495,7 +477,7 @@
         </div>
     </div>
 
-    <!-- Tab: Backup & Restore -->
+    <!-- Tab: Backup & Restore (MỚI) -->
     <div id="admin-backup-tab" class="hidden">
         <div class="card p-6">
             <h3 class="font-bold text-sm mb-4">💾 Backup & Restore dữ liệu</h3>
@@ -514,44 +496,6 @@
                     <p class="text-sm mb-2">Khôi phục từ file backup:</p>
                     <button onclick="importBackup()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase">📥 Nhập backup</button>
                     <input type="file" id="backup-file" accept=".json" class="hidden">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab: Master Data (Upload file) -->
-    <div id="admin-master-tab" class="hidden">
-        <div class="card p-6">
-            <h3 class="font-bold text-sm mb-4">📥 Cập nhật Master Data</h3>
-            
-            <div class="grid grid-cols-2 gap-6">
-                <div>
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Tải file mẫu để biết cấu trúc:</p>
-                        <button onclick="downloadSampleFile()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase hover:bg-blue-700 transition">
-                            📥 Tải file mẫu
-                        </button>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Upload file Excel (cột: PO, SKU, SN):</p>
-                        <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
-                        <button onclick="document.getElementById('master-file').click()" class="w-full bg-green-600 text-white py-3 rounded text-xs font-bold uppercase hover:bg-green-700 transition">
-                            📤 Chọn file Excel
-                        </button>
-                    </div>
-                    
-                    <div id="upload-status" class="mt-3 text-xs hidden"></div>
-                </div>
-                
-                <div class="bg-yellow-50 p-4 rounded">
-                    <h4 class="font-bold text-sm mb-2">⚠️ Hướng dẫn:</h4>
-                    <ul class="text-xs text-gray-600 space-y-1 list-disc pl-4">
-                        <li>File Excel cần có các cột: PO, SKU, SN</li>
-                        <li>Dữ liệu cũ sẽ được thay thế hoàn toàn</li>
-                        <li>Định dạng file: .xlsx</li>
-                        <li>Dung lượng tối đa: 10MB</li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -611,98 +555,72 @@
         };
 
         // ==================== GIỮ ĐĂNG NHẬP ====================
-async function loadSavedSession() {
-    console.log('1. Bắt đầu loadSavedSession');
-    
-    const savedUser = localStorage.getItem('currentUser');
-    const savedRole = localStorage.getItem('currentUserRole');
-    const savedId = localStorage.getItem('currentUserId');
-    
-    console.log('2. savedUser:', savedUser, 'savedRole:', savedRole, 'savedId:', savedId);
-    
-    if (savedUser && savedRole && savedId) {
-        console.log('3. Có session, đang query user...');
-        
-        const { data: user } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', savedId)
-            .eq('is_active', true)
-            .maybeSingle();
-        
-        console.log('4. user từ DB:', user);
-        
-        if (user) {
-            currentUser = savedUser;
-            currentUserRole = savedRole;
-            currentUserId = savedId;
+        async function loadSavedSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedRole = localStorage.getItem('currentUserRole');
+            const savedId = localStorage.getItem('currentUserId');
             
-            console.log('5. currentUserRole được set =', currentUserRole);
-            
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('main-ui').classList.remove('hidden');
-            
-            // Ẩn tất cả menu trước
-            const adminMenu = document.getElementById('admin-only-menu');
-            const menuInbound = document.getElementById('menu-inbound');
-            const menuBoxHv = document.getElementById('menu-box-hv');
-            const menuMassPutaway = document.getElementById('menu-mass-putaway');
-            
-            if (adminMenu) adminMenu.classList.add('hidden');
-            if (menuInbound) menuInbound.classList.add('hidden');
-            if (menuBoxHv) menuBoxHv.classList.add('hidden');
-            if (menuMassPutaway) menuMassPutaway.classList.add('hidden');
-            
-            console.log('6. Đã ẩn menu');
-            console.log('7. currentUserRole =', currentUserRole);
-            
-            // Hiển thị menu theo role
-            if (currentUserRole === 'admin') {
-                console.log('8. Đang hiển thị admin menu');
-                if (adminMenu) adminMenu.classList.remove('hidden');
-                if (menuInbound) menuInbound.classList.remove('hidden');
-                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
-                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
-                console.log('9. Đã hiển thị admin menu');
-            } else if (currentUserRole === 'manager') {
-                console.log('8. Đang hiển thị manager menu');
-                if (menuInbound) menuInbound.classList.remove('hidden');
-                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
-                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
-            } else if (currentUserRole === 'scanner') {
-                console.log('8. Đang hiển thị scanner menu');
-                if (menuInbound) menuInbound.classList.remove('hidden');
-            } else if (currentUserRole === 'box-hv') {
-                console.log('8. Đang hiển thị box-hv menu');
-                if (menuBoxHv) menuBoxHv.classList.remove('hidden');
-            } else if (currentUserRole === 'mass-putaway') {
-                console.log('8. Đang hiển thị mass-putaway menu');
-                if (menuMassPutaway) menuMassPutaway.classList.remove('hidden');
-            } else {
-                console.log('8. Role không xác định:', currentUserRole);
+            if (savedUser && savedRole && savedId) {
+                const { data: user } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', savedId)
+                    .eq('is_active', true)
+                    .maybeSingle();
+                
+                if (user) {
+                    currentUser = savedUser;
+                    currentUserRole = savedRole;
+                    currentUserId = savedId;
+                    
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-ui').classList.remove('hidden');
+                    
+                    // Ẩn tất cả menu trước
+                    document.getElementById('admin-only-menu').classList.add('hidden');
+                    document.getElementById('menu-inbound').classList.add('hidden');
+                    document.getElementById('menu-box-hv').classList.add('hidden');
+                    
+                    // Hiển thị menu theo role
+                        if (currentUserRole === 'admin') {
+                            document.getElementById('admin-only-menu').classList.remove('hidden');
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        } else if (currentUserRole === 'manager') {
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        } else if (currentUserRole === 'scanner') {
+                            document.getElementById('menu-inbound').classList.remove('hidden');
+                        } else if (currentUserRole === 'box-hv') {
+                            document.getElementById('menu-box-hv').classList.remove('hidden');
+                        } else if (currentUserRole === 'mass-putaway') {
+                            document.getElementById('menu-mass-putaway').classList.remove('hidden');
+                        }
+                    
+                    document.getElementById('user-display').innerText = `NV: ${currentUser}`;
+                    document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
+                    
+                    if (currentUserRole === 'putaway') {
+                        document.getElementById('role-display').className = 'role-badge bg-green-100 text-green-700';
+                    } else {
+                        document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
+                    }
+                    
+                    await testConnection();
+                    await loadMasterData();
+                    await loadAllBoxes();
+                    await renderStaffList();
+                    loadSidebarState();
+                    
+                    return true;
+                }
             }
-            
-            document.getElementById('user-display').innerText = `NV: ${currentUser}`;
-            document.getElementById('role-display').innerText = currentUserRole.toUpperCase();
-            
-            if (currentUserRole === 'putaway') {
-                document.getElementById('role-display').className = 'role-badge bg-green-100 text-green-700';
-            } else {
-                document.getElementById('role-display').className = `role-badge role-${currentUserRole}`;
-            }
-            
-            await testConnection();
-            await loadMasterData();
-            await loadAllBoxes();
-            await renderStaffList();
-            loadSidebarState();
-            
-            return true;
+            return false;
         }
-    }
-    return false;
-}
+
         // ==================== REFRESH DATA ====================
         window.refreshData = async function() {
             window.notify('🔄 Đang làm mới dữ liệu...');
@@ -1024,6 +942,7 @@ async function loadSavedSession() {
         }
 
                         // ==================== HÀM LƯU BOX (THÊM MỚI HOẶC SỬA) ====================
+        // ==================== HÀM LƯU BOX (THÊM MỚI HOẶC SỬA) ====================
 async function saveBox(boxCode, po, sku, serials, user) {
     try {
         if (editingBoxId) {
@@ -1140,107 +1059,8 @@ async function saveBox(boxCode, po, sku, serials, user) {
             }
             
         } else {
-             // ===== THÊM BOX MỚI =====
-            console.log('🆕 Tạo box mới:', boxCode);
-            
-            // 1. KIỂM TRA box đã tồn tại và đang ACTIVE chưa
-            const { data: existingActive } = await supabaseClient
-                .from('boxes')
-                .select('id')
-                .eq('box_code', boxCode)
-                .eq('is_active', true)
-                .maybeSingle();
-            
-            if (existingActive) {
-                window.notify(`❌ Mã Box "${boxCode}" đang được sử dụng!`, true);
-                return { exists: true };
-            }
-            
-            // 2. KIỂM TRA box đã tồn tại ở dạng inactive (đã xóa mềm)
-            const { data: existingInactive } = await supabaseClient
-                .from('boxes')
-                .select('id')
-                .eq('box_code', boxCode)
-                .eq('is_active', false)
-                .maybeSingle();
-            
-            if (existingInactive) {
-                // Box đã xóa mềm - có thể tái sử dụng
-                console.log(`🔄 Tái sử dụng box cũ: ${boxCode}`);
-                
-                // Reactivate box cũ
-                const { error: reactivateError } = await supabaseClient
-                    .from('boxes')
-                    .update({ 
-                        is_active: true,
-                        po: po,
-                        sku: sku,
-                        total: serials.length,
-                        created_by: user,
-                        created_at: new Date().toISOString(),
-                        putaway_status: 'pending'
-                    })
-                    .eq('id', existingInactive.id);
-                
-                if (reactivateError) throw reactivateError;
-                
-                // Xóa details cũ (soft delete)
-                await supabaseClient
-                    .from('box_details')
-                    .update({ is_active: false })
-                    .eq('box_code', boxCode);
-                
-                // Thêm details mới
-                const details = serials.map(sn => ({
-                    box_code: boxCode,
-                    serial: sn,
-                    is_active: true
-                }));
-                
-                const { error: detailError } = await supabaseClient
-                    .from('box_details')
-                    .insert(details);
-                
-                if (detailError) throw detailError;
-                
-                window.notify(`🔄 Đã tái sử dụng box: ${boxCode}`);
-                
-            } else {
-                // Box hoàn toàn mới
-                console.log(`🆕 Tạo box mới: ${boxCode}`);
-                
-                // Tạo box mới
-                const { data: newBox, error: boxError } = await supabaseClient
-                    .from('boxes')
-                    .insert([{
-                        box_code: boxCode,
-                        po: po,
-                        sku: sku,
-                        total: serials.length,
-                        created_by: user,
-                        is_active: true,
-                        putaway_status: 'pending'
-                    }])
-                    .select()
-                    .single();
-                
-                if (boxError) throw boxError;
-                
-                // Thêm chi tiết SN
-                const details = serials.map(sn => ({
-                    box_code: boxCode,
-                    serial: sn,
-                    is_active: true
-                }));
-                
-                const { error: detailError } = await supabaseClient
-                    .from('box_details')
-                    .insert(details);
-                
-                if (detailError) throw detailError;
-                
-                window.notify("✅ Đã lưu box thành công!");
-            }
+            // ===== THÊM BOX MỚI ===== (giữ nguyên code cũ)
+            // ... code thêm mới ...
         }
         
         await loadAllBoxes();
@@ -1251,7 +1071,7 @@ async function saveBox(boxCode, po, sku, serials, user) {
         console.error('❌ Lỗi lưu box:', error);
         
         if (error.code === '23505') {
-            window.notify(`❌ Mã box "${boxCode}" đã tồn tại trong hệ thống!`, true);
+            window.notify(`❌ Mã box "${boxCode}" đã tồn tại!`, true);
         } else {
             window.notify("❌ Lỗi khi lưu dữ liệu: " + error.message, true);
         }
@@ -1324,16 +1144,12 @@ async function saveBox(boxCode, po, sku, serials, user) {
         }
 
         window.notify = (msg, isError = false) => { 
-    const t = document.getElementById('toast'); 
-    if (!t) {
-        console.error('Không tìm thấy toast element');
-        return;
-    }
-    t.innerText = msg; 
-    t.style.backgroundColor = isError ? '#dc2626' : '#333';
-    t.style.display = 'block'; 
-    setTimeout(() => t.style.display = 'none', 3000); 
-};
+            const t = document.getElementById('toast'); 
+            t.innerText = msg; 
+            t.style.backgroundColor = isError ? '#dc2626' : '#333';
+            t.style.display = 'block'; 
+            setTimeout(() => t.style.display = 'none', 3000); 
+        };
                 // ==================== LOGIN ====================
         document.getElementById('btn-do-login').onclick = async () => {
             const u = document.getElementById('login-user').value;
@@ -1360,7 +1176,6 @@ async function saveBox(boxCode, po, sku, serials, user) {
                 document.getElementById('admin-only-menu').classList.remove('hidden');
                 document.getElementById('menu-inbound').classList.remove('hidden');
                 document.getElementById('menu-box-hv').classList.remove('hidden');
-                document.getElementById('menu-mass-putaway').classList.remove('hidden');
                 
                 document.getElementById('user-display').innerText = `NV: admin`;
                 document.getElementById('role-display').innerText = 'ADMIN';
@@ -1746,20 +1561,20 @@ async function saveBox(boxCode, po, sku, serials, user) {
         };
 
         function renderPOSelect() {
-    const select = document.getElementById('sel-po');
-    if (!select) return;
-    
-    // Lấy danh sách PO từ masterData (không lấy từ bảng)
-    const pos = [...new Set(masterData.map(x => x.po))].filter(p => p);
-    
-    if (pos.length === 0) {
-        select.innerHTML = '<option value="">Không có PO</option>';
-        return;
-    }
-    
-    select.innerHTML = '<option value="">Chọn PO</option>' + 
-        pos.map(po => `<option value="${po}">${po}</option>`).join('');
-}
+            const pos = [...new Set(masterData.map(x => x.po))].filter(p => p);
+            const select = document.getElementById('sel-po');
+            select.innerHTML = '<option value="">Chọn PO</option>' + pos.map(p => `<option value="${p}">${p}</option>`).join('');
+        }
+        
+        document.getElementById('sel-po').onchange = (e) => {
+            const skus = [...new Set(masterData.filter(x => x.po === e.target.value).map(x => x.sku))].filter(s => s);
+            const select = document.getElementById('sel-sku');
+            select.innerHTML = '<option value="">Chọn Model</option>' + skus.map(s => `<option value="${s}">${s}</option>`).join('');
+            
+            if (sessionScans.length > 0 && !editingBoxId && confirm("Thay đổi PO sẽ xóa SN hiện tại. Tiếp tục?")) {
+                forceReset();
+            }
+        };
 
         window.searchMasterData = () => {
             const keyword = document.getElementById('search-po').value.toLowerCase();
@@ -1783,57 +1598,33 @@ async function saveBox(boxCode, po, sku, serials, user) {
         };
 
         function renderMasterPOList(filteredData = null) {
-    const tbody = document.getElementById('master-po-tbody');
-    if (!tbody) return;
-    
-    const data = filteredData || masterData;
-    
-    // Nhóm theo PO
-    const poGroups = {};
-    data.forEach(item => {
-        const po = item.po;
-        if (!po) return;
-        
-        if (!poGroups[po]) {
-            poGroups[po] = {
-                po: po,
-                skus: new Set(),
-                sns: [],
-                scannedCount: 0
-            };
+            const data = filteredData || masterData;
+            const g = {}; 
+            data.forEach(i => { 
+                const p = i.po; 
+                if (!p) return;
+                if (!g[p]) g[p] = {skus: new Set(), sns: []}; 
+                g[p].skus.add(i.sku); 
+                g[p].sns.push(i.serial); 
+            });
+            
+            document.getElementById('master-po-tbody').innerHTML = Object.keys(g).map(p => {
+                const scanned = g[p].sns.filter(s => allScannedSerials.has(s)).length;
+                const percent = Math.round((scanned / g[p].sns.length) * 100);
+                return `<tr>
+                    <td class="font-bold">${p}</td>
+                    <td class="text-center">${g[p].skus.size}</td>
+                    <td class="text-center">${g[p].sns.length}</td>
+                    <td class="text-center font-bold ${scanned === g[p].sns.length ? 'text-green-600' : 'text-orange-600'}">
+                        ${scanned}/${g[p].sns.length} (${percent}%)
+                    </td>
+                    <td class="text-right space-x-2">
+                        <button onclick="scanPO('${p}')" class="btn-scan-po text-white font-bold text-xs uppercase px-3 py-1 rounded">SCAN PO</button>
+                        <button onclick="viewPODetail('${p}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs uppercase px-3 py-1 rounded border border-blue-200">CHI TIẾT</button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
-        poGroups[po].skus.add(item.sku);
-        poGroups[po].sns.push(item.serial);
-        
-        if (allScannedSerials.has(item.serial)) {
-            poGroups[po].scannedCount++;
-        }
-    });
-    
-    if (Object.keys(poGroups).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Chưa có dữ liệu PO</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = Object.values(poGroups).map(group => {
-        const total = group.sns.length;
-        const scanned = group.scannedCount;
-        
-        return `<tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-bold text-indigo-600">${group.po}</td>
-            <td class="px-4 py-3 text-center">${group.skus.size}</td>
-            <td class="px-4 py-3 text-center">${total}</td>
-            <td class="px-4 py-3 text-center font-medium ${scanned === total ? 'text-green-600' : 'text-orange-600'}">
-                ${scanned}/${total}
-            </td>
-            <td class="px-4 py-3 text-right">
-                <button onclick="scanPO('${group.po}')" class="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-indigo-700">
-                    SCAN PO
-                </button>
-            </td>
-        </tr>`;
-    }).join('');
-}
 
         window.scanPO = (poCode) => {
             switchPage('inbound');
@@ -2121,69 +1912,46 @@ async function saveBox(boxCode, po, sku, serials, user) {
 
         // ==================== CẬP NHẬT HÀM SWITCH PAGE ====================
         window.switchPage = function(p, sub=null) {
-    // Ẩn tất cả section
-    document.querySelectorAll('section').forEach(s => {
-        if (s) s.classList.add('hidden');
-    });
-    
-    // Hiện page được chọn
-    const pageElement = document.getElementById(`page-${p}`);
-    if (pageElement) {
-        pageElement.classList.remove('hidden');
-    } else {
-        console.error(`Không tìm thấy page: page-${p}`);
-        return;
-    }
-    
-    // Load module nếu cần
-    if (p === 'box-hv') {
-        if (typeof loadBoxHVModule === 'function') loadBoxHVModule();
-    } else if (p === 'mass-putaway') {
-        if (typeof loadMassPutawayModule === 'function') loadMassPutawayModule();
-    }
-    
-    // Xử lý sub menu
-    if (sub) { 
-        const subPageBox = document.getElementById('sub-page-box');
-        const subPagePo = document.getElementById('sub-page-po');
-        const subPageSelected = document.getElementById(`sub-page-${sub}`);
-        
-        if (subPageBox) subPageBox.classList.add('hidden');
-        if (subPagePo) subPagePo.classList.add('hidden');
-        if (subPageSelected) subPageSelected.classList.remove('hidden');
-    }
-    
-    // Cập nhật active menu
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-        if (item) item.classList.remove('active');
-    });
-    
-    // Map các menu
-    const menuMap = {
-        'inbound': 'menu-inbound',
-        'data': 'menu-data',
-        'admin': 'menu-admin',
-        'box-hv': 'menu-box-hv',
-        'mass-putaway': 'menu-mass-putaway'
-    };
-    
-    const menuId = menuMap[p];
-    if (menuId) {
-        const menuElement = document.getElementById(menuId);
-        if (menuElement) menuElement.classList.add('active');
-    }
-};
+                document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+                
+                if (p === 'box-hv') {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                    loadBoxHVModule();
+                } else if (p === 'mass-putaway') {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                    loadMassPutawayModule();
+                } else {
+                    document.getElementById(`page-${p}`).classList.remove('hidden');
+                }
+                
+                if (sub) { 
+                    document.getElementById('sub-page-box').classList.add('hidden'); 
+                    document.getElementById('sub-page-po').classList.add('hidden');
+                    document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
+                }
+                
+                document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+                if (p === 'inbound') {
+                    document.getElementById('menu-inbound').classList.add('active');
+                } else if (p === 'data') {
+                    document.getElementById('menu-data').classList.add('active');
+                } else if (p === 'admin') {
+                    document.getElementById('menu-admin').classList.add('active');
+                } else if (p === 'box-hv') {
+                    document.getElementById('menu-box-hv').classList.add('active');
+                } else if (p === 'mass-putaway') {
+                    document.getElementById('menu-mass-putaway').classList.add('active');
+                }
+            };
         
         window.toggleSubMenu = (id) => {
             document.getElementById(`sub-${id}`).classList.toggle('open');
         };
         
         window.closeModal = () => {
-    const modal = document.getElementById('detail-modal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-};
+            document.getElementById('detail-modal').style.display = 'none';
+        };
+
        // ==================== LOAD MODULE BOX HV ====================
 async function loadBoxHVModule() {
     const container = document.getElementById('box-hv-container');
@@ -2270,237 +2038,7 @@ async function loadMassPutawayModule() {
     </script>
   
 <script src="js/mass-putaway.js"></script> 
-<script>
-// ==================== QUẢN LÝ NHIỀU LÔ SN ====================
-let currentBatchId = null;
-let batches = [];
 
-// Hiển thị danh sách các lô
-async function loadBatches() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('master_batches')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        batches = data || [];
-        renderBatchList();
-    } catch (error) {
-        console.error('Lỗi load batches:', error);
-    }
-}
-
-function renderBatchList() {
-    const tbody = document.getElementById('batch-list-tbody');
-    if (!tbody) return;
-    
-    if (!batches.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Chưa có lô nào</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = batches.map(batch => {
-        // Tính tiến độ
-        const progress = batch.total_sn ? Math.round((batch.scanned_count / batch.total_sn) * 100) : 0;
-        
-        let statusClass = 'bg-gray-100 text-gray-700';
-        let statusText = 'Chờ xử lý';
-        
-        if (batch.status === 'scanning') {
-            statusClass = 'bg-blue-100 text-blue-700';
-            statusText = 'Đang scan';
-        } else if (batch.status === 'completed') {
-            statusClass = 'bg-green-100 text-green-700';
-            statusText = 'Hoàn thành';
-        }
-        
-        return `
-            <tr class="hover:bg-gray-50 cursor-pointer" onclick="selectBatch(${batch.id})">
-                <td class="px-4 py-3 font-medium">${batch.batch_name || 'Không tên'}</td>
-                <td class="px-4 py-3">${batch.po || 'N/A'} / ${batch.sku || 'N/A'}</td>
-                <td class="px-4 py-3 text-center">${batch.total_sn || 0}</td>
-                <td class="px-4 py-3 text-center">${batch.scanned_count || 0}</td>
-                <td class="px-4 py-3">
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                        <div class="bg-green-600 h-1.5 rounded-full" style="width: ${progress}%"></div>
-                    </div>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="${statusClass} px-2 py-1 rounded text-xs">${statusText}</span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="event.stopPropagation(); deleteBatch(${batch.id})" class="text-red-500 hover:text-red-700 text-xs">
-                        Xóa
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Chọn lô để xem chi tiết
-async function selectBatch(batchId) {
-    currentBatchId = batchId;
-    
-    try {
-        const { data: details, error } = await supabaseClient
-            .from('master_batch_details')
-            .select('*')
-            .eq('batch_id', batchId)
-            .order('id');
-        
-        if (error) throw error;
-        
-        const batch = batches.find(b => b.id === batchId);
-        
-        document.getElementById('batch-detail-section').classList.remove('hidden');
-        document.getElementById('selected-batch-name').innerText = `📋 ${batch?.batch_name || 'Chi tiết lô'}`;
-        
-        // Tính tiến độ
-        const scanned = details?.filter(d => d.is_scanned).length || 0;
-        const total = details?.length || 0;
-        const progress = total ? Math.round((scanned / total) * 100) : 0;
-        
-        document.getElementById('scan-progress-text').innerText = `${progress}% (${scanned}/${total})`;
-        document.getElementById('scan-progress-bar').style.width = `${progress}%`;
-        
-        // Hiển thị chi tiết SN
-        const tbody = document.getElementById('batch-detail-tbody');
-        if (!details?.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">Không có SN</td></tr>';
-        } else {
-            tbody.innerHTML = details.map((item, index) => {
-                const statusClass = item.is_scanned ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-                const statusText = item.is_scanned ? 'Đã scan' : 'Chờ scan';
-                
-                return `
-                    <tr>
-                        <td class="px-3 py-2">${index + 1}</td>
-                        <td class="px-3 py-2">${item.po || ''}</td>
-                        <td class="px-3 py-2">${item.sku || ''}</td>
-                        <td class="px-3 py-2 font-mono">${item.serial}</td>
-                        <td class="px-3 py-2 text-center">
-                            <span class="${statusClass} px-2 py-1 rounded text-xs">${statusText}</span>
-                        </td>
-                        <td class="px-3 py-2">${item.scanned_by || ''}</td>
-                        <td class="px-3 py-2 text-xs">${item.scanned_at ? new Date(item.scanned_at).toLocaleString('vi-VN') : ''}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-        
-    } catch (error) {
-        console.error('Lỗi load chi tiết:', error);
-    }
-}
-
-// Mở modal tạo lô mới
-function showCreateBatchModal() {
-    document.getElementById('create-batch-modal').style.display = 'flex';
-}
-
-function closeCreateBatchModal() {
-    document.getElementById('create-batch-modal').style.display = 'none';
-}
-
-// Tạo lô mới từ file Excel
-async function createNewBatch() {
-    const batchName = document.getElementById('batch-name').value.trim();
-    const fileInput = document.getElementById('batch-file');
-    
-    if (!batchName) {
-        alert('Vui lòng nhập tên lô!');
-        return;
-    }
-    
-    if (!fileInput.files.length) {
-        alert('Vui lòng chọn file Excel!');
-        return;
-    }
-    
-    try {
-        // Đọc file Excel
-        const file = fileInput.files[0];
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data);
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet);
-        
-        if (!rows.length) {
-            alert('File không có dữ liệu!');
-            return;
-        }
-        
-        // Tạo lô mới
-        const { data: newBatch, error: batchError } = await supabaseClient
-            .from('master_batches')
-            .insert([{
-                batch_name: batchName,
-                total_sn: rows.length,
-                created_by: currentUser,
-                status: 'pending'
-            }])
-            .select()
-            .single();
-        
-        if (batchError) throw batchError;
-        
-        // Thêm chi tiết SN
-        const details = rows.map(row => ({
-            batch_id: newBatch.id,
-            po: row.PO || row.po || '',
-            sku: row.SKU || row.sku || '',
-            serial: row.SN || row.serial || ''
-        }));
-        
-        const { error: detailError } = await supabaseClient
-            .from('master_batch_details')
-            .insert(details);
-        
-        if (detailError) throw detailError;
-        
-        window.notify('✅ Tạo lô thành công!');
-        closeCreateBatchModal();
-        loadBatches();
-        
-    } catch (error) {
-        console.error('Lỗi:', error);
-        window.notify('❌ Lỗi: ' + error.message, true);
-    }
-}
-
-// Đóng chi tiết lô
-function closeBatchDetail() {
-    document.getElementById('batch-detail-section').classList.add('hidden');
-    currentBatchId = null;
-}
-
-// Xóa lô
-async function deleteBatch(batchId) {
-    if (!confirm('Xóa lô này?')) return;
-    
-    try {
-        const { error } = await supabaseClient
-            .from('master_batches')
-            .delete()
-            .eq('id', batchId);
-        
-        if (error) throw error;
-        
-        window.notify('✅ Đã xóa lô');
-        loadBatches();
-        
-        if (currentBatchId === batchId) {
-            closeBatchDetail();
-        }
-        
-    } catch (error) {
-        window.notify('❌ Lỗi: ' + error.message, true);
-    }
-}
-</script>
 <script>
 // ==================== QUẢN LÝ TAB ADMIN ====================
 window.switchAdminTab = function(tab) {
@@ -2678,34 +2216,8 @@ window.closeBackupModal = function() {
     document.getElementById('backup-modal').style.display = 'none';
 };
 </script>
-            <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
-                <script>
-// Force hiển thị menu admin sau khi đăng nhập
-setTimeout(function() {
-    if (currentUserRole === 'admin') {
-        const adminMenu = document.getElementById('admin-only-menu');
-        if (adminMenu) adminMenu.classList.remove('hidden');
-    }
-}, 500);
-</script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
