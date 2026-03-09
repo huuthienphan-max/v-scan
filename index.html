@@ -1635,30 +1635,57 @@ async function saveBox(boxCode, po, sku, serials, user) {
         };
 
         window.viewPODetail = (poCode) => {
-            const poSerials = masterData.filter(x => x.po === poCode);
-            const modalBody = document.getElementById('modal-body');
+    console.log('🔍 viewPODetail được gọi với poCode:', poCode);
+    
+    const modalBody = document.getElementById('modal-body');
+    const modalTitle = document.getElementById('modal-title');
+    const detailModal = document.getElementById('detail-modal');
+    
+    // Kiểm tra element tồn tại
+    if (!modalBody) {
+        console.error('❌ Không tìm thấy element modal-body');
+        window.notify('Lỗi: Không tìm thấy modal!', true);
+        return;
+    }
+    
+    if (!modalTitle) {
+        console.error('❌ Không tìm thấy element modal-title');
+        return;
+    }
+    
+    if (!detailModal) {
+        console.error('❌ Không tìm thấy element detail-modal');
+        return;
+    }
+    
+    const poSerials = masterData.filter(x => x.po === poCode);
+    
+    if (poSerials.length === 0) {
+        modalBody.innerHTML = '<div class="p-4 text-center text-gray-500">Không có dữ liệu</div>';
+    } else {
+        let html = '<table class="w-full table-vscan"><thead><tr><th>STT</th><th>SKU</th><th>Serial Number</th><th>Trạng thái</th></tr></thead><tbody>';
+        
+        poSerials.forEach((item, index) => {
+            const sn = item.serial;
+            const isScanned = allScannedSerials.has(sn);
+            const statusClass = isScanned ? 'sn-scanned' : 'sn-missing';
+            const statusText = isScanned ? 'ĐÃ QUÉT' : 'CHƯA QUÉT';
             
-            let html = '<table class="w-full table-vscan"><thead><tr><th>STT</th><th>SKU</th><th>Serial Number</th><th>Trạng thái</th></tr></thead><tbody>';
-            
-            poSerials.forEach((item, index) => {
-                const sn = item.serial;
-                const isScanned = allScannedSerials.has(sn);
-                const statusClass = isScanned ? 'sn-scanned' : 'sn-missing';
-                const statusText = isScanned ? 'ĐÃ QUÉT' : 'CHƯA QUÉT';
-                
-                html += `<tr>
-                    <td>${index + 1}</td>
-                    <td>${item.sku}</td>
-                    <td class="font-mono font-bold">${sn}</td>
-                    <td class="font-bold ${statusClass}">${statusText}</td>
-                </tr>`;
-            });
-            
-            html += '</tbody></table>';
-            modalBody.innerHTML = html;
-            document.getElementById('modal-title').innerText = `Chi tiết PO: ${poCode}`;
-            document.getElementById('detail-modal').style.display = 'flex';
-        };
+            html += `<tr>
+                <td>${index + 1}</td>
+                <td>${item.sku}</td>
+                <td class="font-mono font-bold">${sn}</td>
+                <td class="font-bold ${statusClass}">${statusText}</td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        modalBody.innerHTML = html;
+    }
+    
+    modalTitle.innerText = `Chi tiết PO: ${poCode}`;
+    detailModal.style.display = 'flex';
+};
 
         // ==================== BOX HISTORY ====================
         window.searchBoxHistory = () => {
@@ -2146,9 +2173,52 @@ async function savePermission(id) {
 }
 
 // Gọi loadPermissions khi vào tab quyền
-</script>            
+</script>   
+            <!-- Detail Modal -->
+<div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg w-3/4 max-w-4xl max-h-[80vh] overflow-hidden">
+        <div class="p-4 border-b flex justify-between items-center">
+            <h3 id="modal-title" class="font-bold text-lg">Chi tiết PO</h3>
+            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+        </div>
+        <div id="modal-body" class="p-4 overflow-y-auto max-h-[60vh]"></div>
+        <div class="p-4 border-t flex justify-end">
+            <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Modal -->
+<div id="backup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg w-96 p-6">
+        <h3 class="font-bold text-lg mb-4">Backup dữ liệu</h3>
+        <p class="mb-4">Chọn thời gian backup:</p>
+        <select id="backup-period" class="input-wms mb-4 w-full">
+            <option value="day">1 ngày qua</option>
+            <option value="week">1 tuần qua</option>
+            <option value="month">1 tháng qua</option>
+            <option value="all">Tất cả</option>
+        </select>
+        <div class="flex justify-end gap-2">
+            <button onclick="exportBackup()" class="btn-shopee px-4 py-2 rounded">Xuất</button>
+            <button onclick="closeBackupModal()" class="bg-gray-200 px-4 py-2 rounded">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Hàm đóng modal
+window.closeModal = function() {
+    document.getElementById('detail-modal').style.display = 'none';
+};
+
+window.closeBackupModal = function() {
+    document.getElementById('backup-modal').style.display = 'none';
+};
+</script>
 </body>
 </html>
+
 
 
 
