@@ -2678,8 +2678,18 @@ window.closeBackupModal = function() {
 };
 </script>
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
+                <script>
+// Force hiển thị menu admin sau khi đăng nhập
+setTimeout(function() {
+    if (currentUserRole === 'admin') {
+        const adminMenu = document.getElementById('admin-only-menu');
+        if (adminMenu) adminMenu.classList.remove('hidden');
+    }
+}, 500);
+</script>
 </body>
 </html>
+
 
 
 
