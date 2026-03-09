@@ -1144,12 +1144,16 @@ async function saveBox(boxCode, po, sku, serials, user) {
         }
 
         window.notify = (msg, isError = false) => { 
-            const t = document.getElementById('toast'); 
-            t.innerText = msg; 
-            t.style.backgroundColor = isError ? '#dc2626' : '#333';
-            t.style.display = 'block'; 
-            setTimeout(() => t.style.display = 'none', 3000); 
-        };
+    const t = document.getElementById('toast'); 
+    if (!t) {
+        console.error('Không tìm thấy toast element');
+        return;
+    }
+    t.innerText = msg; 
+    t.style.backgroundColor = isError ? '#dc2626' : '#333';
+    t.style.display = 'block'; 
+    setTimeout(() => t.style.display = 'none', 3000); 
+};
                 // ==================== LOGIN ====================
         document.getElementById('btn-do-login').onclick = async () => {
             const u = document.getElementById('login-user').value;
@@ -1912,46 +1916,69 @@ async function saveBox(boxCode, po, sku, serials, user) {
 
         // ==================== CẬP NHẬT HÀM SWITCH PAGE ====================
         window.switchPage = function(p, sub=null) {
-                document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-                
-                if (p === 'box-hv') {
-                    document.getElementById(`page-${p}`).classList.remove('hidden');
-                    loadBoxHVModule();
-                } else if (p === 'mass-putaway') {
-                    document.getElementById(`page-${p}`).classList.remove('hidden');
-                    loadMassPutawayModule();
-                } else {
-                    document.getElementById(`page-${p}`).classList.remove('hidden');
-                }
-                
-                if (sub) { 
-                    document.getElementById('sub-page-box').classList.add('hidden'); 
-                    document.getElementById('sub-page-po').classList.add('hidden');
-                    document.getElementById(`sub-page-${sub}`).classList.remove('hidden'); 
-                }
-                
-                document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-                if (p === 'inbound') {
-                    document.getElementById('menu-inbound').classList.add('active');
-                } else if (p === 'data') {
-                    document.getElementById('menu-data').classList.add('active');
-                } else if (p === 'admin') {
-                    document.getElementById('menu-admin').classList.add('active');
-                } else if (p === 'box-hv') {
-                    document.getElementById('menu-box-hv').classList.add('active');
-                } else if (p === 'mass-putaway') {
-                    document.getElementById('menu-mass-putaway').classList.add('active');
-                }
-            };
+    // Ẩn tất cả section
+    document.querySelectorAll('section').forEach(s => {
+        if (s) s.classList.add('hidden');
+    });
+    
+    // Hiện page được chọn
+    const pageElement = document.getElementById(`page-${p}`);
+    if (pageElement) {
+        pageElement.classList.remove('hidden');
+    } else {
+        console.error(`Không tìm thấy page: page-${p}`);
+        return;
+    }
+    
+    // Load module nếu cần
+    if (p === 'box-hv') {
+        if (typeof loadBoxHVModule === 'function') loadBoxHVModule();
+    } else if (p === 'mass-putaway') {
+        if (typeof loadMassPutawayModule === 'function') loadMassPutawayModule();
+    }
+    
+    // Xử lý sub menu
+    if (sub) { 
+        const subPageBox = document.getElementById('sub-page-box');
+        const subPagePo = document.getElementById('sub-page-po');
+        const subPageSelected = document.getElementById(`sub-page-${sub}`);
+        
+        if (subPageBox) subPageBox.classList.add('hidden');
+        if (subPagePo) subPagePo.classList.add('hidden');
+        if (subPageSelected) subPageSelected.classList.remove('hidden');
+    }
+    
+    // Cập nhật active menu
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        if (item) item.classList.remove('active');
+    });
+    
+    // Map các menu
+    const menuMap = {
+        'inbound': 'menu-inbound',
+        'data': 'menu-data',
+        'admin': 'menu-admin',
+        'box-hv': 'menu-box-hv',
+        'mass-putaway': 'menu-mass-putaway'
+    };
+    
+    const menuId = menuMap[p];
+    if (menuId) {
+        const menuElement = document.getElementById(menuId);
+        if (menuElement) menuElement.classList.add('active');
+    }
+};
         
         window.toggleSubMenu = (id) => {
             document.getElementById(`sub-${id}`).classList.toggle('open');
         };
         
         window.closeModal = () => {
-            document.getElementById('detail-modal').style.display = 'none';
-        };
-
+    const modal = document.getElementById('detail-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
        // ==================== LOAD MODULE BOX HV ====================
 async function loadBoxHVModule() {
     const container = document.getElementById('box-hv-container');
@@ -2218,6 +2245,7 @@ window.closeBackupModal = function() {
 </script>
 </body>
 </html>
+
 
 
 
