@@ -1124,7 +1124,6 @@
     const file = event.target.files[0];
     if (!file) return;
     
-    // Hiện progress bar
     const progressDiv = document.getElementById('upload-progress');
     if (progressDiv) progressDiv.classList.remove('hidden');
     
@@ -1148,24 +1147,7 @@
                 return;
             }
             
-            // Kiểm tra nếu có dữ liệu cũ
-            if (masterData.length > 0) {
-                if (!confirm(`⚠️ Dữ liệu cũ (${masterData.length} SN) sẽ bị XÓA. Thay thế bằng dữ liệu mới (${formattedData.length} SN)?`)) {
-                    if (progressDiv) progressDiv.classList.add('hidden');
-                    event.target.value = '';
-                    return;
-                }
-            }
-            
-            window.notify(`🔄 Đang xóa dữ liệu cũ...`);
-            
-            // XÓA dữ liệu cũ
-            await supabaseClient
-                .from('master_serials')
-                .delete()
-                .neq('id', 0);
-            
-            // THÊM dữ liệu mới (theo batch)
+            // BỎ PHẦN XÁC NHẬN XÓA, CHỈ THÊM DỮ LIỆU MỚI
             window.notify(`🔄 Đang thêm ${formattedData.length} SN mới...`);
             
             const BATCH_SIZE = 500;
@@ -1188,25 +1170,21 @@
                 successCount += batch.length;
                 const percent = Math.round((successCount / formattedData.length) * 100);
                 
-                // Cập nhật progress bar
                 const progressBar = document.getElementById('progress-bar');
                 const progressText = document.getElementById('progress-text');
                 if (progressBar) progressBar.style.width = percent + '%';
                 if (progressText) progressText.innerText = percent + '%';
             }
             
-            // Load lại dữ liệu
             await loadMasterData();
-            window.notify(`✅ Đã cập nhật ${formattedData.length} SN mới!`);
+            window.notify(`✅ Đã thêm ${formattedData.length} SN mới! (Tổng: ${masterData.length} SN)`);
             
-            // Reset input file
             event.target.value = '';
             
         } catch (error) {
             console.error('Lỗi:', error);
             window.notify('❌ Lỗi: ' + error.message, true);
         } finally {
-            // Ẩn progress bar sau 2 giây
             setTimeout(() => {
                 if (progressDiv) progressDiv.classList.add('hidden');
                 const progressBar = document.getElementById('progress-bar');
@@ -1218,7 +1196,6 @@
     };
     reader.readAsArrayBuffer(file);
 };
-
         window.downloadSampleFile = () => {
             const ws = XLSX.utils.aoa_to_sheet([["PO", "SKU", "SN"], ["PO_001", "MODEL_X", "SN_001"]]);
             const wb = XLSX.utils.book_new(); 
@@ -1836,5 +1813,6 @@ async function deletePO(poCode) {
     </script>
 </body>
 </html>
+
 
 
