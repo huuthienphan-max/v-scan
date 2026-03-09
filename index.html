@@ -380,30 +380,110 @@
                     </div>
                 </div>
 
-                <!-- Danh mục SN Gốc -->
-                <div id="sub-page-po" class="hidden space-y-4">
-                    <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">Danh mục Serial Number gốc</h3>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="search-po" placeholder="🔍 Tìm kiếm PO, SKU, SN..." class="input-wms flex-1">
-                        <button onclick="searchMasterData()" class="btn-shopee px-6 rounded text-xs font-bold">TÌM</button>
-                        <button onclick="clearSearch()" class="bg-gray-200 px-4 rounded text-xs font-bold">XÓA</button>
-                    </div>
-                    <div class="card overflow-hidden">
-                        <table class="w-full table-vscan">
-                            <thead>
-                                <tr>
-                                    <th>Mã PO</th>
-                                    <th class="text-center">Số Model (SKU)</th>
-                                    <th class="text-center">Tổng SN</th>
-                                    <th class="text-center font-bold text-green-600">Đã quét</th>
-                                    <th class="text-right">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody id="master-po-tbody"></tbody>
-                        </table>
-                    </div>
+             <!-- Danh mục SN Gốc - Quản lý nhiều lô -->
+<div id="sub-page-po" class="hidden space-y-4">
+    <!-- Header với nút tạo lô mới -->
+    <div class="flex justify-between items-center">
+        <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">
+            📋 Danh sách SN chờ scan
+        </h3>
+        <button onclick="showCreateBatchModal()" class="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-indigo-700">
+            + Tạo lô mới
+        </button>
+    </div>
+
+    <!-- Danh sách các lô -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <!-- Card lô đang xử lý -->
+        <div class="col-span-3">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Tên lô</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">PO/SKU</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tiến độ</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Trạng thái</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batch-list-tbody" class="divide-y divide-gray-100">
+                        <tr><td colspan="7" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết lô hiện tại (hiện khi chọn lô) -->
+    <div id="batch-detail-section" class="hidden">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-sm" id="selected-batch-name"></h4>
+                <button onclick="closeBatchDetail()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            
+            <!-- Progress bar -->
+            <div class="mb-4">
+                <div class="flex justify-between text-xs mb-1">
+                    <span>Tiến độ scan</span>
+                    <span id="scan-progress-text">0%</span>
                 </div>
-            </section>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="scan-progress-bar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Bảng chi tiết SN -->
+            <div class="overflow-x-auto max-h-96">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left">STT</th>
+                            <th class="px-3 py-2 text-left">PO</th>
+                            <th class="px-3 py-2 text-left">SKU</th>
+                            <th class="px-3 py-2 text-left">Serial Number</th>
+                            <th class="px-3 py-2 text-center">Trạng thái</th>
+                            <th class="px-3 py-2 text-left">Người scan</th>
+                            <th class="px-3 py-2 text-left">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batch-detail-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal tạo lô mới -->
+    <div id="create-batch-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-96 p-6">
+            <h3 class="font-bold text-lg mb-4">➕ Tạo lô SN mới</h3>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-500">Tên lô</label>
+                    <input type="text" id="batch-name" class="w-full input-wms" placeholder="VD: Đợt 1 2024">
+                </div>
+                
+                <div>
+                    <label class="text-xs font-bold text-gray-500">Chọn file Excel</label>
+                    <input type="file" id="batch-file" accept=".xlsx" class="w-full text-sm">
+                </div>
+                
+                <div class="text-xs text-gray-400">
+                    File Excel cần có các cột: PO, SKU, SN
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeCreateBatchModal()" class="px-4 py-2 bg-gray-200 rounded text-xs font-bold">HỦY</button>
+                <button onclick="createNewBatch()" class="px-4 py-2 btn-shopee rounded text-xs font-bold">TẠO LÔ</button>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Page Box HV -->
             <section id="page-box-hv" class="hidden">
                 <div id="box-hv-container"></div>
@@ -2172,7 +2252,237 @@ async function loadMassPutawayModule() {
     </script>
   
 <script src="js/mass-putaway.js"></script> 
+<script>
+// ==================== QUẢN LÝ NHIỀU LÔ SN ====================
+let currentBatchId = null;
+let batches = [];
 
+// Hiển thị danh sách các lô
+async function loadBatches() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('master_batches')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        batches = data || [];
+        renderBatchList();
+    } catch (error) {
+        console.error('Lỗi load batches:', error);
+    }
+}
+
+function renderBatchList() {
+    const tbody = document.getElementById('batch-list-tbody');
+    if (!tbody) return;
+    
+    if (!batches.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Chưa có lô nào</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = batches.map(batch => {
+        // Tính tiến độ
+        const progress = batch.total_sn ? Math.round((batch.scanned_count / batch.total_sn) * 100) : 0;
+        
+        let statusClass = 'bg-gray-100 text-gray-700';
+        let statusText = 'Chờ xử lý';
+        
+        if (batch.status === 'scanning') {
+            statusClass = 'bg-blue-100 text-blue-700';
+            statusText = 'Đang scan';
+        } else if (batch.status === 'completed') {
+            statusClass = 'bg-green-100 text-green-700';
+            statusText = 'Hoàn thành';
+        }
+        
+        return `
+            <tr class="hover:bg-gray-50 cursor-pointer" onclick="selectBatch(${batch.id})">
+                <td class="px-4 py-3 font-medium">${batch.batch_name || 'Không tên'}</td>
+                <td class="px-4 py-3">${batch.po || 'N/A'} / ${batch.sku || 'N/A'}</td>
+                <td class="px-4 py-3 text-center">${batch.total_sn || 0}</td>
+                <td class="px-4 py-3 text-center">${batch.scanned_count || 0}</td>
+                <td class="px-4 py-3">
+                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-green-600 h-1.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="${statusClass} px-2 py-1 rounded text-xs">${statusText}</span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="event.stopPropagation(); deleteBatch(${batch.id})" class="text-red-500 hover:text-red-700 text-xs">
+                        Xóa
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Chọn lô để xem chi tiết
+async function selectBatch(batchId) {
+    currentBatchId = batchId;
+    
+    try {
+        const { data: details, error } = await supabaseClient
+            .from('master_batch_details')
+            .select('*')
+            .eq('batch_id', batchId)
+            .order('id');
+        
+        if (error) throw error;
+        
+        const batch = batches.find(b => b.id === batchId);
+        
+        document.getElementById('batch-detail-section').classList.remove('hidden');
+        document.getElementById('selected-batch-name').innerText = `📋 ${batch?.batch_name || 'Chi tiết lô'}`;
+        
+        // Tính tiến độ
+        const scanned = details?.filter(d => d.is_scanned).length || 0;
+        const total = details?.length || 0;
+        const progress = total ? Math.round((scanned / total) * 100) : 0;
+        
+        document.getElementById('scan-progress-text').innerText = `${progress}% (${scanned}/${total})`;
+        document.getElementById('scan-progress-bar').style.width = `${progress}%`;
+        
+        // Hiển thị chi tiết SN
+        const tbody = document.getElementById('batch-detail-tbody');
+        if (!details?.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">Không có SN</td></tr>';
+        } else {
+            tbody.innerHTML = details.map((item, index) => {
+                const statusClass = item.is_scanned ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+                const statusText = item.is_scanned ? 'Đã scan' : 'Chờ scan';
+                
+                return `
+                    <tr>
+                        <td class="px-3 py-2">${index + 1}</td>
+                        <td class="px-3 py-2">${item.po || ''}</td>
+                        <td class="px-3 py-2">${item.sku || ''}</td>
+                        <td class="px-3 py-2 font-mono">${item.serial}</td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="${statusClass} px-2 py-1 rounded text-xs">${statusText}</span>
+                        </td>
+                        <td class="px-3 py-2">${item.scanned_by || ''}</td>
+                        <td class="px-3 py-2 text-xs">${item.scanned_at ? new Date(item.scanned_at).toLocaleString('vi-VN') : ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+    } catch (error) {
+        console.error('Lỗi load chi tiết:', error);
+    }
+}
+
+// Mở modal tạo lô mới
+function showCreateBatchModal() {
+    document.getElementById('create-batch-modal').style.display = 'flex';
+}
+
+function closeCreateBatchModal() {
+    document.getElementById('create-batch-modal').style.display = 'none';
+}
+
+// Tạo lô mới từ file Excel
+async function createNewBatch() {
+    const batchName = document.getElementById('batch-name').value.trim();
+    const fileInput = document.getElementById('batch-file');
+    
+    if (!batchName) {
+        alert('Vui lòng nhập tên lô!');
+        return;
+    }
+    
+    if (!fileInput.files.length) {
+        alert('Vui lòng chọn file Excel!');
+        return;
+    }
+    
+    try {
+        // Đọc file Excel
+        const file = fileInput.files[0];
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        
+        if (!rows.length) {
+            alert('File không có dữ liệu!');
+            return;
+        }
+        
+        // Tạo lô mới
+        const { data: newBatch, error: batchError } = await supabaseClient
+            .from('master_batches')
+            .insert([{
+                batch_name: batchName,
+                total_sn: rows.length,
+                created_by: currentUser,
+                status: 'pending'
+            }])
+            .select()
+            .single();
+        
+        if (batchError) throw batchError;
+        
+        // Thêm chi tiết SN
+        const details = rows.map(row => ({
+            batch_id: newBatch.id,
+            po: row.PO || row.po || '',
+            sku: row.SKU || row.sku || '',
+            serial: row.SN || row.serial || ''
+        }));
+        
+        const { error: detailError } = await supabaseClient
+            .from('master_batch_details')
+            .insert(details);
+        
+        if (detailError) throw detailError;
+        
+        window.notify('✅ Tạo lô thành công!');
+        closeCreateBatchModal();
+        loadBatches();
+        
+    } catch (error) {
+        console.error('Lỗi:', error);
+        window.notify('❌ Lỗi: ' + error.message, true);
+    }
+}
+
+// Đóng chi tiết lô
+function closeBatchDetail() {
+    document.getElementById('batch-detail-section').classList.add('hidden');
+    currentBatchId = null;
+}
+
+// Xóa lô
+async function deleteBatch(batchId) {
+    if (!confirm('Xóa lô này?')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('master_batches')
+            .delete()
+            .eq('id', batchId);
+        
+        if (error) throw error;
+        
+        window.notify('✅ Đã xóa lô');
+        loadBatches();
+        
+        if (currentBatchId === batchId) {
+            closeBatchDetail();
+        }
+        
+    } catch (error) {
+        window.notify('❌ Lỗi: ' + error.message, true);
+    }
+}
+</script>
 <script>
 // ==================== QUẢN LÝ TAB ADMIN ====================
 window.switchAdminTab = function(tab) {
@@ -2353,6 +2663,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
