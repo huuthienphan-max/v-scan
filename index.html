@@ -380,42 +380,36 @@
                     </div>
                 </div>
 
-             <!-- Danh mục SN Gốc - Quản lý nhiều lô -->
+        <!-- Danh mục SN Gốc - CHỈ GIỮ BẢNG PO -->
 <div id="sub-page-po" class="hidden space-y-4">
-    <!-- Header với nút tạo lô mới -->
     <div class="flex justify-between items-center">
         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">
-            📋 Danh sách SN chờ scan
+            📊 DANH SÁCH PO CẦN SCAN
         </h3>
-        <button onclick="showCreateBatchModal()" class="bg-indigo-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-indigo-700">
-            + Tạo lô mới
+        <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">
+            📥 Tải file mẫu
         </button>
+        <input type="file" id="master-file" accept=".xlsx" class="hidden">
     </div>
 
-    <!-- Danh sách các lô -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <!-- Card lô đang xử lý -->
-        <div class="col-span-3">
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Tên lô</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">PO/SKU</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tiến độ</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Trạng thái</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="batch-list-tbody" class="divide-y divide-gray-100">
-                        <tr><td colspan="7" class="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <!-- Bảng PO -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mã PO</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Số Model (SKU)</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Tổng SN</th>
+                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Đã scan</th>
+                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="master-po-tbody" class="divide-y divide-gray-100">
+                <!-- Hiển thị nhiều PO từ masterData -->
+            </tbody>
+        </table>
     </div>
+</div>
 
     <!-- Chi tiết lô hiện tại (hiện khi chọn lô) -->
     <div id="batch-detail-section" class="hidden">
@@ -2716,6 +2710,7 @@ window.closeBackupModal = function() {
             <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
 </body>
 </html>
+
 
 
 
