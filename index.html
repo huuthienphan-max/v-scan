@@ -881,7 +881,7 @@
             }
         }
 
-        aasync function saveMasterData(data) {
+        async function saveMasterData(data) {
     try {
       
         const { error } = await supabaseClient
@@ -2324,6 +2324,7 @@ window.closeBackupModal = function() {
 </script>
 </body>
 </html>
+
 
 
 
