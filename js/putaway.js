@@ -1,5 +1,5 @@
 // js/box-hv.js - Module Box HV (cập nhật thêm bộ nhớ đệm Mass Put)
-// Version: 2.0 - Thay tìm PO thành tìm box
+// Version: 2.1 - Sửa lỗi tìm kiếm box và render bảng
 
 let boxHVInterval = null;
 let boxHVData = [];
@@ -49,32 +49,69 @@ window.initBoxHVModule = function() {
 function filterBoxByCode(keyword) {
     console.log('🔍 Tìm box:', keyword);
     
+    // Lọc dữ liệu
     if (!keyword || keyword.trim() === '') {
         filteredBoxData = [...boxHVData];
-        renderBoxHVData(filteredBoxData);
-        
-        // Ẩn kết quả tìm kiếm
-        const resultSpan = document.getElementById('boxhv-search-result');
-        if (resultSpan) {
-            resultSpan.classList.add('hidden');
-        }
     } else {
         const searchTerm = keyword.toLowerCase().trim();
         filteredBoxData = boxHVData.filter(box => 
             box.box_code.toLowerCase().includes(searchTerm)
         );
-        renderBoxHVData(filteredBoxData);
-        
-        // Hiển thị kết quả tìm kiếm
-        const resultSpan = document.getElementById('boxhv-search-result');
-        if (resultSpan) {
-            if (filteredBoxData.length === 0) {
-                resultSpan.innerHTML = `❌ Không tìm thấy box nào chứa "${keyword}"`;
-                resultSpan.classList.remove('hidden');
-            } else {
-                resultSpan.innerHTML = `🔍 Tìm thấy ${filteredBoxData.length}/${boxHVData.length} box`;
-                resultSpan.classList.remove('hidden');
-            }
+    }
+    
+    // RENDER LẠI BẢNG (QUAN TRỌNG)
+    const tbody = document.getElementById('boxhv-tbody');
+    if (!filteredBoxData || filteredBoxData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+    } else {
+        tbody.innerHTML = filteredBoxData.map(box => {
+            const isPending = box.putaway_status === 'pending';
+            const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
+            const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
+            
+            // Kiểm tra box này có đang trong cache không
+            const isCached = massPutCache && massPutCache.box === box.box_code;
+            const rowClass = isCached ? 'bg-indigo-50' : '';
+
+            return `
+                <tr class="${rowClass}">
+                    <td class="font-bold text-blue-600">${box.box_code || ''}</td>
+                    <td>${box.po || ''}</td>
+                    <td>${box.sku || ''}</td>
+                    <td class="text-center">${box.total || 0}</td>
+                    <td>${box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : ''}</td>
+                    <td>${box.created_by || 'N/A'}</td>
+                    <td>
+                        <span class="${statusClass} px-2 py-1 rounded text-xs font-medium">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="text-center space-x-2">
+                        <button onclick="viewBoxHVDetail('${box.box_code}')" 
+                            class="text-blue-500 hover:text-blue-700 text-xs font-medium border border-blue-200 px-2 py-1 rounded">
+                            XEM SN
+                        </button>
+                        <button onclick="prepareMassPut('${box.box_code}', '${box.po}', '${box.sku}')" 
+                            class="bg-indigo-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-indigo-600 transition">
+                            ⚡ MASS PUT
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    // Hiển thị kết quả tìm kiếm
+    const resultSpan = document.getElementById('boxhv-search-result');
+    if (resultSpan) {
+        if (filteredBoxData.length === 0 && keyword.trim() !== '') {
+            resultSpan.innerHTML = `❌ Không tìm thấy box nào chứa "${keyword}"`;
+            resultSpan.classList.remove('hidden');
+        } else if (filteredBoxData.length < boxHVData.length) {
+            resultSpan.innerHTML = `🔍 Tìm thấy ${filteredBoxData.length}/${boxHVData.length} box`;
+            resultSpan.classList.remove('hidden');
+        } else {
+            resultSpan.classList.add('hidden');
         }
     }
 }
@@ -400,4 +437,4 @@ window.exportBoxHVList = function() {
 };
 
 // Khởi tạo khi load
-console.log('✅ Box HV module loaded - Version 2.0');
+console.log('✅ Box HV module loaded - Version 2.1');
