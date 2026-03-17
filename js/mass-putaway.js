@@ -453,26 +453,39 @@ window.cleanupMassPutaway = function() {
 // ==================== HƯỚNG DẪN SỬ DỤNG ====================
 window.showMassPutawayGuide = function() {
     const guide = `
-HUONG DAN SU DUNG MASS PUTAWAY:
+📋 HƯỚNG DẪN SỬ DỤNG MASS PUTAWAY:
 
-1. Chon box tu man hinh Box HV
-2. Thong tin box se tu dong dien vao form
-3. Nhap Location Put (noi cat hang)
-4. Nhan "Xu Ly Mass Putaway"
-5. File .bat se duoc tai xuong
-6. Double-click file .bat de chay bot
-7. Bot se tu dong:
-   - Ket noi Chrome debug port 9222
-   - Tinh so luong SN tu danh sach
-   - Goi API putaway
+1. Chọn box từ màn hình Box HV
+2. Thông tin box sẽ tự động điền vào form
+3. Nhập Location Put (nơi cất hàng)
+4. Nhấn "Xử Lý Mass Putaway"
+5. File .bat sẽ được tải xuống
+6. Double-click file .bat để chạy bot
+7. Bot sẽ tự động:
+   - Kết nối Chrome debug port 9222
+   - Tính số lượng SN từ danh sách
+   - Gọi API putaway
 
-LUU Y:
-- Chrome phai mo o cong 9222
-- Da dang nhap Shopee WMS
-- File bot_putaway.exe cung thu muc voi file .bat
+📚 TÀI LIỆU HƯỚNG DẪN CHI TIẾT:
+👉 Bấm vào link dưới đây để mở (có thể bôi đen và copy):
+🔗 https://docs.google.com/document/d/1AjkXHAzkllOGfg6WfTp1ElNGwEcNuxt96cvJt9Rs4Uo/edit?tab=t.0
+
+⚠️ LƯU Ý:
+- Chrome phải mở ở cổng 9222
+- Đã đăng nhập Shopee WMS
+- File bot_putaway.exe cùng thư mục với file .bat
     `;
     
+    // Tạo một text area ẩn để copy link nếu cần
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = 'https://docs.google.com/document/d/1AjkXHAzkllOGfg6WfTp1ElNGwEcNuxt96cvJt9Rs4Uo/edit?tab=t.0';
+    document.body.appendChild(tempTextArea);
+    
+    // Hiển thị hộp thoại với link có thể copy
     alert(guide);
+    
+    // Xóa text area tạm
+    document.body.removeChild(tempTextArea);
 };
 
 // Khởi tạo khi load
