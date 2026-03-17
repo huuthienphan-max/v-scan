@@ -450,113 +450,33 @@ window.cleanupMassPutaway = function() {
     }
 };
 
-// ==================== HIỂN THỊ MODAL HƯỚNG DẪN ====================
+// ==================== HƯỚNG DẪN SỬ DỤNG ====================
 window.showMassPutawayGuide = function() {
-    // Kiểm tra modal đã tồn tại chưa
-    let modal = document.getElementById('guide-modal');
-    
-    // Nếu chưa có, tạo mới
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'guide-modal';
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50';
-        modal.innerHTML = `
-            <div class="bg-white rounded-lg w-3/4 max-w-2xl max-h-[80vh] overflow-hidden">
-                <div class="p-4 border-b flex justify-between items-center bg-orange-50">
-                    <h3 class="font-bold text-lg text-orange-700">📚 HƯỚNG DẪN MASS PUTAWAY</h3>
-                    <button onclick="closeGuideModal()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
-                </div>
-                <div id="guide-modal-body" class="p-6 overflow-y-auto max-h-[60vh]"></div>
-                <div class="p-4 border-t flex justify-end gap-2">
-                    <button onclick="copyGuideLink()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">
-                        📋 Copy Link
-                    </button>
-                    <button onclick="openGuideLink()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700">
-                        🌐 Mở Link
-                    </button>
-                    <button onclick="closeGuideModal()" class="bg-gray-200 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300">
-                        Đóng
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    // Nội dung hướng dẫn
-    const guideContent = `
-        <div class="space-y-4">
-            <div class="bg-blue-50 p-4 rounded">
-                <h4 class="font-bold text-blue-700 mb-2">📋 CÁC BƯỚC THỰC HIỆN:</h4>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Chọn box từ màn hình <span class="font-bold text-orange-600">Box HV</span></li>
-                    <li>Thông tin box sẽ tự động điền vào form</li>
-                    <li>Nhập <span class="font-bold">Location Put</span> (nơi cất hàng)</li>
-                    <li>Nhấn <span class="font-bold bg-orange-100 px-2 py-1 rounded">"Xử Lý Mass Putaway"</span></li>
-                    <li>File <code class="bg-gray-100 px-2 py-1 rounded">.bat</code> sẽ được tải xuống</li>
-                    <li>Double-click file .bat để chạy bot</li>
-                </ol>
-            </div>
-            
-            <div class="bg-green-50 p-4 rounded">
-                <h4 class="font-bold text-green-700 mb-2">🤖 BOT SẼ TỰ ĐỘNG:</h4>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li>Kết nối Chrome debug port 9222</li>
-                    <li>Tính số lượng SN từ danh sách</li>
-                    <li>Gọi API putaway</li>
-                </ul>
-            </div>
-            
-            <div class="bg-yellow-50 p-4 rounded">
-                <h4 class="font-bold text-yellow-700 mb-2">🔗 TÀI LIỆU HƯỚNG DẪN CHI TIẾT:</h4>
-                <div class="bg-white p-3 rounded border flex items-center gap-2">
-                    <span class="text-gray-500">📄</span>
-                    <input type="text" id="guide-link" readonly value="https://docs.google.com/document/d/1AjkXHAzkllOGfg6WfTp1ElNGwEcNuxt96cvJt9Rs4Uo/edit?tab=t.0" 
-                           class="flex-1 p-2 bg-gray-50 border rounded text-sm font-mono">
-                    <button onclick="copyGuideLink()" class="bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600">
-                        Copy
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">👆 Có thể bôi đen hoặc dùng nút Copy để lấy link</p>
-            </div>
-            
-            <div class="bg-red-50 p-4 rounded">
-                <h4 class="font-bold text-red-700 mb-2">⚠️ LƯU Ý QUAN TRỌNG:</h4>
-                <ul class="list-disc pl-5 space-y-1 text-sm">
-                    <li>Chrome phải mở ở cổng <code class="bg-gray-100 px-2 py-0.5 rounded">9222</code></li>
-                    <li>Đã đăng nhập Shopee WMS</li>
-                    <li>File <code class="bg-gray-100 px-2 py-0.5 rounded">bot_putaway.exe</code> cùng thư mục với file .bat</li>
-                </ul>
-            </div>
-        </div>
+    const guide = `
+HUONG DAN SU DUNG MASS PUTAWAY:
+
+1. Chon box tu man hinh Box HV
+2. Thong tin box se tu dong dien vao form
+3. Nhap Location Put (noi cat hang)
+4. Nhan "Xu Ly Mass Putaway"
+5. File .bat se duoc tai xuong
+6. Double-click file .bat de chay bot
+7. Bot se tu dong:
+   - Ket noi Chrome debug port 9222
+   - Tinh so luong SN tu danh sach
+   - Goi API putaway
+
+LINK HUONG DAN CHI TIET:
+https://docs.google.com/document/d/1AjkXHAzkllOGfg6WfTp1ElNGwEcNuxt96cvJt9Rs4Uo/edit?tab=t.0
+(Co the copy link tren bang Ctrl+C)
+
+LUU Y:
+- Chrome phai mo o cong 9222
+- Da dang nhap Shopee WMS
+- File bot_putaway.exe cung thu muc voi file .bat
     `;
     
-    document.getElementById('guide-modal-body').innerHTML = guideContent;
-    modal.style.display = 'flex';
-};
-
-// ==================== ĐÓNG MODAL ====================
-window.closeGuideModal = function() {
-    const modal = document.getElementById('guide-modal');
-    if (modal) modal.style.display = 'none';
-};
-
-// ==================== COPY LINK HƯỚNG DẪN ====================
-window.copyGuideLink = function() {
-    const linkInput = document.getElementById('guide-link');
-    if (linkInput) {
-        linkInput.select();
-        linkInput.setSelectionRange(0, 99999); // Cho mobile
-        document.execCommand('copy');
-        
-        // Hiển thị thông báo
-        showMassResult('✅ Đã copy link hướng dẫn!', 'success');
-    }
-};
-
-// ==================== MỞ LINK HƯỚNG DẪN ====================
-window.openGuideLink = function() {
-    window.open('https://docs.google.com/document/d/1AjkXHAzkllOGfg6WfTp1ElNGwEcNuxt96cvJt9Rs4Uo/edit?tab=t.0', '_blank');
+    alert(guide);
 };
 
 // Khởi tạo khi load
