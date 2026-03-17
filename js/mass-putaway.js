@@ -33,39 +33,30 @@ window.initMassPutawayModule = function() {
 function readMassPutCache() {
     console.log('🔍 Đọc cache Mass Put...');
     
-    // Đọc thông tin đầy đủ
+    // 1. Đọc box riêng để điền form
+    const savedBox = sessionStorage.getItem('massPutBox');
+    
+    if (savedBox) {
+        const boxInput = document.getElementById('mass-box');
+        if (boxInput) {
+            boxInput.value = savedBox;
+            
+            // Highlight để thấy rõ
+            boxInput.style.border = '2px solid #4f46e5';
+            boxInput.style.backgroundColor = '#eef2ff';
+        }
+    }
+    
+    // 2. Đọc thông tin đầy đủ
     const savedFull = sessionStorage.getItem('massPutFullInfo');
     if (savedFull) {
         try {
             fullBoxInfo = JSON.parse(savedFull);
             console.log('📦 Thông tin đầy đủ:', fullBoxInfo);
             
-            // QUAN TRỌNG: Lấy snList từ fullBoxInfo
-            if (fullBoxInfo.snList && Array.isArray(fullBoxInfo.snList)) {
-                currentBoxSnList = fullBoxInfo.snList;
-                console.log(`📋 Đã load ${currentBoxSnList.length} SN từ cache`);
-            } else {
-                console.warn('⚠️ Không tìm thấy snList trong cache, thử đọc từ bảng...');
-                // Fallback: đọc từ bảng nếu có
-                const tbody = document.getElementById('mass-sn-tbody');
-                if (tbody && tbody.children.length > 0 && tbody.children[0].children.length > 1) {
-                    currentBoxSnList = Array.from(tbody.querySelectorAll('tr td:nth-child(2)'))
-                        .map(td => td.textContent.trim());
-                    console.log(`📋 Đã đọc ${currentBoxSnList.length} SN từ bảng`);
-                } else {
-                    currentBoxSnList = [];
-                }
-            }
-            
+            // Lưu danh sách SN của box hiện tại
+            currentBoxSnList = fullBoxInfo.snList || [];
             filteredSnList = [...currentBoxSnList];
-            
-            // Điền mã box vào ô input
-            const boxInput = document.getElementById('mass-box');
-            if (boxInput && fullBoxInfo.box) {
-                boxInput.value = fullBoxInfo.box;
-                boxInput.style.border = '2px solid #4f46e5';
-                boxInput.style.backgroundColor = '#eef2ff';
-            }
             
             // Hiển thị thông tin box
             const infoDiv = document.getElementById('mass-box-info');
@@ -73,32 +64,18 @@ function readMassPutCache() {
                 infoDiv.innerHTML = `
                     PO: ${fullBoxInfo.po || 'N/A'} | 
                     SKU: ${fullBoxInfo.sku || 'N/A'} | 
-                    SL: ${fullBoxInfo.snList?.length || currentBoxSnList.length || 0} SN
+                    SL: ${fullBoxInfo.snList?.length || 0} SN
                 `;
             }
             
             // Render danh sách SN
             renderBoxSnList();
             
-            // Reset ô tìm kiếm
-            const searchInput = document.getElementById('mass-sn-search');
-            if (searchInput) {
-                searchInput.value = '';
-            }
-            
-            // Ẩn kết quả tìm kiếm
-            const resultMsg = document.getElementById('mass-search-result');
-            if (resultMsg) {
-                resultMsg.classList.add('hidden');
-            }
-            
-            showMassResult(`📦 Đã nạp box ${fullBoxInfo.box} (${currentBoxSnList.length} SN)`, 'info');
+            // Hiển thị thông báo
+            showMassResult(`📦 Đã nạp box ${fullBoxInfo.box} (${fullBoxInfo.snList?.length || 0} SN)`, 'info');
             
         } catch (e) {
             console.error('❌ Lỗi parse full info:', e);
-            currentBoxSnList = [];
-            filteredSnList = [];
-            renderBoxSnList();
         }
     } else {
         console.log('📭 Không có thông tin đầy đủ');
