@@ -140,7 +140,8 @@ window.processMassPutaway = async function() {
         const snClipboard = snList.join(' ');
         
         // Tạo nội dung file .bat - CHUẨN WINDOWS, KHÔNG LỖI ENCODING
-        const batContent = `@echo off
+        // Tạo nội dung file .bat - CÓ PAUSE Ở CUỐI
+const batContent = `@echo off
 chcp 65001 >nul
 title MASS PUTAWAY - BOX ${box}
 color 0B
@@ -228,7 +229,8 @@ if %errorlevel% equ 0 (
 echo.
 echo =====================================================
 echo.
-timeout /t 5
+echo 🟢 Nhan phim bat ky de thoat...
+pause >nul
 exit
 
 :cancel
@@ -239,7 +241,8 @@ echo =====================================================
 echo.
 echo Ban da huy mass put box ${box}
 echo.
-timeout /t 3
+echo 🟢 Nhan phim bat ky de thoat...
+pause >nul
 exit`;
         
         // Tải file .bat
