@@ -1803,16 +1803,27 @@
         }
 
         async function loadMassPutawayModule() {
-            const container = document.getElementById('mass-putaway-container');
-            try {
-                const response = await fetch('./mass-putaway.html?' + new Date().getTime());
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                container.innerHTML = await response.text();
-                if (typeof window.initMassPutawayModule === 'function') window.initMassPutawayModule();
-            } catch (error) {
-                container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
+    const container = document.getElementById('mass-putaway-container');
+    try {
+        const response = await fetch('./mass-putaway.html?' + new Date().getTime());
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        container.innerHTML = await response.text();
+        
+        // QUAN TRỌNG: Đợi DOM load rồi khởi tạo module
+        setTimeout(() => {
+            if (typeof window.initMassPutawayModule === 'function') {
+                window.initMassPutawayModule();
+                console.log('✅ Đã khởi tạo Mass Putaway module');
+            } else {
+                console.error('❌ Không tìm thấy hàm initMassPutawayModule');
             }
-        }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Lỗi load mass putaway module:', error);
+        container.innerHTML = '<div class="text-center py-10 text-red-500">Không thể tải module Mass Putaway</div>';
+    }
+}
             // ==================== XÓA TẤT CẢ DỮ LIỆU MASTER ====================
 window.confirmDeleteAllData = function() {
     if (!['admin', 'manager'].includes(currentUserRole)) {
