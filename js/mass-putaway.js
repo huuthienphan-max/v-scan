@@ -1,10 +1,10 @@
 // js/mass-putaway.js - Module Mass Putaway
-// Chức năng: Xử lý nhập liệu hàng loạt, tạo file .bat cùng thư mục
-// Version: 3.0 - Sửa lỗi encoding và tương thích mọi máy
+// Version: 4.0 - Hiển thị danh sách SN của box được chọn + Tìm kiếm
 
-let massSNList = [];
 let fullBoxInfo = null;
 let autoRefreshInterval = null;
+let currentBoxSnList = [];     // Danh sách SN của box hiện tại
+let filteredSnList = [];       // Danh sách SN sau khi lọc
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initMassPutawayModule = function() {
@@ -14,15 +14,16 @@ window.initMassPutawayModule = function() {
     const whInput = document.getElementById('mass-wh');
     if (whInput) whInput.value = 'VNS';
     
-    // Load danh sách SN
-    loadMassSNList();
-    
-    // Log thông tin API cho Python
-    console.log('📡 API Endpoint cho Python: POST /api/mass-putaway');
-    console.log('📡 Bot sẽ tự động tính quantity từ danh sách SN');
-    
     // Đọc cache
     readMassPutCache();
+    
+    // Thêm sự kiện cho ô tìm kiếm
+    const searchInput = document.getElementById('mass-sn-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterSnList(e.target.value);
+        });
+    }
     
     // Khởi tạo auto refresh
     startAutoRefresh();
@@ -34,19 +35,15 @@ function readMassPutCache() {
     
     // 1. Đọc box riêng để điền form
     const savedBox = sessionStorage.getItem('massPutBox');
-    console.log('📦 Box từ cache (riêng):', savedBox);
     
     if (savedBox) {
         const boxInput = document.getElementById('mass-box');
         if (boxInput) {
             boxInput.value = savedBox;
-            console.log('✅ Đã điền box:', savedBox);
             
             // Highlight để thấy rõ
             boxInput.style.border = '2px solid #4f46e5';
             boxInput.style.backgroundColor = '#eef2ff';
-        } else {
-            console.error('❌ Không tìm thấy ô input mass-box');
         }
     }
     
@@ -57,7 +54,11 @@ function readMassPutCache() {
             fullBoxInfo = JSON.parse(savedFull);
             console.log('📦 Thông tin đầy đủ:', fullBoxInfo);
             
-            // Hiển thị thêm thông tin box
+            // Lưu danh sách SN của box hiện tại
+            currentBoxSnList = fullBoxInfo.snList || [];
+            filteredSnList = [...currentBoxSnList];
+            
+            // Hiển thị thông tin box
             const infoDiv = document.getElementById('mass-box-info');
             if (infoDiv && fullBoxInfo) {
                 infoDiv.innerHTML = `
@@ -67,6 +68,9 @@ function readMassPutCache() {
                 `;
             }
             
+            // Render danh sách SN
+            renderBoxSnList();
+            
             // Hiển thị thông báo
             showMassResult(`📦 Đã nạp box ${fullBoxInfo.box} (${fullBoxInfo.snList?.length || 0} SN)`, 'info');
             
@@ -75,14 +79,104 @@ function readMassPutCache() {
         }
     } else {
         console.log('📭 Không có thông tin đầy đủ');
+        currentBoxSnList = [];
+        filteredSnList = [];
+        renderBoxSnList();
     }
 }
 
-// Gọi nhiều lần để đảm bảo DOM đã load
-setTimeout(readMassPutCache, 100);
-setTimeout(readMassPutCache, 300);
-setTimeout(readMassPutCache, 500);
-setTimeout(readMassPutCache, 1000);
+// ==================== RENDER DANH SÁCH SN CỦA BOX ====================
+function renderBoxSnList() {
+    const tbody = document.getElementById('mass-sn-tbody');
+    if (!tbody) return;
+    
+    const listToRender = filteredSnList.length > 0 ? filteredSnList : currentBoxSnList;
+    
+    if (!listToRender || listToRender.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">Chưa có SN nào trong box</td></tr>';
+        
+        // Cập nhật số lượng
+        const countSpan = document.getElementById('mass-sn-count');
+        if (countSpan) {
+            countSpan.innerText = `0/0 SN`;
+        }
+        return;
+    }
+    
+    tbody.innerHTML = listToRender.map((sn, index) => {
+        const stt = index + 1;
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2 text-center">${stt}</td>
+                <td class="px-3 py-2 font-mono font-bold text-indigo-600">${sn}</td>
+                <td class="px-3 py-2 text-center">
+                    <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Chờ xử lý</span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <button onclick="copySingleSN('${sn}')" class="text-blue-500 hover:text-blue-700 text-xs px-2 py-1 rounded border border-blue-200">
+                        📋 Copy
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Cập nhật số lượng hiển thị
+    const countSpan = document.getElementById('mass-sn-count');
+    if (countSpan) {
+        countSpan.innerText = `${listToRender.length}/${currentBoxSnList.length} SN`;
+    }
+}
+
+// ==================== LỌC DANH SÁCH SN ====================
+function filterSnList(keyword) {
+    if (!keyword || keyword.trim() === '') {
+        filteredSnList = [...currentBoxSnList];
+    } else {
+        const searchTerm = keyword.toLowerCase().trim();
+        filteredSnList = currentBoxSnList.filter(sn => 
+            sn.toLowerCase().includes(searchTerm)
+        );
+    }
+    renderBoxSnList();
+    
+    // Hiển thị kết quả tìm kiếm
+    const resultMsg = document.getElementById('mass-search-result');
+    if (resultMsg) {
+        if (filteredSnList.length === 0 && keyword.trim() !== '') {
+            resultMsg.innerHTML = `❌ Không tìm thấy SN nào khớp với "${keyword}"`;
+            resultMsg.classList.remove('hidden');
+        } else if (filteredSnList.length < currentBoxSnList.length) {
+            resultMsg.innerHTML = `🔍 Tìm thấy ${filteredSnList.length}/${currentBoxSnList.length} SN`;
+            resultMsg.classList.remove('hidden');
+        } else {
+            resultMsg.classList.add('hidden');
+        }
+    }
+}
+
+// ==================== COPY SN ====================
+window.copyAllSN = function() {
+    if (!currentBoxSnList || currentBoxSnList.length === 0) {
+        showMassResult('❌ Không có SN để copy!', 'error');
+        return;
+    }
+    
+    const snText = currentBoxSnList.join('\n');
+    navigator.clipboard.writeText(snText).then(() => {
+        showMassResult(`✅ Đã copy ${currentBoxSnList.length} SN vào clipboard!`, 'success');
+    }).catch(err => {
+        showMassResult('❌ Lỗi copy: ' + err, 'error');
+    });
+};
+
+window.copySingleSN = function(sn) {
+    navigator.clipboard.writeText(sn).then(() => {
+        showMassResult(`✅ Đã copy SN: ${sn}`, 'success');
+    }).catch(err => {
+        showMassResult('❌ Lỗi copy: ' + err, 'error');
+    });
+};
 
 // ==================== XỬ LÝ MASS PUTAWAY ====================
 window.processMassPutaway = async function() {
@@ -99,7 +193,6 @@ window.processMassPutaway = async function() {
     try {
         // Lấy thông tin từ SESSIONSTORAGE
         const savedInfo = sessionStorage.getItem('massPutFullInfo');
-        console.log('📦 savedInfo:', savedInfo);
         
         if (!savedInfo) {
             showMassResult('❌ Không tìm thấy thông tin box!', 'error');
@@ -112,12 +205,6 @@ window.processMassPutaway = async function() {
         const po = boxData.po || '';
         const snList = boxData.snList || [];
         
-        console.log('📦 Box:', box);
-        console.log('📍 PO:', po);
-        console.log('📍 SKU:', sku);
-        console.log('📋 SN List:', snList);
-        console.log('📋 Số lượng SN:', snList.length);
-        
         if (!box) {
             showMassResult('❌ Thông tin box không hợp lệ!', 'error');
             return;
@@ -128,23 +215,23 @@ window.processMassPutaway = async function() {
             return;
         }
         
-        // Tạo chuỗi SN để hiển thị trong file .bat (KHÔNG DẤU, KHÔNG ICON)
+        // Tạo chuỗi SN để hiển thị trong file .bat
         const snDisplay = snList.map((sn, index) => {
             const stt = (index + 1).toString().padStart(2, '0');
             return `echo ${stt}. ${sn}`;
         }).join('\r\n');
         
-        // Tạo chuỗi SN để copy vào clipboard
-        const snClipboard = snList.join(' ');
-        
         // Tạo chuỗi SN cho tham số --snlist
         const snParam = snList.join(',');
+        
+        // Tạo chuỗi SN để copy vào clipboard
+        const snClipboard = snList.join(' ');
         
         // Xác định tên file EXE
         const exeName = 'bot_putaway.exe';
         const oldExeName = 'save as bot_remote_debug_full.exe';
         
-        // Tạo nội dung file .bat - CHUẨN ASCII, KHÔNG DẤU, KHÔNG ICON
+        // Tạo nội dung file .bat
         const batContent = `@echo off
 chcp 65001 >nul
 title MASS PUTAWAY - BOX ${box}
@@ -283,36 +370,11 @@ exit`;
         // Clear ô location
         document.getElementById('mass-location').value = '';
         
-        // Log activity
-        await logMassPutawayActivity(box, sku, location, snList.length);
-        
     } catch (error) {
         console.error('❌ Lỗi chi tiết:', error);
         showMassResult(`❌ Lỗi: ${error.message}`, 'error');
     }
 };
-
-// ==================== LOG ACTIVITY ====================
-async function logMassPutawayActivity(box, sku, location, snCount) {
-    try {
-        await supabaseClient.from('activity_log').insert([{
-            user_id: currentUserId,
-            username: currentUser,
-            action: 'MASS_PUTAWAY_BATCH',
-            details: {
-                box: box,
-                sku: sku,
-                location: location,
-                sn_count: snCount,
-                timestamp: new Date().toISOString()
-            },
-            is_active: true
-        }]);
-        console.log('✅ Đã ghi log mass putaway');
-    } catch (error) {
-        console.error('❌ Lỗi ghi log:', error);
-    }
-}
 
 // ==================== HIỂN THỊ KẾT QUẢ ====================
 function showMassResult(message, type) {
@@ -338,60 +400,9 @@ function showMassResult(message, type) {
     }
 }
 
-// ==================== LOAD DANH SÁCH SN ====================
-async function loadMassSNList() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('activity_log')
-            .select('*')
-            .eq('action', 'MASS_PUTAWAY_SN')
-            .order('created_at', { ascending: false })
-            .limit(50);
-        
-        if (error) throw error;
-        
-        massSNList = data || [];
-        renderMassSNList();
-        
-    } catch (error) {
-        console.error('❌ Lỗi load SN list:', error);
-        const tbody = document.getElementById('mass-sn-tbody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
-        }
-    }
-}
-
-// ==================== RENDER DANH SÁCH SN ====================
-function renderMassSNList() {
-    const tbody = document.getElementById('mass-sn-tbody');
-    if (!tbody) return;
-    
-    if (!massSNList || massSNList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Chưa có SN nào được xử lý</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = massSNList.map(item => {
-        const details = item.details || {};
-        const time = item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '';
-        
-        return `
-            <tr class="hover:bg-gray-50">
-                <td class="text-xs">${time}</td>
-                <td class="font-bold text-indigo-600">${details.box || ''}</td>
-                <td class="font-mono">${details.sn || ''}</td>
-                <td>${details.location || ''}</td>
-                <td>${details.wh || 'VNS'}</td>
-                <td>${item.username || ''}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// ==================== REFRESH DANH SÁCH SN ====================
+// ==================== REFRESH ====================
 window.refreshMassSNList = function() {
-    loadMassSNList();
+    readMassPutCache();
     showMassResult('🔄 Đã làm mới danh sách SN', 'info');
 };
 
@@ -412,6 +423,10 @@ window.clearMassPutCache = function() {
         infoDiv.innerHTML = '';
     }
     
+    currentBoxSnList = [];
+    filteredSnList = [];
+    renderBoxSnList();
+    
     showMassResult('✅ Đã xóa cache, có thể chọn box mới', 'success');
 };
 
@@ -420,7 +435,7 @@ function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(() => {
         if (!document.getElementById('page-mass-putaway')?.classList.contains('hidden')) {
-            loadMassSNList();
+            readMassPutCache();
             console.log('🔄 Auto refresh mass SN list');
         }
     }, 30000);
@@ -461,4 +476,4 @@ LUU Y:
 };
 
 // Khởi tạo khi load
-console.log('✅ Mass Putaway module loaded - Version 3.0');
+console.log('✅ Mass Putaway module loaded - Version 4.0');
