@@ -1,8 +1,10 @@
 // js/box-hv.js - Module Box HV (cập nhật thêm bộ nhớ đệm Mass Put)
+// Version: 2.0 - Thay tìm PO thành tìm box
 
 let boxHVInterval = null;
 let boxHVData = [];
 let massPutCache = null; // Bộ nhớ đệm cho Mass Put
+let filteredBoxData = []; // Dữ liệu sau khi lọc
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initBoxHVModule = function() {
@@ -29,7 +31,53 @@ window.initBoxHVModule = function() {
         massPutCache = JSON.parse(savedCache);
         console.log('📦 Có box đang chờ Mass Put:', massPutCache);
     }
+    
+    // 👉 THÊM SỰ KIỆN CHO Ô TÌM BOX
+    const boxSearchInput = document.getElementById('boxhv-box-search');
+    if (boxSearchInput) {
+        boxSearchInput.addEventListener('input', function(e) {
+            filterBoxByCode(e.target.value);
+        });
+        console.log('✅ Đã gán sự kiện tìm box');
+    }
+    
+    // Auto refresh
+    startAutoRefresh();
 };
+
+// ==================== LỌC BOX THEO MÃ BOX ====================
+function filterBoxByCode(keyword) {
+    console.log('🔍 Tìm box:', keyword);
+    
+    if (!keyword || keyword.trim() === '') {
+        filteredBoxData = [...boxHVData];
+        renderBoxHVData(filteredBoxData);
+        
+        // Ẩn kết quả tìm kiếm
+        const resultSpan = document.getElementById('boxhv-search-result');
+        if (resultSpan) {
+            resultSpan.classList.add('hidden');
+        }
+    } else {
+        const searchTerm = keyword.toLowerCase().trim();
+        filteredBoxData = boxHVData.filter(box => 
+            box.box_code.toLowerCase().includes(searchTerm)
+        );
+        renderBoxHVData(filteredBoxData);
+        
+        // Hiển thị kết quả tìm kiếm
+        const resultSpan = document.getElementById('boxhv-search-result');
+        if (resultSpan) {
+            if (filteredBoxData.length === 0) {
+                resultSpan.innerHTML = `❌ Không tìm thấy box nào chứa "${keyword}"`;
+                resultSpan.classList.remove('hidden');
+            } else {
+                resultSpan.innerHTML = `🔍 Tìm thấy ${filteredBoxData.length}/${boxHVData.length} box`;
+                resultSpan.classList.remove('hidden');
+            }
+        }
+    }
+}
 
 // ==================== AUTO REFRESH ====================
 window.startAutoRefresh = function(interval = 30000) {
@@ -96,8 +144,8 @@ async function loadBoxHVData() {
     try {
         const fromDate = document.getElementById('boxhv-from-date')?.value;
         const toDate = document.getElementById('boxhv-to-date')?.value;
-        const po = document.getElementById('boxhv-po')?.value;
         const status = document.getElementById('boxhv-status')?.value || 'all';
+        // Đã bỏ tìm theo PO, chỉ lọc theo ngày và status
 
         let query = supabaseClient
             .from('boxes')
@@ -107,14 +155,27 @@ async function loadBoxHVData() {
 
         if (fromDate) query = query.gte('created_at', fromDate + 'T00:00:00');
         if (toDate) query = query.lte('created_at', toDate + 'T23:59:59');
-        if (po) query = query.ilike('po', `%${po}%`);
         if (status !== 'all') query = query.eq('putaway_status', status);
 
         const { data, error } = await query;
         if (error) throw error;
 
         boxHVData = data || [];
-        renderBoxHVData();
+        
+        // Reset ô tìm kiếm box
+        const boxSearchInput = document.getElementById('boxhv-box-search');
+        if (boxSearchInput) {
+            boxSearchInput.value = '';
+        }
+        
+        // Ẩn kết quả tìm kiếm
+        const resultSpan = document.getElementById('boxhv-search-result');
+        if (resultSpan) {
+            resultSpan.classList.add('hidden');
+        }
+        
+        // Hiển thị toàn bộ dữ liệu
+        renderBoxHVData(boxHVData);
 
     } catch (error) {
         console.error('❌ Lỗi load data:', error);
@@ -126,16 +187,16 @@ async function loadBoxHVData() {
 }
 
 // ==================== RENDER ====================
-function renderBoxHVData() {
+function renderBoxHVData(dataToRender) {
     const tbody = document.getElementById('boxhv-tbody');
     if (!tbody) return;
 
-    if (!boxHVData || boxHVData.length === 0) {
+    if (!dataToRender || dataToRender.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
         return;
     }
 
-    tbody.innerHTML = boxHVData.map(box => {
+    tbody.innerHTML = dataToRender.map(box => {
         const isPending = box.putaway_status === 'pending';
         const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
         const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
@@ -225,18 +286,23 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             console.error('❌ Lỗi lấy SN:', detailError);
         }
         
+        // Tạo mảng SN từ details
+        const snList = details ? details.map(d => d.serial) : [];
+        
         // TẠO OBJECT ĐẦY ĐỦ THÔNG TIN
         const fullBoxInfo = {
             box: boxCode,
             po: po,
             sku: sku,
-            total: box.total || 0,
-            snList: details ? details.map(d => d.serial) : [],
+            total: box.total || snList.length,
+            snList: snList,  // QUAN TRỌNG: Lưu mảng SN
             created_by: box.created_by,
             created_at: box.created_at,
             timestamp: new Date().toISOString(),
             preparedBy: currentUser || 'admin'
         };
+        
+        console.log(`📦 Đã lấy ${snList.length} SN cho box ${boxCode}`);
         
         // LƯU CẢ HAI:
         sessionStorage.setItem('massPutFullInfo', JSON.stringify(fullBoxInfo));
@@ -249,81 +315,11 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             box: sessionStorage.getItem('massPutBox')
         });
         
-        window.notify(`✅ Đã chọn box ${boxCode} (${fullBoxInfo.snList.length} SN) cho Mass Put`);
+        window.notify(`✅ Đã chọn box ${boxCode} (${snList.length} SN) cho Mass Put`);
         
         // Chuyển sang trang Mass Putaway
         if (typeof window.switchPage === 'function') {
             window.switchPage('mass-putaway');
-            
-            // TỰ ĐỘNG ĐIỀN BOX VÀ HIỂN THỊ THÔNG TIN
-            setTimeout(() => {
-                // 1. ĐIỀN BOX VÀO Ô INPUT (ĐÃ HOẠT ĐỘNG)
-                const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
-                if (boxInput) {
-                    boxInput.value = boxCode;
-                    boxInput.dispatchEvent(new Event('input'));
-                    console.log('✅ Đã tự động điền box:', boxCode);
-                }
-                
-                // 2. HIỂN THỊ THÔNG TIN BOX (THÊM MỚI)
-                const infoDiv = document.querySelector('#mass-putaway-container #massput-box-info');
-                if (infoDiv) {
-                    infoDiv.innerHTML = `
-                        <div style="background:#eef2ff; padding:20px; border-radius:10px; border-left:5px solid #4f46e5;">
-                            <div style="font-size:22px; font-weight:bold; color:#4f46e5; margin-bottom:15px;">
-                                📦 ${fullBoxInfo.box}
-                            </div>
-                            <div style="margin-top:10px;">
-                                <div style="margin-bottom:8px;">
-                                    <span style="color:#6b7280; width:80px; display:inline-block;">PO:</span> 
-                                    <span style="font-weight:500;">${fullBoxInfo.po}</span>
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <span style="color:#6b7280; width:80px; display:inline-block;">SKU:</span> 
-                                    <span style="font-weight:500;">${fullBoxInfo.sku}</span>
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <span style="color:#6b7280; width:80px; display:inline-block;">SL:</span> 
-                                    <span style="font-weight:bold; color:#f97316;">${fullBoxInfo.total}</span>
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <span style="color:#6b7280; width:80px; display:inline-block;">Ngày:</span> 
-                                    <span>${fullBoxInfo.created_at ? new Date(fullBoxInfo.created_at).toLocaleDateString('vi-VN') : ''}</span>
-                                </div>
-                                <div style="margin-bottom:8px;">
-                                    <span style="color:#6b7280; width:80px; display:inline-block;">NV:</span> 
-                                    <span>${fullBoxInfo.created_by || ''}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    console.log('✅ Đã hiển thị thông tin box:', fullBoxInfo.box);
-                } else {
-                    console.log('❌ Không tìm thấy #massput-box-info');
-                    
-                    // THỬ TẠO MỚI NẾU CHƯA CÓ
-                    const container = document.querySelector('#mass-putaway-container .col-span-4 .bg-white');
-                    if (container) {
-                        const newDiv = document.createElement('div');
-                        newDiv.id = 'massput-box-info';
-                        newDiv.innerHTML = `
-                            <div style="background:#eef2ff; padding:20px; border-radius:10px;">
-                                <div style="font-size:22px; font-weight:bold; color:#4f46e5;">📦 ${fullBoxInfo.box}</div>
-                                <div>PO: ${fullBoxInfo.po}</div>
-                                <div>SKU: ${fullBoxInfo.sku}</div>
-                                <div>SL: ${fullBoxInfo.total}</div>
-                            </div>
-                        `;
-                        container.appendChild(newDiv);
-                        console.log('✅ Đã tạo và hiển thị thông tin box');
-                    }
-                }
-                
-            }, 1500); // Tăng lên 1.5 giây để đảm bảo DOM đã load
-            
-        } else {
-            window.location.href = '#mass-putaway';
-            location.reload();
         }
         
     } catch (error) {
@@ -349,6 +345,7 @@ window.clearMassPutCache = function() {
 
 // ==================== FILTER ====================
 window.filterBoxHV = function() {
+    // Hàm này giữ để tương thích, nhưng không dùng nữa
     loadBoxHVData();
 };
 
@@ -359,8 +356,14 @@ window.resetBoxHVFilter = function() {
 
     document.getElementById('boxhv-from-date').value = lastWeek.toISOString().split('T')[0];
     document.getElementById('boxhv-to-date').value = today.toISOString().split('T')[0];
-    document.getElementById('boxhv-po').value = '';
+    document.getElementById('boxhv-box-search').value = ''; // Đã đổi từ PO thành box
     document.getElementById('boxhv-status').value = 'all';
+    
+    // Ẩn kết quả tìm kiếm
+    const resultSpan = document.getElementById('boxhv-search-result');
+    if (resultSpan) {
+        resultSpan.classList.add('hidden');
+    }
 
     loadBoxHVData();
 };
@@ -395,3 +398,6 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
+
+// Khởi tạo khi load
+console.log('✅ Box HV module loaded - Version 2.0');
