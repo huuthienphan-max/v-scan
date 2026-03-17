@@ -1,8 +1,10 @@
 // js/box-hv.js - Module Box HV (cập nhật thêm bộ nhớ đệm Mass Put)
+// Version: 2.1 - Thêm ô tìm kiếm theo mã box
 
 let boxHVInterval = null;
 let boxHVData = [];
 let massPutCache = null; // Bộ nhớ đệm cho Mass Put
+let filteredBoxData = []; // Dữ liệu sau khi lọc
 
 // ==================== KHỞI TẠO MODULE ====================
 window.initBoxHVModule = function() {
@@ -29,7 +31,41 @@ window.initBoxHVModule = function() {
         massPutCache = JSON.parse(savedCache);
         console.log('📦 Có box đang chờ Mass Put:', massPutCache);
     }
+    
+    // Thêm sự kiện cho ô tìm kiếm box
+    const boxSearchInput = document.getElementById('boxhv-box-search');
+    if (boxSearchInput) {
+        boxSearchInput.addEventListener('input', function(e) {
+            filterBoxByCode(e.target.value);
+        });
+    }
 };
+
+// ==================== LỌC BOX THEO MÃ BOX ====================
+function filterBoxByCode(keyword) {
+    if (!keyword || keyword.trim() === '') {
+        // Nếu không có từ khóa, hiển thị lại dữ liệu gốc
+        renderBoxHVData(boxHVData);
+    } else {
+        const searchTerm = keyword.toLowerCase().trim();
+        const filtered = boxHVData.filter(box => 
+            box.box_code.toLowerCase().includes(searchTerm)
+        );
+        renderBoxHVData(filtered);
+        
+        // Hiển thị kết quả tìm kiếm
+        const resultSpan = document.getElementById('boxhv-search-result');
+        if (resultSpan) {
+            if (filtered.length === 0) {
+                resultSpan.innerHTML = `❌ Không tìm thấy box nào khớp với "${keyword}"`;
+                resultSpan.classList.remove('hidden');
+            } else {
+                resultSpan.innerHTML = `🔍 Tìm thấy ${filtered.length}/${boxHVData.length} box`;
+                resultSpan.classList.remove('hidden');
+            }
+        }
+    }
+}
 
 // ==================== AUTO REFRESH ====================
 window.startAutoRefresh = function(interval = 30000) {
@@ -114,28 +150,41 @@ async function loadBoxHVData() {
         if (error) throw error;
 
         boxHVData = data || [];
-        renderBoxHVData();
+        
+        // Reset ô tìm kiếm box
+        const boxSearchInput = document.getElementById('boxhv-box-search');
+        if (boxSearchInput) {
+            boxSearchInput.value = '';
+        }
+        
+        // Ẩn kết quả tìm kiếm
+        const resultSpan = document.getElementById('boxhv-search-result');
+        if (resultSpan) {
+            resultSpan.classList.add('hidden');
+        }
+        
+        renderBoxHVData(boxHVData);
 
     } catch (error) {
         console.error('❌ Lỗi load data:', error);
         const tbody = document.getElementById('boxhv-tbody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-500">Lỗi tải dữ liệu</td></tr>';
         }
     }
 }
 
 // ==================== RENDER ====================
-function renderBoxHVData() {
+function renderBoxHVData(dataToRender = boxHVData) {
     const tbody = document.getElementById('boxhv-tbody');
     if (!tbody) return;
 
-    if (!boxHVData || boxHVData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
+    if (!dataToRender || dataToRender.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
         return;
     }
 
-    tbody.innerHTML = boxHVData.map(box => {
+    tbody.innerHTML = dataToRender.map(box => {
         const isPending = box.putaway_status === 'pending';
         const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
         const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
@@ -257,7 +306,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             
             // TỰ ĐỘNG ĐIỀN BOX VÀ HIỂN THỊ THÔNG TIN
             setTimeout(() => {
-                // 1. ĐIỀN BOX VÀO Ô INPUT (ĐÃ HOẠT ĐỘNG)
+                // 1. ĐIỀN BOX VÀO Ô INPUT
                 const boxInput = document.querySelector('#mass-putaway-container input[placeholder*="Box" i]');
                 if (boxInput) {
                     boxInput.value = boxCode;
@@ -265,7 +314,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
                     console.log('✅ Đã tự động điền box:', boxCode);
                 }
                 
-                // 2. HIỂN THỊ THÔNG TIN BOX (THÊM MỚI)
+                // 2. HIỂN THỊ THÔNG TIN BOX
                 const infoDiv = document.querySelector('#mass-putaway-container #massput-box-info');
                 if (infoDiv) {
                     infoDiv.innerHTML = `
@@ -319,7 +368,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
                     }
                 }
                 
-            }, 1500); // Tăng lên 1.5 giây để đảm bảo DOM đã load
+            }, 1500);
             
         } else {
             window.location.href = '#mass-putaway';
@@ -361,6 +410,18 @@ window.resetBoxHVFilter = function() {
     document.getElementById('boxhv-to-date').value = today.toISOString().split('T')[0];
     document.getElementById('boxhv-po').value = '';
     document.getElementById('boxhv-status').value = 'all';
+    
+    // Reset ô tìm kiếm box
+    const boxSearchInput = document.getElementById('boxhv-box-search');
+    if (boxSearchInput) {
+        boxSearchInput.value = '';
+    }
+    
+    // Ẩn kết quả tìm kiếm
+    const resultSpan = document.getElementById('boxhv-search-result');
+    if (resultSpan) {
+        resultSpan.classList.add('hidden');
+    }
 
     loadBoxHVData();
 };
