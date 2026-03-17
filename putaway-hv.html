@@ -23,7 +23,7 @@
     <!-- Bộ lọc -->
     <div class="card p-6">
         <h3 class="font-bold text-sm mb-4">🔍 Bộ lọc tìm kiếm</h3>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
                 <label class="text-xs font-bold text-gray-500 uppercase">Từ ngày</label>
                 <input type="date" id="putaway-from-date" class="w-full input-wms">
@@ -37,24 +37,23 @@
                 <input type="text" id="putaway-po" placeholder="Nhập PO..." class="w-full input-wms">
             </div>
             <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Mã Box</label>
+                <div class="relative">
+                    <input type="text" id="putaway-box-search" placeholder="Nhập mã box..." class="w-full input-wms pl-8">
+                    <svg class="w-4 h-4 absolute left-2 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <span id="putaway-search-result" class="text-xs text-orange-600 hidden mt-1"></span>
+            </div>
+            <div>
                 <label class="text-xs font-bold text-gray-500 uppercase">Trạng thái</label>
                 <select id="putaway-status" class="w-full input-wms">
+                    <option value="all">Tất cả</option>
                     <option value="pending">Chờ xử lý</option>
                     <option value="completed">Đã xử lý</option>
-                    <option value="all">Tất cả</option>
                 </select>
             </div>
-            <!-- Thêm vào phần bộ lọc, sau ô tìm PO -->
-<div class="col-span-1">
-    <label class="text-xs font-bold text-gray-500 uppercase">Tìm Box</label>
-    <div class="relative">
-        <input type="text" id="boxhv-box-search" placeholder="Nhập mã box..." class="w-full input-wms pl-8">
-        <svg class="w-4 h-4 absolute left-2 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-    </div>
-    <span id="boxhv-search-result" class="text-xs text-orange-600 hidden mt-1"></span>
-</div>
             <div class="flex items-end gap-2">
                 <button onclick="filterPutawayBoxes()" class="btn-shopee px-4 py-2 rounded text-xs font-bold">LỌC</button>
                 <button onclick="resetPutawayFilter()" class="bg-gray-200 px-4 py-2 rounded text-xs font-bold">RESET</button>
