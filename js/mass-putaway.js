@@ -1,6 +1,6 @@
 // js/mass-putaway.js - Module Mass Putaway
 // Chức năng: Xử lý nhập liệu hàng loạt, tạo file .bat cùng thư mục
-// Version: 3.0 - Sửa lỗi encoding và format file .bat
+// Version: 2.0 - Sửa lỗi quantity và tạo file .bat chuẩn
 
 let massSNList = [];
 let fullBoxInfo = null;
@@ -17,8 +17,9 @@ window.initMassPutawayModule = function() {
     // Load danh sách SN
     loadMassSNList();
     
-    // Log thông tin
+    // Log thông tin API cho Python
     console.log('📡 API Endpoint cho Python: POST /api/mass-putaway');
+    console.log('📡 Bot sẽ tự động tính quantity từ danh sách SN');
     
     // Đọc cache
     readMassPutCache();
@@ -127,21 +128,23 @@ window.processMassPutaway = async function() {
             return;
         }
         
-        // Tạo chuỗi SN để hiển thị trong file .bat - MỖI DÒNG ĐỀU CÓ ECHO
-        const snDisplay = snList.map((sn, index) => {
-            const stt = (index + 1).toString().padStart(2, '0');
-            return `echo ${stt}. ${sn}`;
-        }).join('\r\n');
+        // Tạo chuỗi SN để hiển thị trong file .bat
+        const snDisplay = snList.map((sn, index) => 
+            `echo ${String(index+1).padStart(2, '0')}. ${sn}`
+        ).join('\n');
         
-        // Tạo chuỗi SN cho tham số --snlist (cách nhau bằng dấu phẩy)
-        const snParam = snList.join(',');
-        
-        // Tạo chuỗi SN để copy vào clipboard (cách nhau bằng space)
+        // Tạo chuỗi SN để copy vào clipboard
         const snClipboard = snList.join(' ');
         
-        // Tạo nội dung file .bat - CHUẨN WINDOWS, KHÔNG LỖI ENCODING
-        // Tạo nội dung file .bat - CÓ PAUSE Ở CUỐI
-const batContent = `@echo off
+        // Tạo chuỗi SN cho tham số --snlist (cách nhau bằng dấu phẩy, không có khoảng trắng)
+        const snParam = snList.join(',');
+        
+        // Xác định tên file EXE (ưu tiên dùng bot_putaway.exe, nếu không thì dùng tên cũ)
+        const exeName = 'bot_putaway.exe'; // Đã đổi tên
+        const oldExeName = 'save as bot_remote_debug_full.exe';
+        
+        // Tạo nội dung file .bat - ĐÃ SỬA CHUẨN THEO YÊU CẦU
+        const batContent = `@echo off
 chcp 65001 >nul
 title MASS PUTAWAY - BOX ${box}
 color 0B
@@ -151,9 +154,10 @@ echo =====================================================
 echo            🏪 SHOPEE WMS - MASS PUTAWAY
 echo =====================================================
 echo.
-echo 📦 BOX        : ${box}
-echo 📦 SKU        : ${sku}
-echo 📌 LOCATION   : ${location}
+echo 📦 BOX:        ${box}
+echo 📦 PO:         ${po}
+echo 📍 SKU:        ${sku}
+echo 📌 LOCATION:   ${location}
 echo 🔢 SỐ LƯỢNG SN: ${snList.length}
 echo.
 echo 📋 DANH SÁCH SN:
@@ -164,106 +168,96 @@ echo.
 echo =====================================================
 echo.
 
-:: Copy danh sách SN vào clipboard
-echo ${snClipboard} | clip
-echo ✅ Đã copy ${snList.length} SN vao clipboard!
+:: Copy danh sách SN vào clipboard để dự phòng
+echo %SN_CLIPBOARD% | clip
+set SN_CLIPBOARD=${snClipboard}
+echo ✅ Đã copy ${snList.length} SN vào clipboard!
 echo.
 echo =====================================================
 echo.
-echo 🤖 BOT SE TU DONG TINH QUANTITY TU DANH SACH SN
+echo 🤖 BOT SẼ TỰ ĐỘNG TÍNH QUANTITY TỪ DANH SÁCH SN
 echo.
-echo Ban da kiem tra ky va xac nhan mass put box nay?
+echo Bạn đã kiểm tra kỹ và xác nhận mass put box này?
 echo.
-echo   [Y] DONG Y - Chay bot
-echo   [N] HUY - Khong xu ly
+echo   [Y] ĐỒNG Ý - Chạy bot
+echo   [N] HỦY - Không xử lý
 echo.
 echo =====================================================
 echo.
 
 :choice
-set /p input="Nhap lua chon (Y/N): "
+set /p input="Nhập lựa chọn (Y/N): "
 if /i "%input%"=="Y" goto run_bot
 if /i "%input%"=="N" goto cancel
-echo ❌ Vui long nhap Y hoac N!
+echo ❌ Vui lòng nhập Y hoặc N!
 goto choice
 
 :run_bot
 cls
 echo =====================================================
-echo            🚀 DANG CHAY BOT PUTAWAY
+echo            🚀 ĐANG CHẠY BOT PUTAWAY
 echo =====================================================
 echo.
-echo 📦 Box: %BOX%
-echo 📦 SKU: %SKU%
-echo 📌 Location: %LOCATION%
-echo 🔢 So SN: %SN_COUNT%
+echo 📦 Box: ${box}
+echo 📍 SKU: ${sku}
+echo 📌 Location: ${location}
+echo 🔢 Số SN: ${snList.length}
+echo.
+echo 📋 Tham số gửi đi:
+echo    --box ${box}
+echo    --sku ${sku}
+echo    --location "${location}"
+echo    --snlist "${snParam}"
 echo.
 echo =====================================================
 echo.
 
-:: KIEM TRA FILE EXE TON TAI
-if exist "%~dp0save as bot_remote_debug_full.exe" (
-    set "EXE_PATH=%~dp0save as bot_remote_debug_full.exe"
+:: KIỂM TRA FILE EXE TỒN TẠI
+if exist "%~dp0${exeName}" (
+    set EXE_PATH=%~dp0${exeName}
+) else if exist "%~dp0${oldExeName}" (
+    set EXE_PATH="%~dp0${oldExeName}"
 ) else (
-    echo ❌ KHONG TIM THAY FILE EXE!
+    echo ❌ KHÔNG TÌM THẤY FILE EXE!
     echo.
+    echo 📌 Các file đã tìm:
+    echo    - %~dp0${exeName}
+    echo    - %~dp0${oldExeName}
+    echo.
+    echo Vui lòng đặt file bot_putaway.exe cùng thư mục với file .bat
     pause
     exit /b 1
 )
 
-:: CHAY BOT VA CHO
-echo 🚀 Dang khoi dong bot...
+:: CHẠY BOT - CHỈ TRUYỀN 4 THAM SỐ, BOT TỰ TÍNH QUANTITY
+echo 🚀 Đang khởi động bot...
 echo.
-start /wait "" "%EXE_PATH%" --box %BOX% --sku %SKU% --location "%LOCATION%" --snlist "%SN_PARAM%"
+%EXE_PATH% --box ${box} --sku ${sku} --location "${location}" --snlist "${snParam}"
 
-:: KIEM TRA KET QUA
+:: KIỂM TRA KẾT QUẢ
 if %errorlevel% equ 0 (
     echo.
-    echo ✅ BOT DA CHAY THANH CONG!
+    echo ✅ BOT ĐÃ CHẠY THÀNH CÔNG!
 ) else (
     echo.
-    echo ❌ BOT CHAY THAT BAI! Ma loi: %errorlevel%
+    echo ❌ BOT CHẠY THẤT BẠI! Mã lỗi: %errorlevel%
 )
 
 echo.
 echo =====================================================
 echo.
-echo 🟢 Nhan phim bat ky de thoat...
-pause >nul
-exit
-)
-
-:: CHAY BOT
-echo 🚀 Dang khoi dong bot...
-echo.
-"%EXE_PATH%" --box ${box} --sku ${sku} --location "${location}" --snlist "${snParam}"
-
-:: KIEM TRA KET QUA
-if %errorlevel% equ 0 (
-    echo.
-    echo ✅ BOT DA CHAY THANH CONG!
-) else (
-    echo.
-    echo ❌ BOT CHAY THAT BAI! Ma loi: %errorlevel%
-)
-
-echo.
-echo =====================================================
-echo.
-echo 🟢 Nhan phim bat ky de thoat...
-pause >nul
+timeout /t 5
 exit
 
 :cancel
 cls
 echo =====================================================
-echo            ❌ DA HUY XU LY
+echo            ❌ ĐÃ HỦY XỬ LÝ
 echo =====================================================
 echo.
-echo Ban da huy mass put box ${box}
+echo Bạn đã hủy mass put box ${box}
 echo.
-echo 🟢 Nhan phim bat ky de thoat...
-pause >nul
+timeout /t 3
 exit`;
         
         // Tải file .bat
@@ -427,7 +421,7 @@ function startAutoRefresh() {
             loadMassSNList();
             console.log('🔄 Auto refresh mass SN list');
         }
-    }, 30000);
+    }, 30000); // Refresh mỗi 30 giây
 }
 
 // ==================== CLEANUP ====================
@@ -458,11 +452,11 @@ window.showMassPutawayGuide = function() {
 ⚠️ LƯU Ý:
 - Chrome phải mở ở cổng 9222
 - Đã đăng nhập Shopee WMS
-- File save as bot_remote_debug_full.exe cùng thư mục với file .bat
+- File bot_putaway.exe cùng thư mục với file .bat
     `;
     
     alert(guide);
 };
 
 // Khởi tạo khi load
-console.log('✅ Mass Putaway module loaded - Version 3.0');
+console.log('✅ Mass Putaway module loaded - Version 2.0');
