@@ -193,10 +193,10 @@ echo =====================================================
 echo            🚀 DANG CHAY BOT PUTAWAY
 echo =====================================================
 echo.
-echo 📦 Box: ${box}
-echo 📦 SKU: ${sku}
-echo 📌 Location: ${location}
-echo 🔢 So SN: ${snList.length}
+echo 📦 Box: %BOX%
+echo 📦 SKU: %SKU%
+echo 📌 Location: %LOCATION%
+echo 🔢 So SN: %SN_COUNT%
 echo.
 echo =====================================================
 echo.
@@ -207,9 +207,30 @@ if exist "%~dp0save as bot_remote_debug_full.exe" (
 ) else (
     echo ❌ KHONG TIM THAY FILE EXE!
     echo.
-    echo 📌 Vui long dat file save as bot_remote_debug_full.exe cung thu muc
     pause
     exit /b 1
+)
+
+:: CHAY BOT VA CHO
+echo 🚀 Dang khoi dong bot...
+echo.
+start /wait "" "%EXE_PATH%" --box %BOX% --sku %SKU% --location "%LOCATION%" --snlist "%SN_PARAM%"
+
+:: KIEM TRA KET QUA
+if %errorlevel% equ 0 (
+    echo.
+    echo ✅ BOT DA CHAY THANH CONG!
+) else (
+    echo.
+    echo ❌ BOT CHAY THAT BAI! Ma loi: %errorlevel%
+)
+
+echo.
+echo =====================================================
+echo.
+echo 🟢 Nhan phim bat ky de thoat...
+pause >nul
+exit
 )
 
 :: CHAY BOT
