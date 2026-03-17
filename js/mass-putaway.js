@@ -478,6 +478,17 @@ LUU Y:
     
     alert(guide);
 };
-
+// Đảm bảo gán sự kiện sau khi DOM load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const searchInput = document.getElementById('mass-sn-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                filterSnList(e.target.value);
+            });
+            console.log('✅ Đã gán sự kiện tìm kiếm khi DOM load');
+        }
+    }, 500);
+});
 // Khởi tạo khi load
 console.log('✅ Mass Putaway module loaded - Version 4.0');
