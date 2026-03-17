@@ -421,9 +421,97 @@
             </section>
             
             <!-- Page Mass Putaway -->
-            <section id="page-mass-putaway" class="hidden">
-                <div id="mass-putaway-container"></div>
-            </section>
+<section id="page-mass-putaway" class="hidden">
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">📦 MASS PUTAWAY</h2>
+            <div class="flex gap-2">
+                <button onclick="refreshMassSNList()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">
+                    🔄 Làm mới
+                </button>
+                <button onclick="showMassPutawayGuide()" class="bg-gray-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-700">
+                    📋 Hướng dẫn
+                </button>
+                <button onclick="clearMassPutCache()" class="bg-yellow-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-yellow-700">
+                    🧹 Xóa cache
+                </button>
+            </div>
+        </div>
+
+        <!-- Form nhập liệu -->
+        <div class="grid grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="font-bold text-sm mb-4 border-b pb-2">📍 THÔNG TIN BOX</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Mã Box</label>
+                        <input type="text" id="mass-box" class="w-full input-wms bg-gray-100" readonly placeholder="Chọn box từ màn hình Box HV">
+                        <div id="mass-box-info" class="text-xs text-gray-500 mt-1"></div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Location Put</label>
+                        <input type="text" id="mass-location" class="w-full input-wms" placeholder="VD: VNS-HV-01-05-2-07">
+                    </div>
+                    
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">WH</label>
+                        <input type="text" id="mass-wh" class="w-full input-wms bg-gray-100" readonly value="VNS">
+                    </div>
+                    
+                    <button onclick="processMassPutaway()" class="w-full bg-orange-600 text-white py-3 rounded font-bold text-sm hover:bg-orange-700 transition">
+                        🚀 XỬ LÝ MASS PUTAWAY
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="font-bold text-sm mb-4 border-b pb-2 flex justify-between items-center">
+                    <span>📋 DANH SÁCH SN TRONG BOX</span>
+                    <span id="mass-sn-count" class="text-xs bg-gray-100 px-2 py-1 rounded">0 SN</span>
+                </h3>
+                
+                <!-- Ô tìm kiếm -->
+                <div class="mb-4 flex gap-2">
+                    <div class="flex-1 relative">
+                        <input type="text" id="mass-sn-search" class="w-full input-wms pl-8" placeholder="🔍 Tìm kiếm SN...">
+                        <svg class="w-4 h-4 absolute left-2 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <button onclick="copyAllSN()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-700">
+                        📋 COPY ALL
+                    </button>
+                </div>
+                
+                <!-- Kết quả tìm kiếm -->
+                <div id="mass-search-result" class="hidden text-xs mb-2 text-orange-600"></div>
+                
+                <!-- Bảng danh sách SN -->
+                <div class="overflow-y-auto max-h-[400px] border rounded">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-bold text-gray-500">STT</th>
+                                <th class="px-3 py-2 text-left text-xs font-bold text-gray-500">Serial Number</th>
+                                <th class="px-3 py-2 text-center text-xs font-bold text-gray-500">Trạng thái</th>
+                                <th class="px-3 py-2 text-center text-xs font-bold text-gray-500">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mass-sn-tbody" class="divide-y divide-gray-100">
+                            <tr><td colspan="4" class="text-center py-8 text-gray-400">Chưa chọn box</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Kết quả -->
+        <div id="mass-result" class="hidden"></div>
+    </div>
+</section>
 
             <!-- Page Admin -->
             <section id="page-admin" class="hidden space-y-6">
