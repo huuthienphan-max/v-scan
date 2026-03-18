@@ -1329,8 +1329,7 @@ async function saveBox(boxCode, po, sku, serials, user) {
                 .single();
             
             const oldBoxCode = oldBox?.box_code;
-            
-            if (boxCode !== oldBoxCode) {
+           if (boxCode !== oldBoxCode) {
     // ===== ĐỔI MÃ BOX =====
     console.log('📦 Đổi mã box từ', oldBoxCode, '→', boxCode);
     
@@ -1339,7 +1338,7 @@ async function saveBox(boxCode, po, sku, serials, user) {
         .from('boxes')
         .select('id, box_code, po')
         .eq('box_code', boxCode)
-        .eq('po', po)  // QUAN TRỌNG: Kiểm tra cả PO
+        .eq('po', po)
         .eq('is_active', true)
         .maybeSingle();
     
@@ -1354,7 +1353,7 @@ async function saveBox(boxCode, po, sku, serials, user) {
         .select('id, box_code, po')
         .eq('box_code', boxCode)
         .eq('is_active', true)
-        .neq('po', po)  // Khác PO
+        .neq('po', po)
         .maybeSingle();
     
     if (existingOtherPO) {
@@ -1406,7 +1405,6 @@ async function saveBox(boxCode, po, sku, serials, user) {
         // KHÔNG CHO PHÉP ĐỔI MÃ - báo lỗi và giữ nguyên box cũ
         window.notify(`❌ Mã Box "${boxCode}" không tồn tại trong hệ thống. Vui lòng tạo box mới thay vì sửa!`, true);
         return { exists: true };
-        // KHÔNG xóa box cũ
     }
 }
                     // Tạo box mới
