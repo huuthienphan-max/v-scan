@@ -2082,30 +2082,113 @@ window.importBackupExcel = function() {
     document.getElementById('backup-excel-file').click();
 };
 
-// Gán sự kiện cho file input
-const backupFileInput = document.getElementById('backup-excel-file');
-if (backupFileInput) {
-    backupFileInput.onchange = async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        if (!confirm('⚠️ Import sẽ thay thế dữ liệu hiện tại?\nHành động này không thể hoàn tác!')) {
-            e.target.value = '';
-            return;
-        }
-        
-        try {
-            window.notify('🔄 Đang đọc file Excel...');
+// ==================== IMPORT EXCEL ====================
+window.importBackupExcel = function() {
+    const input = document.getElementById('backup-excel-file');
+    if (input) {
+        // Gán sự kiện trước khi click
+        input.onchange = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
             
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet);
-            
-            if (rows.length === 0) {
-                window.notify('❌ File không có dữ liệu!', true);
+            if (!confirm('⚠️ Import sẽ thay thế dữ liệu hiện tại?\nHành động này không thể hoàn tác!')) {
+                e.target.value = '';
                 return;
             }
+            
+            try {
+                window.notify('🔄 Đang đọc file Excel...');
+                
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                
+                if (rows.length === 0) {
+                    window.notify('❌ File không có dữ liệu!', true);
+                    return;
+                }
+                
+                window.notify(`🔄 Đang import ${rows.length} dòng...`);
+                
+                // Nhóm theo box
+                const boxMap = new Map();
+                rows.forEach(row => {
+                    const boxCode = row['Mã Box'];
+                    if (!boxCode) return;
+                    
+                    if (!boxMap.has(boxCode)) {
+                        boxMap.set(boxCode, {
+                            box_code: boxCode,
+                            po: row['Mã PO'],
+                            sku: row['SKU'],
+                            total: row['Tổng SN'] || 0,
+                            created_by: row['Người tạo'],
+                            created_at: row['Ngày tạo'],
+                            putaway_status: row['Trạng thái'] === 'Đã xử lý' ? 'completed' : 'pending',
+                            putaway_date: row['Ngày xử lý'],
+                            putaway_by: row['Người xử lý'],
+                            serials: []
+                        });
+                    }
+                    
+                    if (row['Serial Number']) {
+                        boxMap.get(boxCode).serials.push(row['Serial Number']);
+                    }
+                });
+                
+                // Xóa dữ liệu cũ
+                await supabaseClient.from('boxes').delete().neq('id', 0);
+                await supabaseClient.from('box_details').delete().neq('id', 0);
+                
+                // Import dữ liệu mới
+                for (const [boxCode, boxData] of boxMap) {
+                    const { data: newBox, error: boxError } = await supabaseClient
+                        .from('boxes')
+                        .insert([{
+                            box_code: boxData.box_code,
+                            po: boxData.po,
+                            sku: boxData.sku,
+                            total: boxData.serials.length || boxData.total,
+                            created_by: boxData.created_by,
+                            created_at: boxData.created_at ? new Date(boxData.created_at) : new Date(),
+                            is_active: true,
+                            putaway_status: boxData.putaway_status,
+                            putaway_date: boxData.putaway_date ? new Date(boxData.putaway_date) : null,
+                            putaway_by: boxData.putaway_by
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (boxError) throw boxError;
+                    
+                    if (boxData.serials.length > 0) {
+                        await supabaseClient
+                            .from('box_details')
+                            .insert(boxData.serials.map(serial => ({
+                                box_code: boxData.box_code,
+                                serial: serial,
+                                is_active: true
+                            })));
+                    }
+                }
+                
+                await loadAllBoxes();
+                window.notify(`✅ Import thành công ${boxMap.size} box!`);
+                
+            } catch (error) {
+                console.error('❌ Lỗi import:', error);
+                window.notify('❌ Lỗi khi import: ' + error.message, true);
+            }
+            
+            e.target.value = '';
+        };
+        
+        input.click();
+    } else {
+        window.notify('❌ Không tìm thấy input file!', true);
+    }
+};
             
             window.notify(`🔄 Đang import ${rows.length} dòng...`);
             
