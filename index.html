@@ -575,31 +575,241 @@
                     </div>
                 </div>
 
-                <div id="admin-backup-tab" class="hidden">
-                    <div class="card p-6">
-                        <h3 class="font-bold text-sm mb-4">💾 Backup & Restore dữ liệu</h3>
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <p class="text-sm mb-2">Chọn thời gian backup:</p>
-                                <select id="backup-period" class="input-wms mb-4 w-full">
-                                    <option value="day">1 ngày qua</option>
-                                    <option value="week">1 tuần qua</option>
-                                    <option value="month">1 tháng qua</option>
-                                    <option value="all">Tất cả</option>
-                                </select>
-                                <button onclick="exportBackup()" class="w-full btn-shopee py-2 rounded text-xs font-bold uppercase mb-2">📤 Xuất backup</button>
-                            </div>
-                            <div>
-                                <p class="text-sm mb-2">Khôi phục từ file backup:</p>
-                                <button onclick="importBackup()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase">📥 Nhập backup</button>
-                                <input type="file" id="backup-file" accept=".json" class="hidden">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+               <!-- Tab: Backup & Restore (ĐÃ SỬA SANG EXCEL) -->
+<div id="admin-backup-tab" class="hidden">
+    <div class="card p-6">
+        <h3 class="font-bold text-sm mb-4">💾 Backup & Restore dữ liệu (Excel)</h3>
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-sm mb-2">Chọn thời gian backup:</p>
+                <select id="backup-period" class="input-wms mb-4 w-full">
+                    <option value="day">1 ngày qua</option>
+                    <option value="week">1 tuần qua</option>
+                    <option value="month">1 tháng qua</option>
+                    <option value="all">Tất cả</option>
+                </select>
+                <button onclick="exportBackupExcel()" class="w-full btn-shopee py-2 rounded text-xs font-bold uppercase mb-2">
+                    📤 Xuất backup Excel
+                </button>
+            </div>
+            <div>
+                <p class="text-sm mb-2">Khôi phục từ file Excel:</p>
+                <button onclick="importBackupExcel()" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold uppercase mb-2">
+                    📥 Nhập backup Excel
+                </button>
+                <input type="file" id="backup-excel-file" accept=".xlsx" class="hidden">
+                <p class="text-xs text-gray-400 mt-2">✓ File Excel cần có các cột: box_code, po, sku, total, created_by, created_at</p>
+            </div>
+        </div>
+    </div>
+</div>
             </section>
         </div>
     </main>
+
+    // ==================== BACKUP EXCEL ====================
+window.exportBackupExcel = async function() {
+    const period = document.getElementById('backup-period').value;
+    
+    try {
+        window.notify('🔄 Đang tạo backup...');
+        
+        let query = supabaseClient
+            .from('boxes')
+            .select(`
+                *,
+                box_details(serial)
+            `)
+            .eq('is_active', true);
+
+        if (period !== 'all') {
+            const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
+            const fromDate = new Date();
+            fromDate.setDate(fromDate.getDate() - days);
+            query = query.gte('created_at', fromDate.toISOString());
+        }
+
+        const { data: boxes, error } = await query;
+        if (error) throw error;
+
+        // Chuyển đổi dữ liệu sang format Excel
+        const excelData = [];
+        
+        boxes.forEach(box => {
+            const boxInfo = {
+                'Mã Box': box.box_code,
+                'Mã PO': box.po,
+                'SKU': box.sku,
+                'Tổng SN': box.total,
+                'Người tạo': box.created_by,
+                'Ngày tạo': box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : '',
+                'Trạng thái': box.putaway_status === 'completed' ? 'Đã xử lý' : 'Chờ xử lý',
+                'Ngày xử lý': box.putaway_date ? new Date(box.putaway_date).toLocaleString('vi-VN') : '',
+                'Người xử lý': box.putaway_by || ''
+            };
+            
+            // Thêm thông tin SN
+            if (box.box_details && box.box_details.length > 0) {
+                box.box_details.forEach((detail, index) => {
+                    if (index === 0) {
+                        excelData.push({
+                            ...boxInfo,
+                            'Serial Number': detail.serial
+                        });
+                    } else {
+                        excelData.push({
+                            'Mã Box': '',
+                            'Mã PO': '',
+                            'SKU': '',
+                            'Tổng SN': '',
+                            'Người tạo': '',
+                            'Ngày tạo': '',
+                            'Trạng thái': '',
+                            'Ngày xử lý': '',
+                            'Người xử lý': '',
+                            'Serial Number': detail.serial
+                        });
+                    }
+                });
+            } else {
+                excelData.push(boxInfo);
+            }
+        });
+
+        // Tạo file Excel
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Backup');
+        
+        // Định dạng cột
+        const colWidths = [
+            { wch: 15 }, // Mã Box
+            { wch: 15 }, // Mã PO
+            { wch: 20 }, // SKU
+            { wch: 10 }, // Tổng SN
+            { wch: 15 }, // Người tạo
+            { wch: 20 }, // Ngày tạo
+            { wch: 15 }, // Trạng thái
+            { wch: 20 }, // Ngày xử lý
+            { wch: 15 }, // Người xử lý
+            { wch: 25 }  // Serial Number
+        ];
+        ws['!cols'] = colWidths;
+
+        // Xuất file
+        XLSX.writeFile(wb, `VScan_Backup_${new Date().toISOString().slice(0,10)}.xlsx`);
+        
+        window.notify(`✅ Đã xuất backup Excel thành công!`);
+        
+    } catch (error) {
+        console.error('❌ Lỗi backup:', error);
+        window.notify('❌ Lỗi khi xuất backup!', true);
+    }
+};
+
+// ==================== IMPORT EXCEL ====================
+window.importBackupExcel = function() {
+    document.getElementById('backup-excel-file').click();
+};
+
+document.getElementById('backup-excel-file').onchange = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!confirm('⚠️ Import sẽ thay thế dữ liệu hiện tại?\nHành động này không thể hoàn tác!')) {
+        e.target.value = '';
+        return;
+    }
+    
+    try {
+        window.notify('🔄 Đang đọc file Excel...');
+        
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        
+        if (rows.length === 0) {
+            window.notify('❌ File không có dữ liệu!', true);
+            return;
+        }
+        
+        window.notify(`🔄 Đang import ${rows.length} dòng...`);
+        
+        // Nhóm theo box
+        const boxMap = new Map();
+        rows.forEach(row => {
+            const boxCode = row['Mã Box'];
+            if (!boxCode) return;
+            
+            if (!boxMap.has(boxCode)) {
+                boxMap.set(boxCode, {
+                    box_code: boxCode,
+                    po: row['Mã PO'],
+                    sku: row['SKU'],
+                    total: row['Tổng SN'] || 0,
+                    created_by: row['Người tạo'],
+                    created_at: row['Ngày tạo'],
+                    putaway_status: row['Trạng thái'] === 'Đã xử lý' ? 'completed' : 'pending',
+                    putaway_date: row['Ngày xử lý'],
+                    putaway_by: row['Người xử lý'],
+                    serials: []
+                });
+            }
+            
+            if (row['Serial Number']) {
+                boxMap.get(boxCode).serials.push(row['Serial Number']);
+            }
+        });
+        
+        // Xóa dữ liệu cũ
+        await supabaseClient.from('boxes').delete().neq('id', 0);
+        await supabaseClient.from('box_details').delete().neq('id', 0);
+        
+        // Import dữ liệu mới
+        for (const [boxCode, boxData] of boxMap) {
+            // Tạo box
+            const { data: newBox, error: boxError } = await supabaseClient
+                .from('boxes')
+                .insert([{
+                    box_code: boxData.box_code,
+                    po: boxData.po,
+                    sku: boxData.sku,
+                    total: boxData.serials.length || boxData.total,
+                    created_by: boxData.created_by,
+                    created_at: boxData.created_at ? new Date(boxData.created_at) : new Date(),
+                    is_active: true,
+                    putaway_status: boxData.putaway_status,
+                    putaway_date: boxData.putaway_date,
+                    putaway_by: boxData.putaway_by
+                }])
+                .select()
+                .single();
+            
+            if (boxError) throw boxError;
+            
+            // Tạo details nếu có SN
+            if (boxData.serials.length > 0) {
+                await supabaseClient
+                    .from('box_details')
+                    .insert(boxData.serials.map(serial => ({
+                        box_code: boxData.box_code,
+                        serial: serial,
+                        is_active: true
+                    })));
+            }
+        }
+        
+        await loadAllBoxes();
+        window.notify(`✅ Import thành công ${boxMap.size} box!`);
+        
+    } catch (error) {
+        console.error('❌ Lỗi import:', error);
+        window.notify('❌ Lỗi khi import: ' + error.message, true);
+    }
+    
+    e.target.value = '';
+};
 
     <!-- Edit User Modal -->
     <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
