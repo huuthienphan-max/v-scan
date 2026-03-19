@@ -439,6 +439,35 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
-
+// ==================== TOGGLE TRẠNG THÁI BOX ====================
+window.toggleBoxStatus = async function(boxId, boxCode, currentStatus) {
+    if (!['admin', 'manager'].includes(currentUserRole)) {
+        window.notify('❌ Bạn không có quyền thay đổi trạng thái!', true);
+        return;
+    }
+    
+    const newStatus = currentStatus ? 'completed' : 'pending';
+    const statusText = newStatus === 'completed' ? 'Đã xử lý' : 'Chờ xử lý';
+    
+    try {
+        const { error } = await supabaseClient
+            .from('boxes')
+            .update({ 
+                putaway_status: newStatus,
+                putaway_date: newStatus === 'completed' ? new Date().toISOString() : null,
+                putaway_by: newStatus === 'completed' ? currentUser : null
+            })
+            .eq('id', boxId);
+        
+        if (error) throw error;
+        
+        window.notify(`✅ Đã chuyển box ${boxCode} sang: ${statusText}`);
+        await loadBoxHVData();
+        
+    } catch (error) {
+        console.error('❌ Lỗi cập nhật trạng thái:', error);
+        window.notify('❌ Lỗi khi cập nhật trạng thái!', true);
+    }
+};
 // Khởi tạo khi load
 console.log('✅ Box HV module loaded - Version 2.1');
