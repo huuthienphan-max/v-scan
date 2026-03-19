@@ -235,8 +235,6 @@ function renderBoxHVData(dataToRender) {
 
     tbody.innerHTML = dataToRender.map(box => {
         const isPending = box.putaway_status === 'pending';
-        const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
-        const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
         
         // Kiểm tra box này có đang trong cache không
         const isCached = massPutCache && massPutCache.box === box.box_code;
@@ -251,9 +249,16 @@ function renderBoxHVData(dataToRender) {
                 <td>${box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : ''}</td>
                 <td>${box.created_by || 'N/A'}</td>
                 <td>
-                    <span class="${statusClass} px-2 py-1 rounded text-xs font-medium">
-                        ${statusText}
-                    </span>
+                    <div class="flex items-center justify-center">
+                        <button onclick="toggleBoxStatus('${box.id}', '${box.box_code}', ${isPending})" 
+                            class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none ${isPending ? 'bg-yellow-400' : 'bg-green-400'}">
+                            <span class="sr-only">Toggle status</span>
+                            <span class="inline-block w-4 h-4 transform transition-transform bg-white rounded-full shadow ${isPending ? 'translate-x-1' : 'translate-x-6'}"></span>
+                        </button>
+                        <span class="ml-2 text-xs font-medium ${isPending ? 'text-yellow-700' : 'text-green-700'}">
+                            ${isPending ? 'Chờ xử lý' : 'Đã xử lý'}
+                        </span>
+                    </div>
                 </td>
                 <td class="text-center space-x-2">
                     <button onclick="viewBoxHVDetail('${box.box_code}')" 
@@ -269,7 +274,6 @@ function renderBoxHVData(dataToRender) {
         `;
     }).join('');
 }
-
 // ==================== XEM CHI TIẾT SN ====================
 window.viewBoxHVDetail = async function(boxCode) {
     if (!boxCode) return;
