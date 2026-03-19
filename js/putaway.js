@@ -1,5 +1,5 @@
 // js/box-hv.js - Module Box HV (cập nhật thêm bộ nhớ đệm Mass Put)
-// Version: 2.1 - Sửa lỗi tìm kiếm box và render bảng
+// Version: 2.2 - Thêm nút toggle trạng thái thủ công
 
 let boxHVInterval = null;
 let boxHVData = [];
@@ -59,47 +59,8 @@ function filterBoxByCode(keyword) {
         );
     }
     
-    // RENDER LẠI BẢNG (QUAN TRỌNG)
-    const tbody = document.getElementById('boxhv-tbody');
-    if (!filteredBoxData || filteredBoxData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>';
-    } else {
-        tbody.innerHTML = filteredBoxData.map(box => {
-            const isPending = box.putaway_status === 'pending';
-            const statusClass = isPending ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
-            const statusText = isPending ? 'Chờ xử lý' : 'Đã xử lý';
-            
-            // Kiểm tra box này có đang trong cache không
-            const isCached = massPutCache && massPutCache.box === box.box_code;
-            const rowClass = isCached ? 'bg-indigo-50' : '';
-
-            return `
-                <tr class="${rowClass}">
-                    <td class="font-bold text-blue-600">${box.box_code || ''}</td>
-                    <td>${box.po || ''}</td>
-                    <td>${box.sku || ''}</td>
-                    <td class="text-center">${box.total || 0}</td>
-                    <td>${box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : ''}</td>
-                    <td>${box.created_by || 'N/A'}</td>
-                    <td>
-                        <span class="${statusClass} px-2 py-1 rounded text-xs font-medium">
-                            ${statusText}
-                        </span>
-                    </td>
-                    <td class="text-center space-x-2">
-                        <button onclick="viewBoxHVDetail('${box.box_code}')" 
-                            class="text-blue-500 hover:text-blue-700 text-xs font-medium border border-blue-200 px-2 py-1 rounded">
-                            XEM SN
-                        </button>
-                        <button onclick="prepareMassPut('${box.box_code}', '${box.po}', '${box.sku}')" 
-                            class="bg-indigo-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-indigo-600 transition">
-                            ⚡ MASS PUT
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
+    // RENDER LẠI BẢNG
+    renderBoxHVData(filteredBoxData);
     
     // Hiển thị kết quả tìm kiếm
     const resultSpan = document.getElementById('boxhv-search-result');
@@ -182,7 +143,6 @@ async function loadBoxHVData() {
         const fromDate = document.getElementById('boxhv-from-date')?.value;
         const toDate = document.getElementById('boxhv-to-date')?.value;
         const status = document.getElementById('boxhv-status')?.value || 'all';
-        // Đã bỏ tìm theo PO, chỉ lọc theo ngày và status
 
         let query = supabaseClient
             .from('boxes')
@@ -274,6 +234,7 @@ function renderBoxHVData(dataToRender) {
         `;
     }).join('');
 }
+
 // ==================== XEM CHI TIẾT SN ====================
 window.viewBoxHVDetail = async function(boxCode) {
     if (!boxCode) return;
@@ -336,7 +297,7 @@ window.prepareMassPut = async function(boxCode, po, sku) {
             po: po,
             sku: sku,
             total: box.total || snList.length,
-            snList: snList,  // QUAN TRỌNG: Lưu mảng SN
+            snList: snList,
             created_by: box.created_by,
             created_at: box.created_at,
             timestamp: new Date().toISOString(),
@@ -351,10 +312,6 @@ window.prepareMassPut = async function(boxCode, po, sku) {
         
         console.log('📦 Đã lưu đầy đủ thông tin:', fullBoxInfo);
         console.log('📦 Đã lưu box riêng:', boxCode);
-        console.log('🔍 Kiểm tra cache:', {
-            full: sessionStorage.getItem('massPutFullInfo'),
-            box: sessionStorage.getItem('massPutBox')
-        });
         
         window.notify(`✅ Đã chọn box ${boxCode} (${snList.length} SN) cho Mass Put`);
         
@@ -386,7 +343,6 @@ window.clearMassPutCache = function() {
 
 // ==================== FILTER ====================
 window.filterBoxHV = function() {
-    // Hàm này giữ để tương thích, nhưng không dùng nữa
     loadBoxHVData();
 };
 
@@ -397,10 +353,9 @@ window.resetBoxHVFilter = function() {
 
     document.getElementById('boxhv-from-date').value = lastWeek.toISOString().split('T')[0];
     document.getElementById('boxhv-to-date').value = today.toISOString().split('T')[0];
-    document.getElementById('boxhv-box-search').value = ''; // Đã đổi từ PO thành box
+    document.getElementById('boxhv-box-search').value = '';
     document.getElementById('boxhv-status').value = 'all';
     
-    // Ẩn kết quả tìm kiếm
     const resultSpan = document.getElementById('boxhv-search-result');
     if (resultSpan) {
         resultSpan.classList.add('hidden');
@@ -439,8 +394,11 @@ window.exportBoxHVList = function() {
         window.notify('❌ Lỗi xuất Excel!', true);
     }
 };
+
 // ==================== TOGGLE TRẠNG THÁI BOX ====================
 window.toggleBoxStatus = async function(boxId, boxCode, currentStatus) {
+    console.log('🔵 toggleBoxStatus được gọi:', { boxId, boxCode, currentStatus });
+    
     if (!['admin', 'manager'].includes(currentUserRole)) {
         window.notify('❌ Bạn không có quyền thay đổi trạng thái!', true);
         return;
@@ -469,5 +427,6 @@ window.toggleBoxStatus = async function(boxId, boxCode, currentStatus) {
         window.notify('❌ Lỗi khi cập nhật trạng thái!', true);
     }
 };
+
 // Khởi tạo khi load
-console.log('✅ Box HV module loaded - Version 2.1');
+console.log('✅ Box HV module loaded - Version 2.2');
