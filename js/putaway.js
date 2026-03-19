@@ -98,32 +98,32 @@ window.cleanupBoxHV = function() {
 // ==================== THỐNG KÊ ====================
 async function loadBoxHVStats() {
     try {
-        // Tổng số box
+        // Tổng số box ACTIVE
         const { count: total } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
-            .eq('is_active', true);
+            .eq('is_active', true);  // ✅ CHỈ ĐẾM BOX ACTIVE
 
-        // Đếm pending
+        // Đếm pending (chỉ box ACTIVE)
         const { count: pending } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
+            .eq('is_active', true)        // ✅ THÊM DÒNG NÀY
             .eq('putaway_status', 'pending');
 
-        // Đếm completed
+        // Đếm completed (chỉ box ACTIVE)
         const { count: completed } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
+            .eq('is_active', true)        // ✅ THÊM DÒNG NÀY
             .eq('putaway_status', 'completed');
 
-        // Đếm hôm nay
+        // Đếm hôm nay (chỉ box ACTIVE)
         const today = new Date().toISOString().split('T')[0];
         const { count: todayCount } = await supabaseClient
             .from('boxes')
             .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
+            .eq('is_active', true)        // ✅ THÊM DÒNG NÀY
             .gte('created_at', today + 'T00:00:00');
 
         // Cập nhật UI
