@@ -2081,6 +2081,118 @@ async function deletePO(poCode) {
         window.notify('❌ Lỗi: ' + error.message, true);
     }
 }
+// ==================== BACKUP TỪNG PO LÊN GOOGLE DRIVE ====================
+window.backupPOToDrive = async function(poCode, snList) {
+    console.log('💾 Backup PO:', poCode, 'Số lượng SN:', snList.length);
+    
+    if (!snList || snList.length === 0) {
+        window.notify('❌ PO này không có SN!', true);
+        return;
+    }
+    
+    window.notify(`🔄 Đang backup PO ${poCode} (${snList.length} SN)...`);
+    
+    // Tạo file Excel cho PO này
+    const excelData = snList.map((sn, index) => {
+        // Kiểm tra SN đã được scan chưa
+        const isScanned = allScannedSerials.has(sn);
+        return {
+            'STT': index + 1,
+            'Serial Number': sn,
+            'PO': poCode,
+            'Trạng thái': isScanned ? 'Đã scan' : 'Chưa scan',
+            'Ngày backup': new Date().toLocaleString('vi-VN')
+        };
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, poCode);
+    
+    // Định dạng cột
+    ws['!cols'] = [
+        { wch: 8 },   // STT
+        { wch: 25 },  // Serial Number
+        { wch: 15 },  // PO
+        { wch: 12 },  // Trạng thái
+        { wch: 20 }   // Ngày backup
+    ];
+    
+    // Xuất ra blob
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    // Tạo tên file
+    const scanned = snList.filter(sn => allScannedSerials.has(sn)).length;
+    const fileName = `${poCode}_${scanned}_${snList.length}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
+    
+    // Upload lên Google Drive (nếu có API)
+    if (typeof gapi !== 'undefined' && googleAuth && googleAuth.isSignedIn.get()) {
+        await uploadPOToDrive(blob, fileName, poCode, snList.length, scanned);
+    } else {
+        // Fallback: tải về máy
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        window.notify(`✅ Đã tải file ${fileName} về máy!`);
+    }
+};
+
+// ==================== UPLOAD PO LÊN GOOGLE DRIVE ====================
+async function uploadPOToDrive(blob, fileName, poCode, total, scanned) {
+    try {
+        window.notify(`🔄 Đang upload PO ${poCode} lên Drive...`);
+        
+        const accessToken = googleAuth.currentUser.get().getAuthResponse().access_token;
+        const folderId = GOOGLE_CONFIG?.FOLDER_ID || '1tcx6k3H9Z6hmXmsovP8EPMdq-ca8QILD';
+        
+        const formData = new FormData();
+        formData.append('metadata', new Blob([JSON.stringify({
+            name: fileName,
+            parents: [folderId],
+            description: `PO: ${poCode} | Đã scan: ${scanned}/${total} | Backup ngày: ${new Date().toLocaleString('vi-VN')}`,
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })], { type: 'application/json' }));
+        formData.append('file', blob);
+        
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.id) {
+            window.notify(`✅ Đã backup PO ${poCode} (${scanned}/${total} SN đã scan) lên Drive!`);
+            await logActivity('BACKUP_PO', { 
+                po: poCode, 
+                total_sn: total,
+                scanned_sn: scanned,
+                file_name: fileName,
+                file_id: result.id
+            });
+        } else {
+            throw new Error(result.error?.message || 'Lỗi không xác định');
+        }
+        
+    } catch (error) {
+        console.error('❌ Lỗi upload:', error);
+        window.notify('⚠️ Không thể upload lên Drive, đã lưu file về máy!');
+        // Fallback: tải về máy
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+};
         // ==================== INIT ====================
         window.onload = async function() {
             const hasSession = await loadSavedSession();
