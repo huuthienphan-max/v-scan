@@ -1130,12 +1130,17 @@
                     </div>
                 </div>
             </td>
-            <td class="px-4 py-3 text-right">
-                <button onclick="viewPODetail('${group.po}')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700 mr-1">📋 Chi tiết</button>
-                <button onclick="scanPO('${group.po}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 mr-1">🔍 Scan</button>
+            <td class="px-4 py-3 text-right space-x-2">
+                <button onclick="viewPODetail('${group.po}')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">📋 Chi tiết</button>
+                <button onclick="scanPO('${group.po}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700">🔍 Scan</button>
+                <!-- 👉 THÊM NÚT NÀY -->
+                <button onclick="backupPOToDrive('${group.po}')" 
+                    class="bg-purple-600 text-white px-3 py-1 rounded text-xs hover:bg-purple-700">
+                    💾 Backup Drive
+                </button>
                 ${canDelete ? `<button onclick="confirmDeletePO('${group.po}')" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">🗑️ Xóa</button>` : ''}
             </td>
-        </tr>`;
+        </td>`;
     }).join('');
 }
 
@@ -2077,6 +2082,11 @@ async function deletePO(poCode) {
         window.notify('❌ Lỗi: ' + error.message, true);
     }
 }
+// ==================== BACKUP DRIVE THEO PO ====================
+        window.backupPOToDrive = function(poCode) {
+            console.log('🔵 Backup Drive cho PO:', poCode);
+            alert(`Chức năng Backup Drive cho PO ${poCode} đang được phát triển!`);
+        };
         // ==================== INIT ====================
         window.onload = async function() {
             const hasSession = await loadSavedSession();
