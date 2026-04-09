@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V-Scan Pro | Hệ thống Đối soát SN</title>
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -693,6 +694,43 @@
             err: new Audio('https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3') 
         };
 
+        // ==================== CẤU HÌNH GOOGLE DRIVE ====================
+const GOOGLE_CONFIG = {
+    API_KEY: 'YOUR_API_KEY',        // Thay bằng API Key của bạn
+    CLIENT_ID: 'YOUR_CLIENT_ID',    // Thay bằng Client ID của bạn
+    FOLDER_ID: '1tcx6k3H9Z6hmXmsovP8EPMdq-ca8QILD'
+};
+
+let googleAuth = null;
+let currentArchiveData = null;
+
+// ==================== KHỞI TẠO GOOGLE API ====================
+async function initGoogleAPI() {
+    return new Promise((resolve, reject) => {
+        if (typeof gapi === 'undefined') {
+            console.log('⚠️ Google API chưa được tải');
+            reject('Google API chưa được tải');
+            return;
+        }
+        
+        gapi.load('client:auth2', async () => {
+            try {
+                await gapi.client.init({
+                    apiKey: GOOGLE_CONFIG.API_KEY,
+                    clientId: GOOGLE_CONFIG.CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.file'
+                });
+                googleAuth = gapi.auth2.getAuthInstance();
+                console.log('✅ Google API đã sẵn sàng');
+                resolve();
+            } catch (error) {
+                console.error('❌ Lỗi init Google API:', error);
+                reject(error);
+            }
+        });
+    });
+}
+        
         // ==================== CÁC HÀM CHÍNH ====================
         async function loadSavedSession() {
             const savedUser = localStorage.getItem('currentUser');
