@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
-    <script src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/putaway.css">
     <style>
@@ -765,6 +765,35 @@ async function uploadToDrive(blob, fileName, poCode, scanned, total) {
 
     return response.json();
 }
+          // ==================== KHỞI TẠO GOOGLE PICKER ====================
+        let pickerApiLoaded = false;
+        let pickerApiInitialized = false;
+
+        function initPickerApi() {
+            if (pickerApiInitialized) return;
+            
+            gapi.load('picker', () => {
+                pickerApiLoaded = true;
+                console.log('✅ Google Picker API đã sẵn sàng');
+            });
+            pickerApiInitialized = true;
+        }
+
+        function loadGapiAndPicker() {
+            if (typeof gapi !== 'undefined') {
+                initPickerApi();
+            } else {
+                const script = document.createElement('script');
+                script.src = 'https://apis.google.com/js/api.js';
+                script.onload = () => {
+                    console.log('✅ Google API loaded');
+                    initPickerApi();
+                };
+                document.head.appendChild(script);
+            }
+        }
+
+        loadGapiAndPicker();      
 
         // ==================== CÁC HÀM CHÍNH ====================
         async function loadSavedSession() {
@@ -2157,9 +2186,7 @@ async function deletePO(poCode) {
     }
 }
 
-        function onApiLoad() {
-            console.log('✅ Google Picker API đã sẵn sàng');
-        }
+    
         // ==================== CHỌN THƯ MỤC GOOGLE DRIVE ====================
 let selectedFolderId = localStorage.getItem('backupFolderId');
 let selectedFolderName = localStorage.getItem('backupFolderName');
@@ -2174,11 +2201,22 @@ function displaySelectedFolder() {
 
 // Mở hộp thoại chọn thư mục
 window.selectBackupFolder = async function() {
+    // Đợi Picker API load xong
+    if (!pickerApiLoaded) {
+        window.notify('⏳ Đang tải Google Picker, vui lòng thử lại sau...', true);
+        return;
+    }
+    
     if (!accessToken) {
         await initGoogleToken();
     }
     
-    // Tạo picker để chọn thư mục
+    // Kiểm tra google.picker có tồn tại không
+    if (typeof google === 'undefined' || !google.picker) {
+        window.notify('⏳ Google Picker chưa sẵn sàng, thử lại sau...', true);
+        return;
+    }
+    
     const picker = new google.picker.PickerBuilder()
         .setOAuthToken(accessToken)
         .addView(new google.picker.DocsView()
