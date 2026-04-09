@@ -736,7 +736,7 @@ function initGoogleToken() {
     });
 }
         // ==================== UPLOAD LÊN GOOGLE DRIVE ====================
-aasync function uploadToDrive(blob, fileName, poCode, scanned, total) {
+async function uploadToDrive(blob, fileName, poCode, scanned, total) {
     if (!accessToken) {
         await initGoogleToken();
     }
