@@ -375,14 +375,17 @@
                     </div>
                 </div>
 
-               
-                <div id="sub-page-po" class="hidden space-y-4">
+               <div id="sub-page-po" class="hidden space-y-4">
     <div class="flex justify-between items-center">
         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">📊 DANH SÁCH PO CẦN SCAN</h3>
         <div class="flex gap-2">
             <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">📥 Tải file mẫu</button>
             <button onclick="document.getElementById('master-file').click()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-700">📤 Upload Excel</button>
             <button onclick="confirmDeleteAllData()" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700">🗑️ Xóa tất cả</button>
+            <!-- 👉 THÊM NÚT BACKUP -->
+            <button onclick="backupAllMasterData()" class="bg-purple-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-purple-700">
+                💾 Backup to Drive
+            </button>
             <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
         </div>
     </div>
