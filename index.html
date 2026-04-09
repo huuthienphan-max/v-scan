@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/putaway.css">
     <style>
@@ -381,12 +382,20 @@
     <div class="flex justify-between items-center">
         <h3 class="font-bold text-gray-700 uppercase text-sm tracking-tighter">📊 DANH SÁCH PO CẦN SCAN</h3>
         <div class="flex gap-2">
-            <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-blue-700">📥 Tải file mẫu</button>
-            <button onclick="document.getElementById('master-file').click()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-700">📤 Upload Excel</button>
-            <button onclick="confirmDeleteAllData()" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-red-700">🗑️ Xóa tất cả</button>
-            <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
-        </div>
+    <button onclick="downloadSampleFile()" class="bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold">📥 Tải file mẫu</button>
+    <button onclick="document.getElementById('master-file').click()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">📤 Upload Excel</button>
+    <button onclick="confirmDeleteAllData()" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold">🗑️ Xóa tất cả</button>
+    <!-- 👉 THÊM NÚT NÀY -->
+    <button onclick="selectBackupFolder()" class="bg-purple-600 text-white px-4 py-2 rounded text-xs font-bold">
+        📁 Chọn thư mục lưu
+    </button>
+    <input type="file" id="master-file" accept=".xlsx" class="hidden" onchange="handleMasterFileUpload(event)">
+</div>
     </div>
+<div id="selected-folder-info" class="text-xs text-gray-500 mt-2 hidden">
+    📁 Thư mục lưu: <span id="folder-name"></span>
+    <button onclick="clearSelectedFolder()" class="text-red-500 ml-2">✕ Xóa</button>
+</div>
 
     <!-- Thêm progress bar -->
     <div id="upload-progress" class="hidden mt-2">
@@ -727,17 +736,23 @@ function initGoogleToken() {
     });
 }
         // ==================== UPLOAD LÊN GOOGLE DRIVE ====================
-async function uploadToDrive(blob, fileName, poCode, scanned, total) {
+aasync function uploadToDrive(blob, fileName, poCode, scanned, total) {
     if (!accessToken) {
         await initGoogleToken();
     }
-
+    
+    // Kiểm tra đã chọn thư mục chưa
+    if (!selectedFolderId) {
+        window.notify('⚠️ Vui lòng chọn thư mục lưu trước!', true);
+        throw new Error('Chưa chọn thư mục');
+    }
+    
     const metadata = {
         name: fileName,
-        parents: [GOOGLE_CONFIG.FOLDER_ID],
-        description: `PO: ${poCode} | Đã scan: ${scanned}/${total} | Backup: ${new Date().toLocaleString('vi-VN')}`
+        parents: [selectedFolderId],  // Dùng thư mục đã chọn thay vì hardcode
+        description: `PO: ${poCode} | Đã scan: ${scanned}/${total}`
     };
-
+    
     const formData = new FormData();
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('file', blob);
@@ -2141,6 +2156,73 @@ async function deletePO(poCode) {
         window.notify('❌ Lỗi: ' + error.message, true);
     }
 }
+
+        function onApiLoad() {
+            console.log('✅ Google Picker API đã sẵn sàng');
+        }
+        // ==================== CHỌN THƯ MỤC GOOGLE DRIVE ====================
+let selectedFolderId = localStorage.getItem('backupFolderId');
+let selectedFolderName = localStorage.getItem('backupFolderName');
+
+// Hiển thị thư mục đã chọn khi load trang
+function displaySelectedFolder() {
+    if (selectedFolderId && selectedFolderName) {
+        document.getElementById('selected-folder-info').classList.remove('hidden');
+        document.getElementById('folder-name').innerText = selectedFolderName;
+    }
+}
+
+// Mở hộp thoại chọn thư mục
+window.selectBackupFolder = async function() {
+    if (!accessToken) {
+        await initGoogleToken();
+    }
+    
+    // Tạo picker để chọn thư mục
+    const picker = new google.picker.PickerBuilder()
+        .setOAuthToken(accessToken)
+        .addView(new google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setMimeTypes('application/vnd.google-apps.folder')
+            .setSelectFolderEnabled(true))
+        .setCallback(pickerCallback)
+        .setTitle('Chọn thư mục lưu backup')
+        .build();
+    
+    picker.setVisible(true);
+};
+
+// Xử lý khi chọn thư mục
+function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+        const folder = data.docs[0];
+        selectedFolderId = folder.id;
+        selectedFolderName = folder.name;
+        
+        // Lưu vào localStorage để nhớ lần sau
+        localStorage.setItem('backupFolderId', selectedFolderId);
+        localStorage.setItem('backupFolderName', selectedFolderName);
+        
+        // Hiển thị thông tin
+        document.getElementById('selected-folder-info').classList.remove('hidden');
+        document.getElementById('folder-name').innerText = selectedFolderName;
+        
+        window.notify(`✅ Đã chọn thư mục: ${selectedFolderName}`);
+    }
+}
+
+// Xóa thư mục đã chọn
+window.clearSelectedFolder = function() {
+    selectedFolderId = null;
+    selectedFolderName = null;
+    localStorage.removeItem('backupFolderId');
+    localStorage.removeItem('backupFolderName');
+    document.getElementById('selected-folder-info').classList.add('hidden');
+    window.notify('🗑️ Đã xóa thư mục đã chọn');
+};
+
+// Gọi hiển thị khi load trang
+displaySelectedFolder();
         // ==================== BACKUP PO LÊN GOOGLE DRIVE ====================
         window.backupPOToDrive = async function(poCode) {
     console.log('💾 Backup PO:', poCode);
