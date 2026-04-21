@@ -206,7 +206,13 @@ function renderBoxHVData(dataToRender) {
                 <td>${box.po || ''}</td>
                 <td>${box.sku || ''}</td>
                 <td class="text-center">${box.total || 0}</td>
-                <td>${box.created_at ? new Date(box.created_at).toLocaleString('vi-VN') : ''}</td>
+                <td>
+  ${
+    box.updated_at
+      ? new Date(box.updated_at).toLocaleString('vi-VN')
+      : new Date(box.created_at).toLocaleString('vi-VN')
+  }
+</td>
                 <td>${box.created_by || 'N/A'}</td>
                 <td>
                     <div class="flex items-center justify-center">
@@ -413,7 +419,8 @@ window.toggleBoxStatus = async function(boxId, boxCode, currentStatus) {
             .update({ 
                 putaway_status: newStatus,
                 putaway_date: newStatus === 'completed' ? new Date().toISOString() : null,
-                putaway_by: newStatus === 'completed' ? currentUser : null
+                putaway_by: newStatus === 'completed' ? currentUser : null,
+                updated_at: new Date().toISOString()
             })
             .eq('id', boxId);
         
