@@ -465,6 +465,25 @@
             </button>
 
             <div id="result" class="mt-3 text-sm"></div>
+            <div class="mt-4">
+    <table class="w-full border text-sm">
+        <thead>
+            <tr>
+                <th>UID</th>
+                <th>SN1</th>
+                <th>SN2</th>
+                <th>SN3</th>
+                <th>SN4</th>
+                <th>User</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+
+        <!-- 🔥 QUAN TRỌNG NHẤT -->
+        <tbody id="mapping-table"></tbody>
+
+    </table>
+</div>
         </div>
 
     </div>
@@ -2414,6 +2433,7 @@ async function saveMap() {
         const { error: snError } = await supabaseClient
             .from('uid_sn_items')
             .insert(rows);
+        await loadMappingList();
 
         if (snError) throw snError;
 
