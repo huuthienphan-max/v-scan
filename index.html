@@ -2427,8 +2427,8 @@ async function saveMap() {
         // insert SN list
         const rows = snList.map(sn => ({
             uid_id: uidData.id,
-            sn
-            created_by: currentUser || 'unknown'
+            sn,
+            created_by: currentUser
         }));
 
         const { error: snError } = await supabaseClient
