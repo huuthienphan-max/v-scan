@@ -2441,30 +2441,32 @@ function resetForm() {
 async function searchMap() {
     const key = document.getElementById('search-key').value.trim();
 
-    if (!key) {
-        alert('Nhập UID hoặc SN');
-        return;
-    }
+    if (!key) return;
 
     try {
-        const { data, error } = await supabaseClient
+        // 1. tìm theo SN
+        const { data: snData } = await supabaseClient
             .from('uid_sn_items')
             .select(`sn, uid_master(uid)`)
-            .or(`sn.eq.${key},uid_master.uid.eq.${key}`);
+            .eq('sn', key);
 
-        if (error) throw error;
+        // 2. tìm theo UID
+        const { data: uidData } = await supabaseClient
+            .from('uid_sn_items')
+            .select(`sn, uid_master(uid)`)
+            .eq('uid_master.uid', key);
+
+        const data = [...(snData || []), ...(uidData || [])];
 
         document.getElementById('result').innerHTML =
             data.map(x => `
-                <div class="border p-2 mb-2">
-                    UID: <b>${x.uid_master.uid}</b><br>
-                    SN: ${x.sn}
+                <div>
+                    UID: <b>${x.uid_master?.uid}</b> - SN: ${x.sn}
                 </div>
             `).join('');
 
     } catch (err) {
         console.error(err);
-        alert('Lỗi search');
     }
 }
 
