@@ -2397,7 +2397,7 @@ async function saveMap() {
 
     try {
         // insert/update UID
-        const { data: uidData, error: uidError } = await supabase
+        const { data: uidData, error: uidError } = await supabaseClient
             .from('uid_master')
             .upsert({ uid })
             .select()
@@ -2411,7 +2411,7 @@ async function saveMap() {
             sn
         }));
 
-        const { error: snError } = await supabase
+        const { error: snError } = await supabaseClient
             .from('uid_sn_items')
             .insert(rows);
 
@@ -2447,7 +2447,7 @@ async function searchMap() {
     }
 
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('uid_sn_items')
             .select(`sn, uid_master(uid)`)
             .or(`sn.eq.${key},uid_master.uid.eq.${key}`);
