@@ -460,7 +460,7 @@
 
         <div class="card p-6">
             <input id="search-key" placeholder="Nhập UID hoặc SN..." class="w-full input-wms">
-            <button onclick="searchMap()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded text-sm">
+           <button onclick="loadMappingList()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded text-sm">
                 🔍 Tìm
             </button>
 
@@ -2507,6 +2507,10 @@ async function loadMappingList() {
         console.error(err);
     }
 }
+        document.getElementById('search-key')
+    .addEventListener('input', function () {
+        loadMappingList();
+    });
 </script>
     </script>
 </body>
