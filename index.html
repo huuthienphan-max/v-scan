@@ -439,22 +439,19 @@
             <h2 class="text-xl font-bold text-gray-800">🔗 UID - SN Mapping</h2>
         </div>
 
-        <div class="card p-6">
-            <input id="scan-input"
-                   placeholder="Scan UID hoặc SN..."
-                   class="w-full input-wms"
-                   onkeydown="handleScan(event)">
+        <div class="card p-6 space-y-3">
 
-            <div class="mt-3 text-sm">
-                UID: <span id="uid-label" class="font-bold text-blue-600">-</span>
-            </div>
+    <input id="uid-input" placeholder="Nhập UID" class="w-full input-wms">
 
-            <div id="sn-list" class="mt-3 text-sm"></div>
+    <input id="sn1" placeholder="SN 1" class="w-full input-wms">
+    <input id="sn2" placeholder="SN 2" class="w-full input-wms">
+    <input id="sn3" placeholder="SN 3" class="w-full input-wms">
+    <input id="sn4" placeholder="SN 4" class="w-full input-wms">
 
-            <div class="flex gap-2 mt-4">
-                <button onclick="saveMap()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">
-                    💾 Lưu
-                </button>
+    <button onclick="saveMap()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">
+        💾 Lưu
+    </button>
+
                 <button onclick="resetMap()" class="bg-gray-400 text-white px-4 py-2 rounded text-sm">
                     Reset
                 </button>
@@ -2375,91 +2372,101 @@ displaySelectedFolder();
 
 };
 
- 
-   // ==================== UID SN MAPPING ====================
-   let currentUID = null;
-   let snList = [];
+ // ==================== UID SN MAPPING (FIXED FORM) ====================
 
-   function detectType(code) {
-       if (code.startsWith('UID')) return 'uid';
-       return 'sn';
-   }
+// SAVE
+async function saveMap() {
+    const uid = document.getElementById('uid-input').value.trim();
 
-   function handleScan(e) {
-       if (e.key !== 'Enter') return;
+    const snList = [
+        document.getElementById('sn1').value.trim(),
+        document.getElementById('sn2').value.trim(),
+        document.getElementById('sn3').value.trim(),
+        document.getElementById('sn4').value.trim()
+    ].filter(x => x);
 
-       const code = e.target.value.trim();
-       e.target.value = '';
+    if (!uid) {
+        alert('❌ Thiếu UID');
+        return;
+    }
 
-       if (!code) return;
+    if (snList.length === 0) {
+        alert('❌ Phải nhập ít nhất 1 SN');
+        return;
+    }
 
-       const type = detectType(code);
+    try {
+        // insert/update UID
+        const { data: uidData, error: uidError } = await supabase
+            .from('uid_master')
+            .upsert({ uid })
+            .select()
+            .single();
 
-       if (type === 'uid') {
-           currentUID = code;
-           snList = [];
+        if (uidError) throw uidError;
 
-           document.getElementById('uid-label').innerText = code;
-           document.getElementById('sn-list').innerHTML = '';
-       } else {
-           if (!currentUID) {
-               alert('Scan UID trước!');
-               return;
-           }
+        // insert SN list
+        const rows = snList.map(sn => ({
+            uid_id: uidData.id,
+            sn
+        }));
 
-           snList.push(code);
-           renderSN();
-       }
-   }
+        const { error: snError } = await supabase
+            .from('uid_sn_items')
+            .insert(rows);
 
-   function renderSN() {
-       document.getElementById('sn-list').innerHTML =
-           snList.map(sn => `<div>${sn}</div>`).join('');
-   }
+        if (snError) throw snError;
 
-   async function saveMap() {
-       if (!currentUID || snList.length === 0) {
-           alert('Thiếu dữ liệu');
-           return;
-       }
+        alert(`✅ Saved ${snList.length} SN`);
+        resetForm();
 
-       const { data } = await supabase
-           .from('uid_master')
-           .upsert({ uid: currentUID })
-           .select()
-           .single();
+    } catch (err) {
+        console.error('❌ Save lỗi:', err);
+        alert('❌ Lỗi khi lưu');
+    }
+}
 
-       const rows = snList.map(sn => ({
-           uid_id: data.id,
-           sn
-       }));
 
-       await supabase.from('uid_sn_items').insert(rows);
+// RESET
+function resetForm() {
+    document.getElementById('uid-input').value = '';
+    document.getElementById('sn1').value = '';
+    document.getElementById('sn2').value = '';
+    document.getElementById('sn3').value = '';
+    document.getElementById('sn4').value = '';
+}
 
-       alert('Saved');
-       resetMap();
-   }
 
-   function resetMap() {
-       currentUID = null;
-       snList = [];
-       document.getElementById('uid-label').innerText = '-';
-       document.getElementById('sn-list').innerHTML = '';
-   }
+// SEARCH
+async function searchMap() {
+    const key = document.getElementById('search-key').value.trim();
 
-   async function searchMap() {
-       const key = document.getElementById('search-key').value;
+    if (!key) {
+        alert('Nhập UID hoặc SN');
+        return;
+    }
 
-       const { data } = await supabase
-           .from('uid_sn_items')
-           .select(`sn, uid_master(uid)`)
-           .or(`sn.eq.${key},uid_master.uid.eq.${key}`);
+    try {
+        const { data, error } = await supabase
+            .from('uid_sn_items')
+            .select(`sn, uid_master(uid)`)
+            .or(`sn.eq.${key},uid_master.uid.eq.${key}`);
 
-       document.getElementById('result').innerHTML =
-           data.map(x => `
-               <div>UID: ${x.uid_master.uid} - SN: ${x.sn}</div>
-           `).join('');
-   }
+        if (error) throw error;
+
+        document.getElementById('result').innerHTML =
+            data.map(x => `
+                <div class="border p-2 mb-2">
+                    UID: <b>${x.uid_master.uid}</b><br>
+                    SN: ${x.sn}
+                </div>
+            `).join('');
+
+    } catch (err) {
+        console.error(err);
+        alert('Lỗi search');
+    }
+}
 
 </script>
     </script>
