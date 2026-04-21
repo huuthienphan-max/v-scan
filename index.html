@@ -2457,62 +2457,10 @@ function resetForm() {
 }
 
 
-async function searchMap() {
-    const key = document.getElementById('search-key').value.trim();
 
-    if (!key) return;
-
-    try {
-        // 🔥 tìm theo UID
-        const { data: uidData } = await supabaseClient
-            .from('uid_master')
-            .select(`
-                uid,
-                uid_sn_items(sn)
-            `)
-            .eq('uid', key);
-
-        // 🔥 tìm theo SN
-        const { data: snData } = await supabaseClient
-            .from('uid_sn_items')
-            .select(`
-                sn,
-                uid_master(uid)
-            `)
-            .eq('sn', key);
-
-        let html = '';
-
-        // render theo UID
-        if (uidData && uidData.length > 0) {
-            uidData.forEach(x => {
-                html += `
-                    <div>
-                        UID: <b>${x.uid}</b><br>
-                        SN: ${x.uid_sn_items.map(s => s.sn).join(', ')}
-                    </div><br>
-                `;
-            });
-        }
-
-        // render theo SN
-        if (snData && snData.length > 0) {
-            snData.forEach(x => {
-                html += `
-                    <div>
-                        UID: <b>${x.uid_master?.uid}</b> - SN: ${x.sn}
-                    </div>
-                `;
-            });
-        }
-
-        document.getElementById('result').innerHTML = html || 'Không tìm thấy';
-
-    } catch (err) {
-        console.error(err);
-    }
-}
 async function loadMappingList() {
+    const key = document.getElementById('search-key')?.value.trim();
+
     try {
         const { data, error } = await supabaseClient
             .from('uid_master')
@@ -2523,13 +2471,23 @@ async function loadMappingList() {
                     created_at,
                     created_by
                 )
-            `)
-            .order('uid', { ascending: false });
+            `);
 
         if (error) throw error;
 
+        let filtered = data;
+
+        // 🔥 FILTER LOCAL (AN TOÀN)
+        if (key) {
+            filtered = data.filter(row => {
+                if (row.uid.includes(key)) return true;
+
+                return (row.uid_sn_items || []).some(s => s.sn.includes(key));
+            });
+        }
+
         document.getElementById('mapping-table').innerHTML =
-            data.map(row => {
+            filtered.map(row => {
                 const sns = row.uid_sn_items || [];
 
                 return `
