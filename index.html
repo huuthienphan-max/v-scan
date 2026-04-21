@@ -2457,33 +2457,56 @@ function resetForm() {
 }
 
 
-// SEARCH
 async function searchMap() {
     const key = document.getElementById('search-key').value.trim();
 
     if (!key) return;
 
     try {
-        // 1. tìm theo SN
+        // 🔥 tìm theo UID
+        const { data: uidData } = await supabaseClient
+            .from('uid_master')
+            .select(`
+                uid,
+                uid_sn_items(sn)
+            `)
+            .eq('uid', key);
+
+        // 🔥 tìm theo SN
         const { data: snData } = await supabaseClient
             .from('uid_sn_items')
-            .select(`sn, uid_master(uid)`)
+            .select(`
+                sn,
+                uid_master(uid)
+            `)
             .eq('sn', key);
 
-        // 2. tìm theo UID
-        const { data: uidData } = await supabaseClient
-            .from('uid_sn_items')
-            .select(`sn, uid_master(uid)`)
-            .eq('uid_master.uid', key);
+        let html = '';
 
-        const data = [...(snData || []), ...(uidData || [])];
+        // render theo UID
+        if (uidData && uidData.length > 0) {
+            uidData.forEach(x => {
+                html += `
+                    <div>
+                        UID: <b>${x.uid}</b><br>
+                        SN: ${x.uid_sn_items.map(s => s.sn).join(', ')}
+                    </div><br>
+                `;
+            });
+        }
 
-        document.getElementById('result').innerHTML =
-            data.map(x => `
-                <div>
-                    UID: <b>${x.uid_master?.uid}</b> - SN: ${x.sn}
-                </div>
-            `).join('');
+        // render theo SN
+        if (snData && snData.length > 0) {
+            snData.forEach(x => {
+                html += `
+                    <div>
+                        UID: <b>${x.uid_master?.uid}</b> - SN: ${x.sn}
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('result').innerHTML = html || 'Không tìm thấy';
 
     } catch (err) {
         console.error(err);
@@ -2492,46 +2515,35 @@ async function searchMap() {
 async function loadMappingList() {
     try {
         const { data, error } = await supabaseClient
-            .from('uid_sn_items')
+            .from('uid_master')
             .select(`
-                sn,
-                created_at,
-                created_by,
-                uid_master(uid)
+                uid,
+                uid_sn_items(
+                    sn,
+                    created_at,
+                    created_by
+                )
             `)
-            .order('created_at', { ascending: false });
+            .order('uid', { ascending: false });
 
         if (error) throw error;
 
-        const grouped = {};
-
-        data.forEach(row => {
-            const uid = row.uid_master?.uid || 'UNKNOWN';
-
-            if (!grouped[uid]) {
-                grouped[uid] = {
-                    uid,
-                    sns: [],
-                    created_by: row.created_by,
-                    created_at: row.created_at
-                };
-            }
-
-            grouped[uid].sns.push(row.sn);
-        });
-
         document.getElementById('mapping-table').innerHTML =
-            Object.values(grouped).map(g => `
-                <tr>
-                    <td>${g.uid}</td>
-                    <td>${g.sns[0] || ''}</td>
-                    <td>${g.sns[1] || ''}</td>
-                    <td>${g.sns[2] || ''}</td>
-                    <td>${g.sns[3] || ''}</td>
-                    <td>${g.created_by || '-'}</td>
-                    <td>${new Date(g.created_at).toLocaleString('vi-VN')}</td>
-                </tr>
-            `).join('');
+            data.map(row => {
+                const sns = row.uid_sn_items || [];
+
+                return `
+                    <tr>
+                        <td>${row.uid}</td>
+                        <td>${sns[0]?.sn || ''}</td>
+                        <td>${sns[1]?.sn || ''}</td>
+                        <td>${sns[2]?.sn || ''}</td>
+                        <td>${sns[3]?.sn || ''}</td>
+                        <td>${sns[0]?.created_by || '-'}</td>
+                        <td>${sns[0]?.created_at ? new Date(sns[0].created_at).toLocaleString('vi-VN') : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
 
     } catch (err) {
         console.error(err);
