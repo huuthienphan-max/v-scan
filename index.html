@@ -2489,7 +2489,54 @@ async function searchMap() {
         console.error(err);
     }
 }
+async function loadMappingList() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('uid_sn_items')
+            .select(`
+                sn,
+                created_at,
+                created_by,
+                uid_master(uid)
+            `)
+            .order('created_at', { ascending: false });
 
+        if (error) throw error;
+
+        const grouped = {};
+
+        data.forEach(row => {
+            const uid = row.uid_master?.uid || 'UNKNOWN';
+
+            if (!grouped[uid]) {
+                grouped[uid] = {
+                    uid,
+                    sns: [],
+                    created_by: row.created_by,
+                    created_at: row.created_at
+                };
+            }
+
+            grouped[uid].sns.push(row.sn);
+        });
+
+        document.getElementById('mapping-table').innerHTML =
+            Object.values(grouped).map(g => `
+                <tr>
+                    <td>${g.uid}</td>
+                    <td>${g.sns[0] || ''}</td>
+                    <td>${g.sns[1] || ''}</td>
+                    <td>${g.sns[2] || ''}</td>
+                    <td>${g.sns[3] || ''}</td>
+                    <td>${g.created_by || '-'}</td>
+                    <td>${new Date(g.created_at).toLocaleString('vi-VN')}</td>
+                </tr>
+            `).join('');
+
+    } catch (err) {
+        console.error(err);
+    }
+}
 </script>
     </script>
 </body>
